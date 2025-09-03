@@ -1,0 +1,307 @@
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Plane, Shield, Clock, Globe, Star, CheckCircle, Truck, Package, MapPin, Phone } from 'lucide-react'
+
+export default function HomePage() {
+  const testimonials = [
+    {
+      name: "Maria Rodriguez",
+      location: "Newark, NJ to Georgetown, Guyana",
+      rating: 5,
+      text: "QCS Cargo made shipping to my family in Georgetown so easy. Fast delivery and great customer service. Highly recommended!",
+      shipmentType: "Electronics & Household Items"
+    },
+    {
+      name: "David Thompson",
+      location: "Jersey City, NJ to Kingston, Jamaica",
+      rating: 5,
+      text: "Professional service from start to finish. My business shipments always arrive on time and in perfect condition.",
+      shipmentType: "Business Equipment"
+    },
+    {
+      name: "Sarah Williams",
+      location: "Elizabeth, NJ to Port of Spain, Trinidad",
+      rating: 5,
+      text: "The consolidation service saved me so much money. QCS Cargo really understands the Caribbean shipping needs.",
+      shipmentType: "Medical Supplies"
+    }
+  ]
+
+  const processSteps = [
+    {
+      step: 1,
+      title: "Get Quote & Schedule",
+      description: "Contact us for a detailed rate quote and arrange pickup or drop-off at our secure facility.",
+      icon: <Phone className="h-8 w-8 text-blue-600" />
+    },
+    {
+      step: 2,
+      title: "Cargo Drop-off/Pickup",
+      description: "Bring your items to our Kearny facility or schedule convenient pickup service within 25 miles.",
+      icon: <Truck className="h-8 w-8 text-blue-600" />
+    },
+    {
+      step: 3,
+      title: "Processing & Consolidation",
+      description: "We prepare documentation, consolidate shipments, and ensure compliance with Caribbean customs.",
+      icon: <Package className="h-8 w-8 text-blue-600" />
+    },
+    {
+      step: 4,
+      title: "Air Freight Shipping",
+      description: "Express air cargo service with trusted carriers to your Caribbean destination.",
+      icon: <Plane className="h-8 w-8 text-blue-600" />
+    },
+    {
+      step: 5,
+      title: "Destination Delivery",
+      description: "Local delivery coordination or airport pickup notification once your cargo arrives.",
+      icon: <MapPin className="h-8 w-8 text-blue-600" />
+    }
+  ]
+
+  const stats = [
+    { number: "10+", label: "Years Serving Caribbean Community" },
+    { number: "5,000+", label: "Successful Shipments" },
+    { number: "3-5", label: "Days Average Transit Time" },
+    { number: "99%", label: "Customer Satisfaction Rate" }
+  ]
+
+  const destinations = [
+    { country: "Guyana", city: "Georgetown", days: "3-5 days", rate: "from $3.50/lb" },
+    { country: "Jamaica", city: "Kingston", days: "4-6 days", rate: "from $3.75/lb" },
+    { country: "Trinidad", city: "Port of Spain", days: "4-6 days", rate: "from $4.00/lb" },
+    { country: "Barbados", city: "Bridgetown", days: "5-7 days", rate: "from $4.25/lb" },
+    { country: "Suriname", city: "Paramaribo", days: "4-6 days", rate: "from $3.75/lb" }
+  ]
+
+  return (
+    <div className="bg-white">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative container mx-auto px-4 py-20">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+              Fast & Reliable Air Cargo to 
+              <span className="text-yellow-400"> Guyana & the Caribbean</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
+              Professional shipping services from New Jersey with consolidation, 
+              secure storage, and competitive rates for the Caribbean diaspora community
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link 
+                to="/shipping-calculator" 
+                className="bg-yellow-500 text-blue-900 px-8 py-4 rounded-lg text-lg font-bold hover:bg-yellow-400 transition-colors inline-flex items-center justify-center"
+              >
+                Get Free Quote <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+              <Link 
+                to="/how-it-works" 
+                className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-900 transition-colors inline-flex items-center justify-center"
+              >
+                Learn How It Works
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Indicators */}
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {stats.map((stat, index) => (
+              <div key={index} className="space-y-2">
+                <div className="text-4xl font-bold text-blue-600">{stat.number}</div>
+                <div className="text-gray-700 font-medium">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Overview */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Simple 5-Step Air Cargo Process
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              From your door in New Jersey to your destination in the Caribbean, 
+              we handle every step with professional care and expertise.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
+            {processSteps.map((step, index) => (
+              <div key={index} className="text-center space-y-4">
+                <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
+                  {step.icon}
+                </div>
+                <div className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center mx-auto text-sm font-bold">
+                  {step.step}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">{step.title}</h3>
+                <p className="text-gray-600 text-sm">{step.description}</p>
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-center mt-8">
+            <Link 
+              to="/how-it-works" 
+              className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold"
+            >
+              Learn More About Our Process <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose QCS Cargo */}
+      <section className="py-16 bg-blue-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Why Choose QCS Cargo?
+            </h2>
+            <p className="text-xl text-gray-600">
+              Trusted by the Caribbean diaspora community in New Jersey
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Globe className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Caribbean Expertise</h3>
+              <p className="text-gray-600">Deep understanding of Caribbean shipping requirements, customs, and cultural needs</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Fast Transit Times</h3>
+              <p className="text-gray-600">Express air service with 3-7 day delivery to major Caribbean destinations</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Package className="h-8 w-8 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Consolidation Savings</h3>
+              <p className="text-gray-600">Save money by consolidating multiple shipments into one cost-effective delivery</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+              <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Secure Handling</h3>
+              <p className="text-gray-600">Climate-controlled facility with 24/7 surveillance and professional cargo handling</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Service Areas */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Caribbean Destinations We Serve
+            </h2>
+            <p className="text-xl text-gray-600">
+              Professional air cargo service to major Caribbean destinations
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {destinations.map((dest, index) => (
+              <div key={index} className="bg-white border-2 border-gray-200 rounded-lg p-6 text-center hover:border-blue-300 transition-colors">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{dest.country}</h3>
+                <p className="text-gray-600 mb-3">{dest.city}</p>
+                <div className="space-y-2">
+                  <div className="text-sm text-blue-600 font-medium">{dest.days}</div>
+                  <div className="text-lg font-bold text-green-600">{dest.rate}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-center mt-8">
+            <Link 
+              to="/service-areas" 
+              className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold"
+            >
+              View All Destinations & Rates <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Customer Testimonials */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              What Our Customers Say
+            </h2>
+            <p className="text-xl text-gray-600">
+              Trusted by Caribbean families and businesses across New Jersey
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white p-6 rounded-xl shadow-lg">
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-4 italic">"{testimonial.text}"</p>
+                <div className="border-t pt-4">
+                  <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                  <div className="text-sm text-gray-600">{testimonial.location}</div>
+                  <div className="text-sm text-blue-600 font-medium">{testimonial.shipmentType}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-blue-900 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-6">
+            Ready to Ship to the Caribbean?
+          </h2>
+          <p className="text-xl mb-8 text-blue-100 max-w-2xl mx-auto">
+            Get an instant quote and start shipping with New Jersey's trusted Caribbean cargo specialists.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link 
+              to="/shipping-calculator" 
+              className="bg-yellow-500 text-blue-900 px-8 py-4 rounded-lg text-lg font-bold hover:bg-yellow-400 transition-colors inline-flex items-center justify-center"
+            >
+              Calculate Shipping Cost <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+            <Link 
+              to="/contact" 
+              className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-900 transition-colors inline-flex items-center justify-center"
+            >
+              Speak with an Expert
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}

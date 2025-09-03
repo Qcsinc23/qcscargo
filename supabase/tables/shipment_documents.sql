@@ -1,0 +1,20 @@
+CREATE TABLE shipment_documents (
+    id SERIAL PRIMARY KEY,
+    shipment_id INTEGER NOT NULL,
+    document_type TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_url TEXT NOT NULL,
+    file_size INTEGER,
+    mime_type TEXT,
+    status TEXT NOT NULL DEFAULT 'uploaded',
+    uploaded_by UUID NOT NULL,
+    reviewed_by UUID,
+    reviewed_at TIMESTAMPTZ,
+    approval_status TEXT DEFAULT 'pending',
+    rejection_reason TEXT,
+    version INTEGER DEFAULT 1,
+    is_required BOOLEAN DEFAULT true,
+    expiry_date TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);

@@ -1,0 +1,402 @@
+import React, { useState } from 'react'
+import { Search, Package, Plane, MapPin, Clock, AlertCircle, CheckCircle, Truck } from 'lucide-react'
+
+export default function TrackingPage() {
+  const [trackingNumber, setTrackingNumber] = useState('')
+  const [trackingResult, setTrackingResult] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Mock tracking data for demonstration
+  const mockTrackingData = {
+    'QCS123456': {
+      trackingNumber: 'QCS123456',
+      carrierTrackingNumber: 'CX789012345',
+      status: 'In Transit',
+      destination: 'Georgetown, Guyana',
+      estimatedDelivery: '2025-01-08',
+      weight: '25 lbs',
+      service: 'Standard Air Freight',
+      timeline: [
+        {
+          status: 'Package Received',
+          date: '2025-01-03',
+          time: '10:30 AM',
+          location: 'QCS Cargo Facility, Kearny NJ',
+          description: 'Package received and inspected at our facility',
+          completed: true
+        },
+        {
+          status: 'Processing Complete',
+          date: '2025-01-03',
+          time: '4:15 PM',
+          location: 'QCS Cargo Facility, Kearny NJ',
+          description: 'Customs documentation prepared and package processed',
+          completed: true
+        },
+        {
+          status: 'Departed Facility',
+          date: '2025-01-04',
+          time: '8:00 AM',
+          location: 'QCS Cargo Facility, Kearny NJ',
+          description: 'Package dispatched to Newark Airport for air freight',
+          completed: true
+        },
+        {
+          status: 'In Transit',
+          date: '2025-01-04',
+          time: '6:30 PM',
+          location: 'En route to Georgetown',
+          description: 'Package loaded on air freight to Georgetown, Guyana',
+          completed: true
+        },
+        {
+          status: 'Customs Clearance',
+          date: 'Expected 2025-01-07',
+          time: 'TBD',
+          location: 'Georgetown Airport, Guyana',
+          description: 'Customs clearance processing in Guyana',
+          completed: false
+        },
+        {
+          status: 'Out for Delivery',
+          date: 'Expected 2025-01-08',
+          time: 'TBD',
+          location: 'Georgetown, Guyana',
+          description: 'Package out for local delivery',
+          completed: false
+        }
+      ]
+    },
+    'QCS789012': {
+      trackingNumber: 'QCS789012',
+      carrierTrackingNumber: 'DX456789123',
+      status: 'Delivered',
+      destination: 'Kingston, Jamaica',
+      estimatedDelivery: '2025-01-02',
+      weight: '45 lbs',
+      service: 'Express Air Freight',
+      timeline: [
+        {
+          status: 'Package Received',
+          date: '2024-12-28',
+          time: '2:00 PM',
+          location: 'QCS Cargo Facility, Kearny NJ',
+          description: 'Package received and inspected',
+          completed: true
+        },
+        {
+          status: 'Express Processing',
+          date: '2024-12-28',
+          time: '5:30 PM',
+          location: 'QCS Cargo Facility, Kearny NJ',
+          description: 'Express service - same day processing completed',
+          completed: true
+        },
+        {
+          status: 'Shipped',
+          date: '2024-12-29',
+          time: '7:00 AM',
+          location: 'Newark Airport, NJ',
+          description: 'Package shipped via express air freight',
+          completed: true
+        },
+        {
+          status: 'Arrived Destination',
+          date: '2025-01-01',
+          time: '11:30 AM',
+          location: 'Kingston Airport, Jamaica',
+          description: 'Package arrived at destination airport',
+          completed: true
+        },
+        {
+          status: 'Customs Cleared',
+          date: '2025-01-01',
+          time: '3:45 PM',
+          location: 'Kingston Airport, Jamaica',
+          description: 'Customs clearance completed',
+          completed: true
+        },
+        {
+          status: 'Delivered',
+          date: '2025-01-02',
+          time: '10:15 AM',
+          location: 'Kingston, Jamaica',
+          description: 'Package successfully delivered to recipient',
+          completed: true
+        }
+      ]
+    }
+  }
+
+  const handleTracking = async () => {
+    if (!trackingNumber.trim()) {
+      setError('Please enter a tracking number')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    // Simulate API call
+    setTimeout(() => {
+      const result = mockTrackingData[trackingNumber as keyof typeof mockTrackingData]
+      if (result) {
+        setTrackingResult(result)
+      } else {
+        setError('Tracking number not found. Please check the number and try again.')
+        setTrackingResult(null)
+      }
+      setLoading(false)
+    }, 1000)
+  }
+
+  const getStatusIcon = (status: string, completed: boolean) => {
+    if (!completed) return <Clock className="h-5 w-5 text-gray-400" />
+    
+    switch (status.toLowerCase()) {
+      case 'package received':
+        return <Package className="h-5 w-5 text-blue-600" />
+      case 'processing complete':
+      case 'express processing':
+        return <CheckCircle className="h-5 w-5 text-green-600" />
+      case 'departed facility':
+      case 'shipped':
+        return <Truck className="h-5 w-5 text-blue-600" />
+      case 'in transit':
+      case 'arrived destination':
+        return <Plane className="h-5 w-5 text-blue-600" />
+      case 'customs clearance':
+      case 'customs cleared':
+        return <CheckCircle className="h-5 w-5 text-green-600" />
+      case 'out for delivery':
+        return <Truck className="h-5 w-5 text-yellow-600" />
+      case 'delivered':
+        return <CheckCircle className="h-5 w-5 text-green-600" />
+      default:
+        return <Package className="h-5 w-5 text-gray-600" />
+    }
+  }
+
+  return (
+    <div className="bg-gray-50 min-h-screen py-12">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Track Your Shipment
+            </h1>
+            <p className="text-xl text-gray-600">
+              Enter your QCS Cargo tracking number to check the status of your Caribbean shipment
+            </p>
+          </div>
+
+          {/* Tracking Form */}
+          <div className="bg-white p-8 rounded-xl shadow-lg mb-8">
+            <div className="max-w-2xl mx-auto">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <input
+                  type="text"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
+                  placeholder="Enter tracking number (e.g., QCS123456)"
+                  className="flex-1 p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onKeyPress={(e) => e.key === 'Enter' && handleTracking()}
+                />
+                <button
+                  onClick={handleTracking}
+                  disabled={loading}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
+                >
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    <>Track <Search className="ml-2 h-5 w-5" /></>
+                  )}
+                </button>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-500">
+                  Demo tracking numbers: <span className="font-mono text-blue-600">QCS123456</span> (In Transit) or <span className="font-mono text-blue-600">QCS789012</span> (Delivered)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+              <span className="text-red-700">{error}</span>
+            </div>
+          )}
+
+          {/* Tracking Results */}
+          {trackingResult && (
+            <div className="space-y-8">
+              {/* Shipment Summary */}
+              <div className="bg-white p-8 rounded-xl shadow-lg">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Shipment Details</h2>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Tracking Number:</span>
+                        <span className="font-semibold font-mono">{trackingResult.trackingNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Carrier Reference:</span>
+                        <span className="font-semibold font-mono">{trackingResult.carrierTrackingNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Service:</span>
+                        <span className="font-semibold">{trackingResult.service}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Weight:</span>
+                        <span className="font-semibold">{trackingResult.weight}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Destination:</span>
+                        <span className="font-semibold">{trackingResult.destination}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Current Status</h2>
+                    <div className="bg-blue-50 p-6 rounded-lg border-l-4 border-blue-600">
+                      <div className="flex items-center mb-2">
+                        <MapPin className="h-6 w-6 text-blue-600 mr-2" />
+                        <span className="text-2xl font-bold text-blue-900">{trackingResult.status}</span>
+                      </div>
+                      <p className="text-gray-700 mb-3">
+                        Expected delivery: <span className="font-semibold">{trackingResult.estimatedDelivery}</span>
+                      </p>
+                      {trackingResult.status === 'Delivered' && (
+                        <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium inline-block">
+                          Package delivered successfully
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tracking Timeline */}
+              <div className="bg-white p-8 rounded-xl shadow-lg">
+                <h2 className="text-2xl font-bold text-gray-900 mb-8">Tracking Timeline</h2>
+                
+                <div className="relative">
+                  {trackingResult.timeline.map((event: any, index: number) => (
+                    <div key={index} className="flex items-start pb-8 last:pb-0">
+                      {/* Timeline connector */}
+                      {index < trackingResult.timeline.length - 1 && (
+                        <div className="absolute left-6 top-12 w-0.5 h-16 bg-gray-200"></div>
+                      )}
+                      
+                      {/* Status icon */}
+                      <div className={`bg-white border-2 w-12 h-12 rounded-full flex items-center justify-center mr-4 relative z-10 ${
+                        event.completed ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-gray-50'
+                      }`}>
+                        {getStatusIcon(event.status, event.completed)}
+                      </div>
+                      
+                      {/* Event details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                          <h3 className={`text-lg font-semibold ${
+                            event.completed ? 'text-gray-900' : 'text-gray-500'
+                          }`}>
+                            {event.status}
+                          </h3>
+                          <div className={`text-sm font-medium ${
+                            event.completed ? 'text-blue-600' : 'text-gray-500'
+                          }`}>
+                            {event.date} {event.time !== 'TBD' && `at ${event.time}`}
+                          </div>
+                        </div>
+                        
+                        <p className={`text-sm mt-1 ${
+                          event.completed ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          {event.location}
+                        </p>
+                        
+                        <p className={`text-sm mt-1 ${
+                          event.completed ? 'text-gray-700' : 'text-gray-400'
+                        }`}>
+                          {event.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Help Section */}
+          <div className="mt-12 bg-white p-8 rounded-xl shadow-lg">
+            <h2 className="text-2xl font-semibold text-center mb-6">Need Help with Tracking?</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Package className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="font-semibold mb-2">Can't Find Your Number?</h3>
+                <p className="text-sm text-gray-600">
+                  Your tracking number is provided when you ship with QCS Cargo. Check your receipt or confirmation email.
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Clock className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="font-semibold mb-2">Tracking Updates</h3>
+                <p className="text-sm text-gray-600">
+                  Updates may take 12-24 hours to appear. Contact us if your shipment hasn't updated in 48 hours.
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <AlertCircle className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="font-semibold mb-2">Delivery Issues</h3>
+                <p className="text-sm text-gray-600">
+                  If you experience delivery delays or issues, our team is here to help resolve them quickly.
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-center mt-8">
+              <p className="text-gray-600 mb-4">Still need assistance? Our team is here to help.</p>
+              <div className="space-x-4">
+                <a
+                  href="tel:201-249-0929"
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
+                >
+                  Call 201-249-0929
+                </a>
+                <a
+                  href="mailto:sales@quietcraftsolutions.com"
+                  className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors inline-block"
+                >
+                  Email Support
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

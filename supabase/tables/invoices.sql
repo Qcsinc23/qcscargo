@@ -1,0 +1,21 @@
+CREATE TABLE invoices (
+    id SERIAL PRIMARY KEY,
+    customer_id UUID NOT NULL,
+    shipment_id INTEGER,
+    quote_id INTEGER,
+    invoice_number TEXT UNIQUE NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft',
+    due_date TIMESTAMPTZ NOT NULL,
+    paid_date TIMESTAMPTZ,
+    payment_method TEXT,
+    payment_reference TEXT,
+    line_items JSONB NOT NULL,
+    billing_address JSONB,
+    notes TEXT,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
