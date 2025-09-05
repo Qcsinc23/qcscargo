@@ -38,16 +38,16 @@ module.exports = {
 						error: '#dc2626', // Adapted error red
 					},
 					primary: {
-						DEFAULT: '#881337', // Dark maroon
-						foreground: '#ffffff',
+						DEFAULT: 'hsl(var(--primary))',
+						foreground: 'hsl(var(--primary-foreground))',
 					},
 					secondary: {
-						DEFAULT: '#be185d', // Dark pink/purple
-						foreground: '#ffffff',
+						DEFAULT: 'hsl(var(--secondary))',
+						foreground: 'hsl(var(--secondary-foreground))',
 					},
 					accent: {
-						DEFAULT: '#fdf2f8', // Light rose surface
-						foreground: '#881337',
+						DEFAULT: '#F5A623', // Yellow accent for emphasis
+						foreground: 'hsl(var(--accent-foreground))',
 					},
 					destructive: {
 						DEFAULT: '#dc2626', // Adapted error red

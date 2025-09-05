@@ -53,15 +53,15 @@ export default function SupportPage() {
   return (
     <div className="bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-16">
+      <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
           <div className="bg-yellow-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <MessageCircle className="h-8 w-8 text-blue-900" />
+            <MessageCircle className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Customer Support
           </h1>
-          <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+          <p className="text-xl text-primary-foreground/90 max-w-3xl mx-auto">
             We're here to help with all your shipping needs. Get in touch with our experienced team 
             for assistance with rates, tracking, documentation, and more.
           </p>
@@ -83,14 +83,14 @@ export default function SupportPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <Card className="text-center">
               <CardHeader>
-                <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Phone className="h-8 w-8 text-blue-600" />
+                <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Phone className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle>Call Us</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-4">Speak directly with our shipping experts</p>
-                <p className="text-2xl font-bold text-blue-600 mb-2">(305) 555-0123</p>
+                <p className="text-2xl font-bold text-primary mb-2">(305) 555-0123</p>
                 <p className="text-sm text-gray-500">Monday - Friday: 8:00 AM - 6:00 PM EST</p>
                 <p className="text-sm text-gray-500">Saturday: 9:00 AM - 2:00 PM EST</p>
               </CardContent>
@@ -262,7 +262,7 @@ export default function SupportPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 text-blue-600 mr-2" />
+                  <FileText className="h-5 w-5 text-primary mr-2" />
                   Documentation
                 </CardTitle>
               </CardHeader>

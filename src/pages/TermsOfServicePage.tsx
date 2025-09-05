@@ -5,18 +5,18 @@ export default function TermsOfServicePage() {
   return (
     <div className="bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-16">
+      <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
           <div className="bg-yellow-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <FileText className="h-8 w-8 text-blue-900" />
+            <FileText className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Terms of Service
           </h1>
-          <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+          <p className="text-xl text-primary-foreground/90 max-w-3xl mx-auto">
             Please read these terms and conditions carefully before using our shipping services.
           </p>
-          <p className="text-sm text-blue-200 mt-4">
+          <p className="text-sm text-primary-foreground/80 mt-4">
             Last Updated: January 15, 2025
           </p>
         </div>
@@ -31,7 +31,7 @@ export default function TermsOfServicePage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
               1. Acceptance of Terms
             </h2>
-            <div className="bg-blue-50 p-6 rounded-lg">
+            <div className="bg-primary/5 p-6 rounded-lg">
               <p className="text-gray-700 mb-4">
                 By using QCS Cargo's shipping services, website, or facilities, you agree to be bound by these Terms of Service. 
                 If you do not agree to these terms, please do not use our services.
@@ -144,7 +144,7 @@ export default function TermsOfServicePage() {
               </ul>
             </div>
             
-            <div className="bg-blue-50 p-6 rounded-lg">
+            <div className="bg-primary/5 p-6 rounded-lg">
               <h3 className="text-xl font-semibold mb-4">Payment Terms</h3>
               <ul className="text-gray-700 space-y-2">
                 <li>• Payment is due at time of service unless credit terms are pre-approved</li>
@@ -165,7 +165,7 @@ export default function TermsOfServicePage() {
             <div className="space-y-6">
               <div className="bg-white border border-gray-200 p-6 rounded-lg">
                 <h3 className="text-xl font-semibold mb-4 flex items-center">
-                  <Shield className="h-5 w-5 text-blue-600 mr-2" />
+                  <Shield className="h-5 w-5 text-primary mr-2" />
                   Standard Liability
                 </h3>
                 <p className="text-gray-700 mb-4">
@@ -204,7 +204,7 @@ export default function TermsOfServicePage() {
                 </p>
               </div>
               
-              <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="bg-primary/5 p-6 rounded-lg">
                 <h3 className="text-xl font-semibold mb-4">Storage and Holding</h3>
                 <p className="text-gray-700">
                   Free storage is provided for up to 7 days. Extended storage incurs daily charges. 
@@ -252,7 +252,7 @@ export default function TermsOfServicePage() {
           </div>
 
           {/* Contact Information */}
-          <div className="bg-blue-50 p-8 rounded-lg">
+          <div className="bg-primary/5 p-8 rounded-lg">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
               9. Contact Information
             </h2>
@@ -278,7 +278,7 @@ export default function TermsOfServicePage() {
               </div>
             </div>
             
-            <div className="mt-6 p-4 bg-white rounded border-l-4 border-blue-600">
+            <div className="mt-6 p-4 bg-white rounded border-l-4 border-primary">
               <p className="text-gray-700">
                 <strong>Questions about these terms?</strong> Contact our customer service team for clarification 
                 or assistance with any provisions outlined above.

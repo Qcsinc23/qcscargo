@@ -38,7 +38,7 @@ export default function Header() {
       name: 'Services',
       path: '/services',
       submenu: [
-        { name: 'Air Cargo Shipping', path: '/services' },
+        { name: 'Air Cargo Shipping', path: '/air-cargo-shipping' },
         { name: 'Business Services', path: '/business-services' }
       ]
     },
@@ -56,7 +56,7 @@ export default function Header() {
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
       {/* Top contact bar */}
-      <div className="bg-sophisticated-olive text-white py-2">
+      <div className="bg-primary text-primary-foreground py-2">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center text-sm">
             <div className="flex items-center space-x-4">
@@ -87,8 +87,8 @@ export default function Header() {
               className="h-12 w-auto"
             />
             <div>
-              <h1 className="text-2xl font-bold text-sophisticated-olive">QCS Cargo</h1>
-              <p className="text-sm text-sophisticated-blueGray">Precision Air Cargo Solutions</p>
+              <h1 className="text-2xl font-bold text-primary">QCS Cargo</h1>
+              <p className="text-sm text-slate-600">Precision Air Cargo Solutions</p>
             </div>
           </Link>
 
@@ -100,20 +100,20 @@ export default function Header() {
                   to={item.path}
                   className={`px-3 py-2 font-medium transition-colors ${
                     isActive(item.path)
-                      ? 'text-sophisticated-sage border-b-2 border-sophisticated-sage'
-                      : 'text-sophisticated-blueGray hover:text-sophisticated-sage'
+                      ? 'text-primary border-b-2 border-primary'
+                      : 'text-slate-600 hover:text-primary'
                   }`}
                 >
                   {item.name}
                 </Link>
                 {item.submenu && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-sophisticated-mauve">
+                  <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-slate-200">
                     <div className="py-2">
                       {item.submenu.map((subItem) => (
                         <Link
                           key={subItem.name}
                           to={subItem.path}
-                          className="block px-4 py-2 text-sophisticated-blueGray hover:bg-sophisticated-mauve/20 hover:text-sophisticated-sage"
+                          className="block px-4 py-2 text-slate-600 hover:bg-slate-100 hover:text-primary"
                         >
                           {subItem.name}
                         </Link>
@@ -131,32 +131,32 @@ export default function Header() {
                 <div className="relative">
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sophisticated-blueGray hover:bg-sophisticated-mauve/20 transition-colors"
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
                   >
                     <User className="h-4 w-4" />
                     <span className="font-medium">My Account</span>
                   </button>
                   
                   {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md border border-sophisticated-mauve">
+                      <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md border border-slate-200">
                       <div className="py-2">
                         <Link
                           to="/dashboard"
-                          className="block px-4 py-2 text-sophisticated-blueGray hover:bg-sophisticated-mauve/20 hover:text-sophisticated-sage"
+                          className="block px-4 py-2 text-slate-600 hover:bg-slate-100 hover:text-primary"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           Dashboard
                         </Link>
                         <Link
                           to="/dashboard/create-shipment"
-                          className="block px-4 py-2 text-sophisticated-blueGray hover:bg-sophisticated-mauve/20 hover:text-sophisticated-sage"
+                          className="block px-4 py-2 text-slate-600 hover:bg-slate-100 hover:text-primary"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           Create Shipment
                         </Link>
                         <button
                           onClick={handleSignOut}
-                          className="w-full text-left px-4 py-2 text-sophisticated-blueGray hover:bg-red-50 hover:text-red-600"
+                          className="w-full text-left px-4 py-2 text-slate-600 hover:bg-red-50 hover:text-red-600"
                         >
                           <div className="flex items-center space-x-2">
                             <LogOut className="h-4 w-4" />
@@ -172,13 +172,13 @@ export default function Header() {
                 <>
                   <Link
                     to="/shipping-calculator"
-                    className="bg-sophisticated-sage text-white px-4 py-2 rounded-lg font-medium hover:bg-sophisticated-sage/90 transition-colors"
+                    className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
                   >
                     Get Quote
                   </Link>
                   <Link
                     to="/auth/login"
-                    className="border border-sophisticated-sage text-sophisticated-sage px-4 py-2 rounded-lg font-medium hover:bg-sophisticated-sage/10 transition-colors"
+                    className="border border-primary text-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/10 transition-colors"
                   >
                     Sign In
                   </Link>
@@ -190,7 +190,7 @@ export default function Header() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden p-2 rounded-md text-sophisticated-blueGray hover:text-sophisticated-sage"
+            className="lg:hidden p-2 rounded-md text-slate-600 hover:text-primary"
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -206,8 +206,8 @@ export default function Header() {
                     to={item.path}
                     className={`block px-3 py-2 font-medium transition-colors ${
                       isActive(item.path)
-                        ? 'text-sophisticated-sage bg-sophisticated-mauve/20'
-                        : 'text-sophisticated-blueGray hover:text-sophisticated-sage hover:bg-sophisticated-mauve/20'
+                        ? 'text-primary bg-slate-100'
+                        : 'text-slate-600 hover:text-primary hover:bg-slate-100'
                     }`}
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -219,7 +219,7 @@ export default function Header() {
                         <Link
                           key={subItem.name}
                           to={subItem.path}
-                          className="block px-3 py-2 text-sm text-sophisticated-blueGray hover:text-sophisticated-sage hover:bg-sophisticated-mauve/20"
+                          className="block px-3 py-2 text-sm text-slate-600 hover:text-primary hover:bg-slate-100"
                           onClick={() => setIsMenuOpen(false)}
                         >
                           {subItem.name}
@@ -237,14 +237,14 @@ export default function Header() {
                   <>
                     <Link
                       to="/dashboard"
-                      className="block w-full bg-sophisticated-sage text-white px-4 py-3 rounded-lg font-medium text-center hover:bg-sophisticated-sage/90 transition-colors"
+                      className="block w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg font-medium text-center hover:bg-primary/90 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Dashboard
                     </Link>
                     <Link
                       to="/dashboard/create-shipment"
-                      className="block w-full border border-sophisticated-sage text-sophisticated-sage px-4 py-3 rounded-lg font-medium text-center hover:bg-sophisticated-sage/10 transition-colors"
+                      className="block w-full border border-primary text-primary px-4 py-3 rounded-lg font-medium text-center hover:bg-primary/10 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Create Shipment
@@ -264,21 +264,21 @@ export default function Header() {
                   <>
                     <Link
                       to="/shipping-calculator"
-                      className="block w-full bg-sophisticated-sage text-white px-4 py-3 rounded-lg font-medium text-center hover:bg-sophisticated-sage/90 transition-colors"
+                      className="block w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg font-medium text-center hover:bg-primary/90 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Get Quote
                     </Link>
                     <Link
                       to="/auth/login"
-                      className="block w-full border border-sophisticated-sage text-sophisticated-sage px-4 py-3 rounded-lg font-medium text-center hover:bg-sophisticated-sage/10 transition-colors"
+                      className="block w-full border border-primary text-primary px-4 py-3 rounded-lg font-medium text-center hover:bg-primary/10 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Sign In
                     </Link>
                     <Link
                       to="/auth/register"
-                      className="block w-full text-sophisticated-blueGray px-4 py-3 rounded-lg font-medium text-center hover:bg-sophisticated-mauve/20 transition-colors"
+                      className="block w-full text-slate-600 px-4 py-3 rounded-lg font-medium text-center hover:bg-slate-100 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Create Account

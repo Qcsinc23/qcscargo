@@ -63,19 +63,19 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4">Our Services</h4>
             <nav className="space-y-2">
-              <Link to="/services" className="block text-sophisticated-mauve hover:text-white transition-colors">
+              <Link to="/air-cargo-shipping" className="block text-sophisticated-mauve hover:text-white transition-colors">
                 Air Cargo Shipping
               </Link>
-              <Link to="/services" className="block text-sophisticated-mauve hover:text-white transition-colors">
+              <Link to="/air-cargo-shipping" className="block text-sophisticated-mauve hover:text-white transition-colors">
                 Package Consolidation
               </Link>
-              <Link to="/services" className="block text-sophisticated-mauve hover:text-white transition-colors">
+              <Link to="/air-cargo-shipping" className="block text-sophisticated-mauve hover:text-white transition-colors">
                 Special Handling
               </Link>
-              <Link to="/services" className="block text-sophisticated-mauve hover:text-white transition-colors">
+              <Link to="/air-cargo-shipping" className="block text-sophisticated-mauve hover:text-white transition-colors">
                 Customs Documentation
               </Link>
-              <Link to="/services" className="block text-sophisticated-mauve hover:text-white transition-colors">
+              <Link to="/air-cargo-shipping" className="block text-sophisticated-mauve hover:text-white transition-colors">
                 Storage Services
               </Link>
             </nav>

@@ -82,12 +82,12 @@ export default function ServiceAreas() {
   return (
     <div className="bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-sophisticated-blue-dark to-sophisticated-blue-dark text-white py-16">
+      <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Caribbean Service Areas
           </h1>
-          <p className="text-xl text-sophisticated-blue-light max-w-3xl mx-auto">
+          <p className="text-xl text-primary-foreground/90 max-w-3xl mx-auto">
             Professional air cargo service to major Caribbean destinations. 
             Fast, reliable, and cost-effective shipping from New Jersey.
           </p>
@@ -98,50 +98,50 @@ export default function ServiceAreas() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-sophisticated-olive mb-4">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">
               Destinations We Serve
             </h2>
-            <p className="text-xl text-sophisticated-blueGray">
+            <p className="text-xl text-slate-600">
               Click on any destination for detailed information about rates, transit times, and services
             </p>
           </div>
 
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sophisticated-blue mx-auto"></div>
-              <p className="text-sophisticated-blueGray mt-4">Loading destinations...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="text-slate-600 mt-4">Loading destinations...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {destinations.map((destination) => (
                 <div 
                   key={destination.id}
-                  className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-sophisticated-blue-light hover:shadow-lg transition-all cursor-pointer"
+                  className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary/20 hover:shadow-lg transition-all cursor-pointer"
                   onClick={() => setSelectedDestination(destination)}
                 >
                   <div className="flex items-center mb-4">
-                    <div className="bg-sophisticated-blue-light p-3 rounded-full mr-4">
-                      <MapPin className="h-6 w-6 text-sophisticated-blue" />
+                    <div className="bg-primary/10 p-3 rounded-full mr-4">
+                      <MapPin className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-sophisticated-olive">{destination.country_name}</h3>
-                      <p className="text-sophisticated-blueGray">{destination.city_name}</p>
+                      <h3 className="text-xl font-bold text-slate-900">{destination.country_name}</h3>
+                      <p className="text-slate-600">{destination.city_name}</p>
                     </div>
                   </div>
                   
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center text-sophisticated-blueGray">
+                      <span className="flex items-center text-slate-600">
                         <Clock className="h-4 w-4 mr-2" />
                         Transit Time:
                       </span>
-                      <span className="font-medium text-sophisticated-blue">
+                      <span className="font-medium text-primary">
                         {destination.transit_days_min}-{destination.transit_days_max} days
                       </span>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center text-sophisticated-blueGray">
+                      <span className="flex items-center text-slate-600">
                         <DollarSign className="h-4 w-4 mr-2" />
                         From:
                       </span>
@@ -169,12 +169,12 @@ export default function ServiceAreas() {
               <div className="bg-white rounded-xl shadow-lg p-8">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center">
-                    <div className="bg-sophisticated-blue-light p-4 rounded-full mr-6">
-                      <Plane className="h-8 w-8 text-sophisticated-blue" />
+                    <div className="bg-primary/10 p-4 rounded-full mr-6">
+                      <Plane className="h-8 w-8 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-bold text-sophisticated-olive">{selectedDestination.country_name}</h2>
-                      <p className="text-xl text-sophisticated-blueGray">{selectedDestination.city_name}</p>
+                      <h2 className="text-3xl font-bold text-slate-900">{selectedDestination.country_name}</h2>
+                      <p className="text-xl text-slate-600">{selectedDestination.city_name}</p>
                     </div>
                   </div>
                   <button
@@ -226,9 +226,9 @@ export default function ServiceAreas() {
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Service Information</h3>
                     <div className="space-y-4">
-                      <div className="bg-sophisticated-blue-light p-4 rounded-lg">
+                      <div className="bg-primary/5 p-4 rounded-lg">
                         <div className="flex items-center mb-2">
-                          <Clock className="h-5 w-5 text-sophisticated-blue mr-2" />
+                          <Clock className="h-5 w-5 text-primary mr-2" />
                           <span className="font-medium">Transit Time</span>
                         </div>
                         <p className="text-gray-700">
@@ -292,13 +292,13 @@ export default function ServiceAreas() {
                 <div className="mt-8 border-t border-gray-200 pt-6 text-center">
                   <button 
                     onClick={() => handleCreateShipment(selectedDestination)}
-                    className="bg-sophisticated-blue text-white px-8 py-3 rounded-lg font-semibold hover:bg-sophisticated-blue-dark transition-colors mr-4 inline-block"
+                    className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors mr-4 inline-block"
                   >
                     Create a Shipment to {selectedDestination.country_name}
                   </button>
                   <Link 
                     to={`/shipping-calculator?destination=${selectedDestination.id}&country=${encodeURIComponent(selectedDestination.country_name)}`}
-                    className="border border-sophisticated-blue text-sophisticated-blue px-8 py-3 rounded-lg font-semibold hover:bg-sophisticated-blue-light transition-colors inline-block"
+                    className="border border-primary text-primary px-8 py-3 rounded-lg font-semibold hover:bg-primary/5 transition-colors inline-block"
                   >
                     Calculate Shipping Cost
                   </Link>
@@ -310,13 +310,13 @@ export default function ServiceAreas() {
       )}
 
       {/* Additional Services */}
-      <section className="py-16 bg-sophisticated-blue-light">
+      <section className="py-16 bg-primary/5">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-sophisticated-olive mb-4">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">
               Additional Destination Services
             </h2>
-            <p className="text-xl text-sophisticated-blueGray">
+            <p className="text-xl text-slate-600">
               Beyond our primary destinations, we offer services to other Caribbean islands
             </p>
           </div>
@@ -324,26 +324,26 @@ export default function ServiceAreas() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-lg text-center">
               <h3 className="text-xl font-semibold mb-3">Other Caribbean Islands</h3>
-              <p className="text-sophisticated-blueGray mb-4">
+              <p className="text-slate-600 mb-4">
                 St. Lucia, Grenada, St. Vincent, Dominica, and other CARICOM destinations available on request.
               </p>
-              <p className="text-sm text-sophisticated-blue font-medium">Custom quotes available</p>
+              <p className="text-sm text-primary font-medium">Custom quotes available</p>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-lg text-center">
               <h3 className="text-xl font-semibold mb-3">Special Routing</h3>
-              <p className="text-sophisticated-blueGray mb-4">
+              <p className="text-slate-600 mb-4">
                 Multi-destination shipping and special routing arrangements for unique shipping needs.
               </p>
-              <p className="text-sm text-sophisticated-blue font-medium">Contact for details</p>
+              <p className="text-sm text-primary font-medium">Contact for details</p>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-lg text-center">
               <h3 className="text-xl font-semibold mb-3">Express Services</h3>
-              <p className="text-sophisticated-blueGray mb-4">
+              <p className="text-slate-600 mb-4">
                 Priority handling and expedited customs clearance for urgent shipments to any destination.
               </p>
-              <p className="text-sm text-sophisticated-blue font-medium">Available for all destinations</p>
+              <p className="text-sm text-primary font-medium">Available for all destinations</p>
             </div>
           </div>
         </div>

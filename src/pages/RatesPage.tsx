@@ -89,15 +89,15 @@ export default function RatesPage() {
   return (
     <div className="bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-sophisticated-blue-dark to-sophisticated-blue-dark text-white py-16">
+      <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
           <div className="bg-yellow-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <DollarSign className="h-8 w-8 text-sophisticated-blue" />
+            <DollarSign className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Transparent Pricing & Rate Guide
           </h1>
-          <p className="text-xl text-sophisticated-blue-light max-w-3xl mx-auto">
+          <p className="text-xl text-primary-foreground/90 max-w-3xl mx-auto">
             Clear, competitive rates for air cargo shipping to the Caribbean. 
             No hidden fees, no surprises - just honest pricing for quality service.
           </p>
@@ -113,8 +113,8 @@ export default function RatesPage() {
                 onClick={() => setSelectedTab('rates')}
                 className={`px-6 py-3 rounded-md font-semibold transition-colors ${
                   selectedTab === 'rates'
-                    ? 'bg-sophisticated-blue text-white'
-                    : 'text-gray-700 hover:text-sophisticated-blue'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-gray-700 hover:text-primary'
                 }`}
               >
                 Base Rates
@@ -123,8 +123,8 @@ export default function RatesPage() {
                 onClick={() => setSelectedTab('services')}
                 className={`px-6 py-3 rounded-md font-semibold transition-colors ${
                   selectedTab === 'services'
-                    ? 'bg-sophisticated-blue text-white'
-                    : 'text-gray-700 hover:text-sophisticated-blue'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-gray-700 hover:text-primary'
                 }`}
               >
                 Additional Services
@@ -133,8 +133,8 @@ export default function RatesPage() {
                 onClick={() => setSelectedTab('examples')}
                 className={`px-6 py-3 rounded-md font-semibold transition-colors ${
                   selectedTab === 'examples'
-                    ? 'bg-sophisticated-blue text-white'
-                    : 'text-gray-700 hover:text-sophisticated-blue'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-gray-700 hover:text-primary'
                 }`}
               >
                 Rate Examples
@@ -149,24 +149,24 @@ export default function RatesPage() {
         <section className="py-16">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-sophisticated-olive mb-4">
+              <h2 className="text-3xl font-bold text-slate-900 mb-4">
                 Base Shipping Rates by Destination
               </h2>
-              <p className="text-xl text-sophisticated-blueGray">
+              <p className="text-xl text-slate-600">
                 Per-pound rates based on weight tiers. Express service adds 25% surcharge.
               </p>
             </div>
 
             {loading ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sophisticated-blue mx-auto"></div>
-                <p className="text-sophisticated-blueGray mt-4">Loading rate information...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="text-slate-600 mt-4">Loading rate information...</p>
               </div>
             ) : (
               <div className="space-y-8">
                 {destinations.map((destination) => (
                   <div key={destination.id} className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    <div className="bg-gradient-to-r from-sophisticated-blue to-sophisticated-blue-dark text-white p-6">
+                    <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <div className="bg-white bg-opacity-20 p-3 rounded-full mr-4">
@@ -174,11 +174,11 @@ export default function RatesPage() {
                           </div>
                           <div>
                             <h3 className="text-2xl font-bold">{destination.country_name}</h3>
-                            <p className="text-sophisticated-blue-light">{destination.city_name} ({destination.airport_code})</p>
+                            <p className="text-primary-foreground/90">{destination.city_name} ({destination.airport_code})</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm text-sophisticated-blue-light">Transit Time</div>
+                          <div className="text-sm text-primary-foreground/90">Transit Time</div>
                           <div className="text-lg font-semibold">{destination.transit_days_min}-{destination.transit_days_max} days</div>
                         </div>
                       </div>
@@ -223,12 +223,12 @@ export default function RatesPage() {
                         <div>
                           <h4 className="text-lg font-semibold mb-4">Service Options</h4>
                           <div className="space-y-4">
-                            <div className="bg-sophisticated-blue-light p-4 rounded-lg border-l-4 border-sophisticated-blue">
+                            <div className="bg-primary/5 p-4 rounded-lg border-l-4 border-primary">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="font-medium">Standard Service</span>
-                                <span className="text-sm text-sophisticated-blue">Base Rate</span>
+                                <span className="text-sm text-primary">Base Rate</span>
                               </div>
-                              <p className="text-sm text-sophisticated-blueGray">
+                              <p className="text-sm text-slate-600">
                                 {destination.transit_days_min}-{destination.transit_days_max} business days transit time
                               </p>
                             </div>
@@ -238,7 +238,7 @@ export default function RatesPage() {
                                 <span className="font-medium">Express Service</span>
                                 <span className="text-sm text-yellow-600">+{destination.express_surcharge_percent}% Surcharge</span>
                               </div>
-                              <p className="text-sm text-sophisticated-blueGray">
+                              <p className="text-sm text-slate-600">
                                 {Math.max(1, destination.transit_days_min - 1)}-{Math.max(2, destination.transit_days_max - 1)} business days (1-2 days faster)
                               </p>
                             </div>
@@ -252,27 +252,27 @@ export default function RatesPage() {
             )}
 
             {/* Important Notes */}
-            <div className="mt-12 bg-sophisticated-blue-light p-8 rounded-xl">
+            <div className="mt-12 bg-primary/5 p-8 rounded-xl">
               <h3 className="text-xl font-semibold mb-6 flex items-center">
-                <Info className="h-6 w-6 text-sophisticated-blue mr-2" />
+                <Info className="h-6 w-6 text-primary mr-2" />
                 Important Rate Information
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                 <div>
-                  <h4 className="font-medium mb-2 text-sophisticated-blue">Dimensional Weight</h4>
+                  <h4 className="font-medium mb-2 text-primary">Dimensional Weight</h4>
                   <p className="text-gray-700 mb-4">
                     Calculated as Length × Width × Height ÷ 166 (inches). Billable weight is the greater of actual or dimensional weight.
                   </p>
                   
-                  <h4 className="font-medium mb-2 text-sophisticated-blue">Rate Validity</h4>
+                  <h4 className="font-medium mb-2 text-primary">Rate Validity</h4>
                   <p className="text-gray-700">
                     All rates are valid for 30 days from quote date and subject to change without notice.
                   </p>
                 </div>
                 
                 <div>
-                  <h4 className="font-medium mb-2 text-sophisticated-blue">What's Included</h4>
+                  <h4 className="font-medium mb-2 text-primary">What's Included</h4>
                   <ul className="text-gray-700 space-y-1 mb-4">
                     <li>• Professional packaging review</li>
                     <li>• Customs documentation prep</li>
@@ -280,7 +280,7 @@ export default function RatesPage() {
                     <li>• Shipment tracking</li>
                   </ul>
                   
-                  <h4 className="font-medium mb-2 text-sophisticated-blue">Not Included</h4>
+                  <h4 className="font-medium mb-2 text-primary">Not Included</h4>
                   <p className="text-gray-700">
                     Customs duties, taxes, and destination country fees are customer responsibility.
                   </p>
@@ -297,10 +297,10 @@ export default function RatesPage() {
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-sophisticated-olive mb-4">
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">
                   Additional Services & Fees
                 </h2>
-                <p className="text-xl text-sophisticated-blueGray">
+                <p className="text-xl text-slate-600">
                   Optional services to enhance your shipping experience
                 </p>
               </div>
@@ -308,17 +308,17 @@ export default function RatesPage() {
               {/* Handling & Processing Services */}
               <div className="mb-12">
                 <h3 className="text-2xl font-semibold mb-6 flex items-center">
-                  <Package className="h-6 w-6 text-sophisticated-blue mr-2" />
+                  <Package className="h-6 w-6 text-primary mr-2" />
                   Handling & Processing Services
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {additionalServices.map((service, index) => (
                     <div key={index} className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-sophisticated-olive">{service.service}</h4>
-                        <span className="text-sophisticated-blue font-bold whitespace-nowrap ml-4">{service.price}</span>
+                        <h4 className="font-semibold text-slate-900">{service.service}</h4>
+                        <span className="text-primary font-bold whitespace-nowrap ml-4">{service.price}</span>
                       </div>
-                      <p className="text-sophisticated-blueGray text-sm">{service.description}</p>
+                      <p className="text-slate-600 text-sm">{service.description}</p>
                     </div>
                   ))}
                 </div>
@@ -333,9 +333,9 @@ export default function RatesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {insuranceRates.map((insurance, index) => (
                     <div key={index} className="bg-white border-2 border-green-200 p-6 rounded-lg">
-                      <h4 className="font-semibold text-sophisticated-olive mb-2">{insurance.coverage}</h4>
+                      <h4 className="font-semibold text-slate-900 mb-2">{insurance.coverage}</h4>
                       <div className="text-2xl font-bold text-green-600 mb-2">{insurance.price}</div>
-                      <p className="text-sophisticated-blueGray text-sm">{insurance.description}</p>
+                      <p className="text-slate-600 text-sm">{insurance.description}</p>
                     </div>
                   ))}
                 </div>
@@ -350,9 +350,9 @@ export default function RatesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {volumeDiscounts.map((discount, index) => (
                     <div key={index} className="bg-white border-2 border-purple-200 p-6 rounded-lg text-center">
-                      <div className="text-lg font-medium text-sophisticated-olive mb-2">{discount.range}</div>
+                      <div className="text-lg font-medium text-slate-900 mb-2">{discount.range}</div>
                       <div className="text-3xl font-bold text-purple-600 mb-2">{discount.discount}</div>
-                      <div className="text-sm text-sophisticated-blueGray">{discount.description}</div>
+                      <div className="text-sm text-slate-600">{discount.description}</div>
                     </div>
                   ))}
                 </div>
@@ -368,10 +368,10 @@ export default function RatesPage() {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-sophisticated-olive mb-4">
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">
                   Real-World Rate Examples
                 </h2>
-                <p className="text-xl text-sophisticated-blueGray">
+                <p className="text-xl text-slate-600">
                   See how our rates work with actual shipping scenarios
                 </p>
               </div>
@@ -379,9 +379,9 @@ export default function RatesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {rateExamples.map((example, index) => (
                   <div key={index} className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    <div className="bg-gradient-to-r from-sophisticated-blue to-sophisticated-blue-dark text-white p-6">
+                    <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-6">
                       <h3 className="text-xl font-bold mb-2">{example.title}</h3>
-                      <p className="text-sophisticated-blue-light">{example.details}</p>
+                      <p className="text-primary-foreground/90">{example.details}</p>
                     </div>
                     
                     <div className="p-6">
@@ -405,7 +405,7 @@ export default function RatesPage() {
               
               <div className="mt-12 bg-yellow-50 p-8 rounded-xl border border-yellow-200">
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-sophisticated-olive mb-4">
+                  <h3 className="text-xl font-semibold text-slate-900 mb-4">
                     Need a Custom Quote?
                   </h3>
                   <p className="text-gray-700 mb-6">
@@ -413,10 +413,10 @@ export default function RatesPage() {
                     or contact our team for volume pricing and business accounts.
                   </p>
                   <div className="space-x-4">
-                    <button className="bg-sophisticated-blue text-white px-8 py-3 rounded-lg font-semibold hover:bg-sophisticated-blue-dark transition-colors">
+                    <button className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                       Use Rate Calculator
                     </button>
-                    <button className="border border-sophisticated-blue text-sophisticated-blue px-8 py-3 rounded-lg font-semibold hover:bg-sophisticated-blue-light transition-colors">
+                    <button className="border border-primary text-primary px-8 py-3 rounded-lg font-semibold hover:bg-primary/5 transition-colors">
                       Contact for Quote
                     </button>
                   </div>
@@ -428,19 +428,19 @@ export default function RatesPage() {
       )}
 
       {/* CTA Section */}
-      <section className="py-16 bg-sophisticated-blue-dark text-white">
+      <section className="py-16 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6">
             Ready to Calculate Your Shipping Cost?
           </h2>
-          <p className="text-xl text-sophisticated-blue-light mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto">
             Get an instant quote with our shipping calculator or contact our team for personalized service.
           </p>
           <div className="space-x-4">
-            <button className="bg-yellow-500 text-sophisticated-blue px-8 py-4 rounded-lg text-lg font-bold hover:bg-yellow-400 transition-colors">
+            <button className="bg-yellow-500 text-primary px-8 py-4 rounded-lg text-lg font-bold hover:bg-yellow-400 transition-colors">
               Calculate Rates Now
             </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-sophisticated-blue transition-colors">
+            <button className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-primary transition-colors">
               Contact Our Team
             </button>
           </div>

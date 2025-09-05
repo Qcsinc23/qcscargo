@@ -25,6 +25,14 @@ export default tseslint.config(
       ],
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      // Custom rule to prevent hardcoded blue utilities for brand consistency
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'Literal[value=/\\b(bg-blue-|text-blue-|border-blue-|from-blue-|to-blue-|indigo-|sophisticated-blue)/]',
+          message: 'Avoid hardcoded blue color utilities. Use semantic tokens like bg-primary, text-primary instead. See BRAND_COLORS.md for guidelines.',
+        },
+      ],
     },
   },
 )

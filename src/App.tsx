@@ -14,6 +14,7 @@ import FAQPage from '@/pages/FAQPage'
 import ServiceAreas from '@/pages/ServiceAreas'
 import AboutPage from '@/pages/AboutPage'
 import BusinessServices from '@/pages/BusinessServices'
+import AirCargoShipping from '@/pages/AirCargoShipping'
 import TrackingPage from '@/pages/TrackingPage'
 import RatesPage from '@/pages/RatesPage'
 import SupportPage from '@/pages/SupportPage'
@@ -104,7 +105,12 @@ function App() {
           } />
           <Route path="/services" element={
             <Layout>
-              <BusinessServices />
+              <AirCargoShipping />
+            </Layout>
+          } />
+          <Route path="/air-cargo-shipping" element={
+            <Layout>
+              <AirCargoShipping />
             </Layout>
           } />
           <Route path="/support" element={
