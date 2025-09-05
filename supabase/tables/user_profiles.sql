@@ -1,0 +1,23 @@
+CREATE TABLE user_profiles (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    company_name TEXT,
+    contact_person TEXT NOT NULL,
+    phone TEXT,
+    address_line1 TEXT,
+    address_line2 TEXT,
+    city TEXT,
+    state TEXT,
+    zip_code TEXT,
+    country TEXT DEFAULT 'United States',
+    preferred_contact_method TEXT DEFAULT 'email',
+    business_type TEXT,
+    tax_id TEXT,
+    credit_limit DECIMAL(10,2) DEFAULT 0,
+    credit_status TEXT DEFAULT 'good',
+    preferences JSONB,
+    emergency_contact TEXT,
+    emergency_phone TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
