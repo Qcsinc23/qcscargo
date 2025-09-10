@@ -85,7 +85,7 @@ export default function RegisterPage() {
         console.error('Sign up error:', signUpError)
         await logAuthError(signUpError, 'register', formData.email)
         
-        // Provide user-friendly error messages
+        // Provide user-friendly error messages with rate limiting handling
         let errorMessage = signUpError.message
         if (signUpError.message.includes('User already registered')) {
           errorMessage = 'An account with this email already exists. Please try signing in instead.'
@@ -93,6 +93,12 @@ export default function RegisterPage() {
           errorMessage = 'Password must be at least 6 characters long.'
         } else if (signUpError.message.includes('Invalid email')) {
           errorMessage = 'Please enter a valid email address.'
+        } else if (signUpError.message.includes('For security purposes, you can only request this after')) {
+          errorMessage = 'Please wait a moment before trying again. This helps us keep your account secure.'
+        } else if (signUpError.message.includes('Too many requests')) {
+          errorMessage = 'Too many registration attempts. Please wait a few minutes before trying again.'
+        } else if (signUpError.status === 429) {
+          errorMessage = 'Registration temporarily limited. Please wait a moment and try again.'
         }
         
         setError(errorMessage)
@@ -100,48 +106,36 @@ export default function RegisterPage() {
       }
 
       if (data.user) {
-        // Create user profile with proper field mapping
-        const profileData = {
-          user_id: data.user.id,
-          email: formData.email,
+        // The user profile should be automatically created by the database trigger
+        // We'll add the additional profile information via an update
+        const profileUpdateData = {
           first_name: formData.firstName,
           last_name: formData.lastName,
           phone: formData.phone || null,
           company_name: formData.companyName || null,
           address: formData.address || null,
-          role: 'customer',
-          status: 'active',
           country: 'United States'
         }
 
-        console.log('Creating user profile with data:', profileData)
+        console.log('Updating user profile with additional data:', profileUpdateData)
+
+        // Wait a moment for the trigger to create the basic profile
+        await new Promise(resolve => setTimeout(resolve, 1000))
 
         const { error: profileError } = await supabase
           .from('user_profiles')
-          .insert(profileData)
+          .update(profileUpdateData)
+          .eq('id', data.user.id)
 
         if (profileError) {
-          console.error('Profile creation error:', profileError)
-          await logDatabaseError(profileError, 'user_profiles', 'insert', profileData)
+          console.error('Profile update error:', profileError)
+          await logDatabaseError(profileError, 'user_profiles', 'update', profileUpdateData)
           
-          // Show user-friendly error message
-          let errorMessage = 'Registration completed but profile creation failed. '
-          if (profileError.code === '23505') {
-            errorMessage += 'An account with this email already exists.'
-          } else if (profileError.code === '23502') {
-            errorMessage += 'Missing required information.'
-          } else if (profileError.code === '42501') {
-            errorMessage += 'Permission denied. Please try again.'
-          } else {
-            errorMessage += `Error: ${profileError.message}`
-          }
-          errorMessage += ' Please contact support if this issue persists.'
-          
-          setError(errorMessage)
-          return
+          // Don't block registration for profile update failures
+          console.log('Profile update failed, but registration was successful')
+        } else {
+          console.log('User profile updated successfully')
         }
-
-        console.log('User profile created successfully')
       }
 
       setSuccess(true)

@@ -69,16 +69,22 @@ export default function LoginPage() {
         console.error('Sign in error:', error)
         await logAuthError(error, 'login', email)
         
-        // Provide user-friendly error messages
+        // Provide user-friendly error messages with comprehensive rate limiting handling
         let errorMessage = error.message
         if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.'
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = 'Please check your email and click the verification link before signing in.'
-        } else if (error.message.includes('Too many requests')) {
+        } else if (error.message.includes('Too many requests') || error.message.includes('Too many login attempts')) {
           errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.'
+        } else if (error.message.includes('For security purposes, you can only request this after')) {
+          errorMessage = 'Please wait a moment before trying again. This helps us keep your account secure.'
         } else if (error.message.includes('User not found')) {
           errorMessage = 'No account found with this email address. Please check your email or create a new account.'
+        } else if (error.status === 429) {
+          errorMessage = 'Login temporarily limited. Please wait a moment and try again.'
+        } else if (error.message.includes('signup disabled')) {
+          errorMessage = 'Account registration is currently disabled. Please contact support.'
         }
         
         setError(errorMessage)
