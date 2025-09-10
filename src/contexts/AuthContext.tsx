@@ -39,29 +39,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                  user.app_metadata?.role ||
                  user.app_metadata?.user_type
 
-      // Fetch user profile from database for authoritative role information
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('role, user_type')
-        .or(`id.eq.${user.id},user_id.eq.${user.id}`)
-        .single()
+      // Try database profile lookup ONLY if JWT metadata is missing
+      // This prevents infinite recursion in RLS policies
+      if (!role) {
+        try {
+          const { data: profile, error } = await supabase
+            .from('user_profiles')
+            .select('role, user_type')
+            .or(`id.eq.${user.id},user_id.eq.${user.id}`)
+            .single()
 
-      if (!error && profile) {
-        // Use database role as authoritative source (handles both columns)
-        role = profile.role || profile.user_type || role
-        console.log('Database role verification:', {
-          user_id: user.id,
-          email: user.email,
-          profile_role: profile.role,
-          profile_user_type: profile.user_type,
-          final_role: role
-        })
+          if (!error && profile) {
+            // Use database role as authoritative source (handles both columns)
+            role = profile.role || profile.user_type
+            console.log('Database role verification (fallback):', {
+              user_id: user.id,
+              email: user.email,
+              profile_role: profile.role,
+              profile_user_type: profile.user_type,
+              final_role: role
+            })
+          } else {
+            console.log('Profile lookup failed, using metadata role:', {
+              user_id: user.id,
+              email: user.email,
+              error: error?.message,
+              metadata_role: role
+            })
+          }
+        } catch (dbError) {
+          console.warn('Database profile lookup skipped due to RLS policy conflict:', {
+            user_id: user.id,
+            email: user.email,
+            error: dbError.message,
+            using_jwt_metadata: true
+          })
+          // Continue with JWT metadata only
+        }
       } else {
-        console.log('Profile lookup failed, using metadata role:', {
+        console.log('Using JWT metadata role (preferred method):', {
           user_id: user.id,
           email: user.email,
-          error: error?.message,
-          metadata_role: role
+          jwt_role: role
         })
       }
       
@@ -80,7 +99,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: user.email,
         user_metadata: user.user_metadata,
         app_metadata: user.app_metadata,
-        database_profile: profile,
         final_role: role
       })
       
