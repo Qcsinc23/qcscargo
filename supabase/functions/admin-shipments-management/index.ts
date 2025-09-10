@@ -166,50 +166,73 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
 
     // Enrich each shipment with items count and latest tracking
     const enrichedShipments = await Promise.all(shipments.map(async (shipment: any) => {
-        // Get items count
-        const itemsCountResponse = await fetch(
-            `${supabaseUrl}/rest/v1/shipment_items?shipment_id=eq.${shipment.id}&select=count`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${serviceRoleKey}`,
-                    'apikey': serviceRoleKey,
-                    'Prefer': 'count=exact'
+        try {
+            // Get items count
+            let itemsCount = 0;
+            try {
+                const itemsCountResponse = await fetch(
+                    `${supabaseUrl}/rest/v1/shipment_items?shipment_id=eq.${shipment.id}&select=count`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey,
+                            'Prefer': 'count=exact'
+                        }
+                    }
+                );
+
+                if (itemsCountResponse.ok) {
+                    const countHeader = itemsCountResponse.headers.get('content-range');
+                    if (countHeader && countHeader.includes('/')) {
+                        const countStr = countHeader.split('/')[1];
+                        itemsCount = countStr ? parseInt(countStr) || 0 : 0;
+                    }
                 }
+            } catch (error) {
+                console.error(`Error fetching items count for shipment ${shipment.id}:`, error);
+                itemsCount = 0;
             }
-        );
 
-        let itemsCount = 0;
-        if (itemsCountResponse.ok) {
-            const countHeader = itemsCountResponse.headers.get('content-range');
-            if (countHeader) {
-                itemsCount = parseInt(countHeader.split('/')[1]);
-            }
-        }
+            // Get latest tracking
+            let latestTracking = null;
+            try {
+                const trackingResponse = await fetch(
+                    `${supabaseUrl}/rest/v1/shipment_tracking?shipment_id=eq.${shipment.id}&order=timestamp.desc&limit=1`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey
+                        }
+                    }
+                );
 
-        // Get latest tracking
-        const trackingResponse = await fetch(
-            `${supabaseUrl}/rest/v1/shipment_tracking?shipment_id=eq.${shipment.id}&order=timestamp.desc&limit=1`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${serviceRoleKey}`,
-                    'apikey': serviceRoleKey
+                if (trackingResponse.ok) {
+                    const tracking = await trackingResponse.json();
+                    latestTracking = Array.isArray(tracking) && tracking.length > 0 ? tracking[0] : null;
                 }
+            } catch (error) {
+                console.error(`Error fetching tracking for shipment ${shipment.id}:`, error);
+                latestTracking = null;
             }
-        );
 
-        let latestTracking = null;
-        if (trackingResponse.ok) {
-            const tracking = await trackingResponse.json();
-            latestTracking = tracking.length > 0 ? tracking[0] : null;
+            return {
+                ...shipment,
+                items_count: itemsCount,
+                latest_tracking: latestTracking,
+                customer: shipment.user_profiles || null,
+                destination: shipment.destinations || null
+            };
+        } catch (error) {
+            console.error(`Error processing shipment ${shipment.id}:`, error);
+            // Return shipment with minimal data on error
+            return {
+                ...shipment,
+                items_count: 0,
+                latest_tracking: null,
+                customer: shipment.user_profiles || null,
+                destination: shipment.destinations || null
+            };
         }
-
-        return {
-            ...shipment,
-            items_count: itemsCount,
-            latest_tracking: latestTracking,
-            customer: shipment.user_profiles,
-            destination: shipment.destinations
-        };
     }));
 
     // Get total count for pagination
@@ -225,11 +248,17 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
     );
 
     let totalCount = enrichedShipments.length;
-    if (countResponse.ok) {
-        const countHeader = countResponse.headers.get('content-range');
-        if (countHeader) {
-            totalCount = parseInt(countHeader.split('/')[1]);
+    try {
+        if (countResponse.ok) {
+            const countHeader = countResponse.headers.get('content-range');
+            if (countHeader && countHeader.includes('/')) {
+                const countStr = countHeader.split('/')[1];
+                totalCount = countStr ? parseInt(countStr) || enrichedShipments.length : enrichedShipments.length;
+            }
         }
+    } catch (error) {
+        console.error('Error parsing total count:', error);
+        totalCount = enrichedShipments.length;
     }
 
     const result = {
@@ -477,12 +506,21 @@ async function handleGetStats(supabaseUrl: string, serviceRoleKey: string) {
         }
     }
 
+    // Safely calculate total shipments
+    let totalShipments = 0;
+    try {
+        totalShipments = Object.values(statusStats).reduce((a: any, b: any) => (a || 0) + (b || 0), 0);
+    } catch (error) {
+        console.error('Error calculating total shipments:', error);
+        totalShipments = 0;
+    }
+
     const result = {
         success: true,
         stats: {
-            status_breakdown: statusStats,
-            recent_shipments_7_days: recentCount,
-            total_shipments: Object.values(statusStats).reduce((a: any, b: any) => a + b, 0)
+            status_breakdown: statusStats || {},
+            recent_shipments_7_days: recentCount || 0,
+            total_shipments: totalShipments
         }
     };
 

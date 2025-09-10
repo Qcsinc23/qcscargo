@@ -73,7 +73,7 @@ export default function AdminShipmentManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [pagination, setPagination] = useState({
     total: 0,
     limit: 20,
@@ -97,14 +97,14 @@ export default function AdminShipmentManagement() {
         offset: pagination.offset.toString()
       })
       
-      if (statusFilter) shipmentsParams.append('status', statusFilter)
+      if (statusFilter && statusFilter !== 'all') shipmentsParams.append('status', statusFilter)
 
       const { data: shipmentsResponse, error: shipmentsError } = await supabase.functions.invoke(
         'admin-shipments-management', 
         { 
-          body: { 
+          body: {
             action: 'list',
-            status: statusFilter,
+            status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined,
             limit: pagination.limit,
             offset: pagination.offset
           }
@@ -329,7 +329,7 @@ export default function AdminShipmentManagement() {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   {Object.entries(statusConfig).map(([status, config]) => (
                     <SelectItem key={status} value={status}>
                       {config.label}
