@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react'
-import { logAuthError, logValidationError } from '@/lib/errorLogger'
+import { logAuthError, logValidationError } from '../../lib/errorLogger'
 
 interface LocationState {
   from?: {

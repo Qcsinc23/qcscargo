@@ -52,7 +52,9 @@ const DatabaseDiagnostics: React.FC = () => {
     addLog('Starting database recovery process...')
     
     try {
-      const result = await performDatabaseRecovery()
+      // Get current health status first
+      const healthStatus = await databaseHealthChecker.performHealthCheck()
+      const result = await performDatabaseRecovery(healthStatus)
       setRecoveryResult(result)
       
       addLog(`Recovery completed. Success: ${result.success}`)
@@ -62,7 +64,7 @@ const DatabaseDiagnostics: React.FC = () => {
       
       if (result.actions_failed.length > 0) {
         result.actions_failed.forEach(failure => {
-          addLog(`Failed: ${failure.action} - ${failure.error}`)
+          addLog(`Failed: ${failure}`)
         })
       }
       
@@ -92,9 +94,9 @@ const DatabaseDiagnostics: React.FC = () => {
     }
   }
 
-  const generateMigration = () => {
+  const generateMigration = async () => {
     addLog('Generating recovery migration SQL...')
-    const sql = generateRecoveryMigration()
+    const sql = await generateRecoveryMigration()
     setMigrationSQL(sql)
     setShowMigrationSQL(true)
     addLog('Migration SQL generated')
@@ -326,7 +328,7 @@ const DatabaseDiagnostics: React.FC = () => {
                 <ul className="space-y-1">
                   {recoveryResult.actions_failed.map((failure, index) => (
                     <li key={index} className="text-sm text-red-800">
-                      • {failure.action}: {failure.error}
+                      • {failure}
                     </li>
                   ))}
                 </ul>

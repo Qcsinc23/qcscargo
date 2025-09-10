@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, User, Building, Phone, MapPin, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { logAuthError, logDatabaseError, logValidationError } from '@/lib/errorLogger'
+import { logAuthError, logDatabaseError, logValidationError } from '../../lib/errorLogger'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
