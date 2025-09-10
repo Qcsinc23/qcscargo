@@ -274,12 +274,15 @@ const DatabaseDiagnostics: React.FC = () => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-medium text-gray-900 mb-2">Tables</h3>
                 <div className="space-y-1">
-                  {Object.entries(healthReport.tables_status).map(([table, status]) => (
-                    <div key={table} className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${status.accessible ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      <span className="text-sm">{table}: {status.accessible ? 'OK' : 'Error'}</span>
-                    </div>
-                  ))}
+                  {Object.entries(healthReport.tables_status).map(([table, status]) => {
+                    const tableStatus = status as { accessible: boolean; error?: string };
+                    return (
+                      <div key={table} className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${tableStatus.accessible ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <span className="text-sm">{table}: {tableStatus.accessible ? 'OK' : 'Error'}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
