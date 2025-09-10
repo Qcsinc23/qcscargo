@@ -64,23 +64,29 @@ Deno.serve(async (req) => {
         }
 
         // Fetch shipments with destination details
-        const shipmentsResponse = await fetch(
-            `${supabaseUrl}/rest/v1/shipments?${shipmentsQuery}&select=*,destinations!destination_id(id,country_name,city_name,rate_per_lb_201_plus,transit_days_min,transit_days_max)&limit=${limit}&offset=${offset}&order=${sortBy}.${sortOrder}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${serviceRoleKey}`,
-                    'apikey': serviceRoleKey,
-                    'Content-Type': 'application/json'
-                }
+        const shipmentsUrl = `${supabaseUrl}/rest/v1/shipments?${shipmentsQuery}&select=*,destinations!destination_id(id,country_name,city_name,rate_per_lb_201_plus,transit_days_min,transit_days_max)&limit=${limit}&offset=${offset}&order=${sortBy}.${sortOrder}`;
+        console.log('Fetching shipments with URL:', shipmentsUrl);
+        console.log('User ID:', userId);
+        console.log('Query parameters:', { status, shipmentId, limit, offset, sortBy, sortOrder });
+        
+        const shipmentsResponse = await fetch(shipmentsUrl, {
+            headers: {
+                'Authorization': `Bearer ${serviceRoleKey}`,
+                'apikey': serviceRoleKey,
+                'Content-Type': 'application/json'
             }
-        );
+        });
 
         if (!shipmentsResponse.ok) {
             const errorText = await shipmentsResponse.text();
-            throw new Error(`Failed to fetch shipments: ${errorText}`);
+            console.error('Failed to fetch shipments. Status:', shipmentsResponse.status);
+            console.error('Error response:', errorText);
+            throw new Error(`Failed to fetch shipments: HTTP ${shipmentsResponse.status} - ${errorText}`);
         }
 
         const shipments = await shipmentsResponse.json();
+        console.log(`Found ${shipments.length} shipments for user ${userId}`);
+        console.log('Raw shipments data:', JSON.stringify(shipments, null, 2));
 
         // For each shipment, fetch associated items, documents, and tracking
         const enrichedShipments = await Promise.all(shipments.map(async (shipment) => {

@@ -94,6 +94,8 @@ Deno.serve(async (req) => {
         };
 
         console.log('Creating shipment with data:', shipmentData);
+        console.log('Supabase URL:', supabaseUrl);
+        console.log('Service Role Key present:', !!serviceRoleKey);
 
         const shipmentResponse = await fetch(`${supabaseUrl}/rest/v1/shipments`, {
             method: 'POST',
@@ -108,15 +110,30 @@ Deno.serve(async (req) => {
 
         if (!shipmentResponse.ok) {
             const errorText = await shipmentResponse.text();
-            console.error('Shipment creation failed:', errorText);
-            throw new Error(`Failed to create shipment: ${errorText}`);
+            console.error('Shipment creation failed with status:', shipmentResponse.status);
+            console.error('Error details:', errorText);
+            console.error('Request headers:', {
+                'Authorization': `Bearer ${serviceRoleKey.substring(0, 10)}...`,
+                'apikey': serviceRoleKey.substring(0, 10) + '...',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            });
+            throw new Error(`Failed to create shipment: HTTP ${shipmentResponse.status} - ${errorText}`);
         }
 
         const shipmentResult = await shipmentResponse.json();
+        console.log('Raw shipment response:', shipmentResult);
+        
+        if (!Array.isArray(shipmentResult) || shipmentResult.length === 0) {
+            console.error('Unexpected response format:', shipmentResult);
+            throw new Error('Shipment creation returned unexpected response format');
+        }
+        
         const shipment = shipmentResult[0];
         const shipmentId = shipment.id;
 
-        console.log('Shipment created successfully:', shipment);
+        console.log('Shipment created successfully with ID:', shipmentId);
+        console.log('Full shipment details:', shipment);
 
         // Insert shipment items with proper schema alignment
         const shipmentItems = items.map(item => ({

@@ -248,8 +248,18 @@ const AdminDashboard: React.FC = () => {
       {/* Quick Actions */}
       <div className="mt-8 bg-white rounded-lg shadow-sm border p-6">
         <h2 className="text-lg font-semibold text-rose-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <button
+            onClick={() => navigate('/admin/shipments')}
+            className="flex items-center p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+          >
+            <Package className="h-8 w-8 text-blue-600 mr-4" />
+            <div>
+              <h3 className="font-medium text-rose-900">Shipment Management</h3>
+              <p className="text-sm text-gray-500">Monitor all shipments</p>
+            </div>
+          </button>
+          <button
             onClick={() => navigate('/admin/bookings')}
             className="flex items-center p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors hover:border-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
           >
@@ -259,7 +269,7 @@ const AdminDashboard: React.FC = () => {
               <p className="text-sm text-gray-500">Manage and track bookings</p>
             </div>
           </button>
-          <button 
+          <button
             onClick={() => navigate('/admin/vehicles')}
             className="flex items-center p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors hover:border-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-700 focus:ring-offset-2"
           >
@@ -269,7 +279,7 @@ const AdminDashboard: React.FC = () => {
               <p className="text-sm text-gray-500">Optimize routes and capacity</p>
             </div>
           </button>
-          <button 
+          <button
             onClick={() => navigate('/admin/customers')}
             className="flex items-center p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors hover:border-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-700 focus:ring-offset-2"
           >
