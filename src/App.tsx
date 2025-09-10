@@ -38,6 +38,7 @@ import AdminRoute from '@/components/AdminRoute'
 import AdminLayout from '@/components/AdminLayout'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminBookingManagement from '@/pages/admin/AdminBookingManagement'
+import AdminShipmentManagement from '@/pages/admin/AdminShipmentManagement'
 import BookingDetailsPage from '@/pages/admin/BookingDetailsPage'
 import BookingEditPage from '@/pages/admin/BookingEditPage'
 import AdminVehicleManagement from '@/pages/admin/AdminVehicleManagement'
@@ -181,6 +182,7 @@ function App() {
             </AdminRoute>
           }>
             <Route index element={<AdminDashboard />} />
+            <Route path="shipments" element={<AdminShipmentManagement />} />
             <Route path="bookings" element={<AdminBookingManagement />} />
             <Route path="bookings/calendar" element={<AdminBookingCalendar />} />
             <Route path="bookings/:id" element={<BookingDetailsPage />} />

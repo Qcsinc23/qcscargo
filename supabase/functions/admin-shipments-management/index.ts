@@ -43,9 +43,9 @@ Deno.serve(async (req) => {
         const userData = await userResponse.json();
         const userId = userData.id;
 
-        // Check if user is admin
+        // Check if user is admin - try both id and user_id fields
         const adminCheckResponse = await fetch(
-            `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&role=eq.admin&select=role`,
+            `${supabaseUrl}/rest/v1/user_profiles?or=(id.eq.${userId},user_id.eq.${userId})&select=role,user_type`,
             {
                 headers: {
                     'Authorization': `Bearer ${serviceRoleKey}`,
@@ -55,12 +55,30 @@ Deno.serve(async (req) => {
         );
 
         if (!adminCheckResponse.ok) {
+            console.error('Admin check failed with status:', adminCheckResponse.status);
+            const errorText = await adminCheckResponse.text();
+            console.error('Admin check error:', errorText);
             throw new Error('Failed to verify admin status');
         }
 
         const adminData = await adminCheckResponse.json();
+        console.log('Admin check result:', adminData);
+        
         if (!adminData || adminData.length === 0) {
-            throw new Error('Access denied: Admin role required');
+            // Try to check user metadata as fallback
+            console.log('No profile found, checking user metadata...');
+            const userMetadata = userData.user_metadata || {};
+            const appMetadata = userData.app_metadata || {};
+            
+            if (userMetadata.role !== 'admin' && appMetadata.role !== 'admin') {
+                throw new Error('Access denied: Admin role required');
+            }
+        } else {
+            // Check if user has admin role
+            const profile = adminData[0];
+            if (profile.role !== 'admin' && profile.user_type !== 'admin') {
+                throw new Error('Access denied: Admin role required');
+            }
         }
 
         // Parse request data and query parameters
