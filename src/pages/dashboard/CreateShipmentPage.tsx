@@ -96,16 +96,58 @@ export default function CreateShipmentPage() {
     }
   }, [formData.destination_id, formData.items, formData.service_level])
 
-  // Handle URL parameters for pre-populating destination
+  // Handle URL parameters for pre-populating form data from shipping calculator
   useEffect(() => {
+    if (destinations.length === 0) return // Wait for destinations to load
+
     const destinationIdParam = searchParams.get('destination_id')
-    if (destinationIdParam && destinations.length > 0) {
+    const weightParam = searchParams.get('weight')
+    const serviceTypeParam = searchParams.get('service_type')
+    const declaredValueParam = searchParams.get('declared_value')
+    const lengthParam = searchParams.get('length')
+    const widthParam = searchParams.get('width')
+    const heightParam = searchParams.get('height')
+
+    // Pre-populate destination
+    if (destinationIdParam) {
       const destinationId = parseInt(destinationIdParam, 10)
-      // Check if this destination exists in our list
       const validDestination = destinations.find(d => d.id === destinationId)
       if (validDestination) {
         updateFormData('destination_id', destinationId.toString())
       }
+    }
+
+    // Pre-populate service type
+    if (serviceTypeParam && (serviceTypeParam === 'standard' || serviceTypeParam === 'express')) {
+      updateFormData('service_level', serviceTypeParam)
+    }
+
+    // Pre-populate declared value
+    if (declaredValueParam) {
+      const declaredValue = parseFloat(declaredValueParam)
+      if (!isNaN(declaredValue) && declaredValue > 0) {
+        updateFormData('declared_value', declaredValue)
+      }
+    }
+
+    // Pre-populate first item with weight and dimensions from calculator
+    if (weightParam || lengthParam || widthParam || heightParam) {
+      const weight = weightParam ? parseFloat(weightParam) : 0
+      const length = lengthParam ? parseFloat(lengthParam) : undefined
+      const width = widthParam ? parseFloat(widthParam) : undefined
+      const height = heightParam ? parseFloat(heightParam) : undefined
+
+      setFormData(prev => ({
+        ...prev,
+        items: [{
+          ...prev.items[0],
+          description: prev.items[0].description || 'Items from shipping calculator',
+          weight: weight > 0 ? weight : prev.items[0].weight,
+          length,
+          width,
+          height
+        }]
+      }))
     }
   }, [destinations, searchParams])
 
@@ -207,7 +249,7 @@ export default function CreateShipmentPage() {
     setLoading(true)
 
     try {
-      // Validate form
+      // Enhanced validation
       if (!formData.destination_id) {
         throw new Error('Please select a destination')
       }
@@ -216,10 +258,25 @@ export default function CreateShipmentPage() {
         throw new Error('Please fill in all item details with valid weights and quantities')
       }
 
-      // Create shipment using edge function
+      // Validate destination_id is a valid number
+      const destinationId = parseInt(formData.destination_id, 10)
+      if (isNaN(destinationId)) {
+        throw new Error('Invalid destination selected')
+      }
+
+      console.log('Submitting shipment with data:', {
+        destination_id: destinationId,
+        service_level: formData.service_level,
+        pickup_date: formData.pickup_date || null,
+        special_instructions: formData.special_instructions,
+        declared_value: formData.declared_value || null,
+        items: formData.items
+      })
+
+      // Create shipment using edge function with enhanced error handling
       const { data, error } = await supabase.functions.invoke('create-shipment', {
         body: {
-          destination_id: formData.destination_id,
+          destination_id: destinationId,
           service_level: formData.service_level,
           pickup_date: formData.pickup_date || null,
           special_instructions: formData.special_instructions,
@@ -228,27 +285,83 @@ export default function CreateShipmentPage() {
         }
       })
 
+      console.log('Edge function response:', { data, error })
+
+      // Enhanced error handling for different error types
       if (error) {
-        throw new Error(error.message || 'Failed to create shipment')
+        console.error('Supabase function error:', error)
+        
+        // Handle different types of errors
+        if (error.message?.includes('FunctionsHttpError')) {
+          throw new Error('Server error occurred. Please try again or contact support if the problem persists.')
+        } else if (error.message?.includes('FunctionsFetchError')) {
+          throw new Error('Network error. Please check your connection and try again.')
+        } else if (error.message?.includes('authentication')) {
+          throw new Error('Authentication error. Please log in again.')
+        } else {
+          throw new Error(error.message || 'Failed to create shipment')
+        }
       }
 
+      // Handle server-side errors returned in data
       if (data?.error) {
-        throw new Error(data.error.message || 'Failed to create shipment')
+        console.error('Server-side error:', data.error)
+        
+        const serverError = data.error
+        if (serverError.code === 'SHIPMENT_CREATION_FAILED') {
+          // Parse specific database errors
+          if (serverError.message?.includes('foreign key')) {
+            throw new Error('Invalid destination selected. Please choose a different destination.')
+          } else if (serverError.message?.includes('authentication')) {
+            throw new Error('Session expired. Please log in again.')
+          } else if (serverError.message?.includes('Missing required fields')) {
+            throw new Error('Please fill in all required fields.')
+          } else {
+            throw new Error(`Server error: ${serverError.message}`)
+          }
+        } else {
+          throw new Error(serverError.message || 'Failed to create shipment')
+        }
       }
 
+      // Validate successful response
       const shipmentResult = data?.data
       if (shipmentResult?.success && shipmentResult?.shipment) {
+        console.log('Shipment created successfully:', shipmentResult)
         setSuccess(true)
         setCreatedShipmentId(shipmentResult.shipment.id || '')
-        // Remove automatic redirect to non-existent route
-        // Users can use the "Return to Dashboard" button instead
+        
+        // Clear form data on success
+        setFormData({
+          destination_id: '',
+          service_level: 'standard',
+          pickup_date: '',
+          special_instructions: '',
+          declared_value: 0,
+          items: [{
+            description: '',
+            weight: 0,
+            quantity: 1,
+            category: 'general'
+          }]
+        })
       } else {
-        throw new Error('Unexpected response format')
+        console.error('Unexpected response format:', data)
+        throw new Error('Unexpected server response. Please try again.')
       }
 
     } catch (err: any) {
       console.error('Shipment creation error:', err)
-      setError(err.message || 'Failed to create shipment')
+      
+      // User-friendly error messages
+      let userMessage = err.message || 'Failed to create shipment'
+      
+      // Handle network errors
+      if (err.name === 'TypeError' && err.message?.includes('fetch')) {
+        userMessage = 'Network error. Please check your internet connection and try again.'
+      }
+      
+      setError(userMessage)
     } finally {
       setLoading(false)
     }
@@ -302,8 +415,12 @@ export default function CreateShipmentPage() {
                 >
                   Return to Dashboard
                 </Button>
-                <Button 
-                  onClick={() => navigate('/dashboard/create-shipment')} 
+                <Button
+                  onClick={() => {
+                    // Clear URL parameters when creating another shipment
+                    navigate('/dashboard/create-shipment', { replace: true })
+                    window.location.reload()
+                  }}
                   className="flex-1"
                   variant="outline"
                 >

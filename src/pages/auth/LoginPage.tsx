@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Lock } from 'lucide-react'
+import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react'
+import { logAuthError, logValidationError } from '@/lib/errorLogger'
 
 interface LocationState {
   from?: {
@@ -35,15 +36,60 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
+    // Client-side validation
+    if (!email.trim()) {
+      const error = 'Email is required'
+      setError(error)
+      await logValidationError(error, 'email', 'empty_email')
+      setLoading(false)
+      return
+    }
+
+    if (!password.trim()) {
+      const error = 'Password is required'
+      setError(error)
+      await logValidationError(error, 'password', 'empty_password')
+      setLoading(false)
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      const error = 'Please enter a valid email address'
+      setError(error)
+      await logValidationError(error, 'email', email)
+      setLoading(false)
+      return
+    }
+
     try {
       const { error } = await signIn(email, password)
       if (error) {
-        setError(error.message)
+        console.error('Sign in error:', error)
+        await logAuthError(error, 'login', email)
+        
+        // Provide user-friendly error messages
+        let errorMessage = error.message
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and click the verification link before signing in.'
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.'
+        } else if (error.message.includes('User not found')) {
+          errorMessage = 'No account found with this email address. Please check your email or create a new account.'
+        }
+        
+        setError(errorMessage)
       } else {
+        console.log('Sign in successful, redirecting to:', from)
         navigate(from, { replace: true })
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred')
+      console.error('Login error:', err)
+      await logAuthError(err, 'login', email)
+      setError(err.message || 'An unexpected error occurred during sign in')
     } finally {
       setLoading(false)
     }
@@ -53,7 +99,16 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-rose-100/30 to-pink-100/30 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block">
+          <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
+            <img
+              src="/qcs-logo.svg"
+              alt="QCS Cargo - Precision Air Cargo Solutions"
+              className="h-16 w-auto mx-auto mb-2"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/QCS_Cargo_Logo.png";
+              }}
+            />
             <h1 className="text-3xl font-bold text-rose-900">QCS Cargo</h1>
           </Link>
           <p className="text-pink-600 mt-2">Sign in to your account</p>
@@ -69,6 +124,7 @@ export default function LoginPage() {
           <CardContent>
             {error && (
               <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}

@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Lock, User, Building, Phone, MapPin } from 'lucide-react'
+import { Loader2, Mail, Lock, User, Building, Phone, MapPin, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { logAuthError, logDatabaseError, logValidationError } from '@/lib/errorLogger'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -41,14 +42,37 @@ export default function RegisterPage() {
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      const error = 'Passwords do not match'
+      setError(error)
+      await logValidationError(error, 'confirmPassword', 'passwords_mismatch')
       setLoading(false)
       return
     }
 
     // Validate password strength
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long')
+      const error = 'Password must be at least 6 characters long'
+      setError(error)
+      await logValidationError(error, 'password', `length_${formData.password.length}`)
+      setLoading(false)
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      const error = 'Please enter a valid email address'
+      setError(error)
+      await logValidationError(error, 'email', formData.email)
+      setLoading(false)
+      return
+    }
+
+    // Validate required fields
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      const error = 'First name and last name are required'
+      setError(error)
+      await logValidationError(error, 'name', 'missing_required_fields')
       setLoading(false)
       return
     }
@@ -58,46 +82,81 @@ export default function RegisterPage() {
       const { data, error: signUpError } = await signUp(formData.email, formData.password)
       
       if (signUpError) {
-        setError(signUpError.message)
+        console.error('Sign up error:', signUpError)
+        await logAuthError(signUpError, 'register', formData.email)
+        
+        // Provide user-friendly error messages
+        let errorMessage = signUpError.message
+        if (signUpError.message.includes('User already registered')) {
+          errorMessage = 'An account with this email already exists. Please try signing in instead.'
+        } else if (signUpError.message.includes('Password should be at least')) {
+          errorMessage = 'Password must be at least 6 characters long.'
+        } else if (signUpError.message.includes('Invalid email')) {
+          errorMessage = 'Please enter a valid email address.'
+        }
+        
+        setError(errorMessage)
         return
       }
 
       if (data.user) {
-        // Create user profile
+        // Create user profile with proper field mapping
+        const profileData = {
+          user_id: data.user.id,
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone || null,
+          company_name: formData.companyName || null,
+          address: formData.address || null,
+          role: 'customer',
+          status: 'active',
+          country: 'United States'
+        }
+
+        console.log('Creating user profile with data:', profileData)
+
         const { error: profileError } = await supabase
           .from('user_profiles')
-          .insert({
-            user_id: data.user.id,
-            email: formData.email,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            contact_person: `${formData.firstName} ${formData.lastName}`, // Required field
-            phone: formData.phone,
-            company_name: formData.companyName || null,
-            address: formData.address,
-            role: 'customer',
-            status: 'active'
-          })
+          .insert(profileData)
 
         if (profileError) {
           console.error('Profile creation error:', profileError)
-          // Show this error to user since it's critical
-          setError(`Registration completed but profile creation failed: ${profileError.message}. Please contact support.`)
+          await logDatabaseError(profileError, 'user_profiles', 'insert', profileData)
+          
+          // Show user-friendly error message
+          let errorMessage = 'Registration completed but profile creation failed. '
+          if (profileError.code === '23505') {
+            errorMessage += 'An account with this email already exists.'
+          } else if (profileError.code === '23502') {
+            errorMessage += 'Missing required information.'
+          } else if (profileError.code === '42501') {
+            errorMessage += 'Permission denied. Please try again.'
+          } else {
+            errorMessage += `Error: ${profileError.message}`
+          }
+          errorMessage += ' Please contact support if this issue persists.'
+          
+          setError(errorMessage)
           return
         }
+
+        console.log('User profile created successfully')
       }
 
       setSuccess(true)
       setTimeout(() => {
-        navigate('/auth/login', { 
-          state: { 
-            message: 'Registration successful! Please check your email to verify your account.' 
-          } 
+        navigate('/auth/login', {
+          state: {
+            message: 'Registration successful! Please check your email to verify your account.'
+          }
         })
       }, 3000)
 
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred')
+      console.error('Registration error:', err)
+      await logAuthError(err, 'register', formData.email)
+      setError(err.message || 'An unexpected error occurred during registration')
     } finally {
       setLoading(false)
     }
@@ -133,7 +192,16 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-rose-100/30 to-pink-100/30 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block">
+          <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
+            <img
+              src="/qcs-logo.svg"
+              alt="QCS Cargo - Precision Air Cargo Solutions"
+              className="h-16 w-auto mx-auto mb-2"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/QCS_Cargo_Logo.png";
+              }}
+            />
             <h1 className="text-3xl font-bold text-rose-900">QCS Cargo</h1>
           </Link>
           <p className="text-pink-600 mt-2">Create your shipping account</p>
@@ -149,6 +217,7 @@ export default function RegisterPage() {
           <CardContent>
             {error && (
               <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -256,10 +325,10 @@ export default function RegisterPage() {
                     value={formData.address}
                     onChange={handleChange}
                     className="pl-10"
-                    required
                     disabled={loading}
                   />
                 </div>
+                <p className="text-xs text-gray-500">Optional - can be added later in your profile</p>
               </div>
               
               <div className="grid grid-cols-2 gap-4">

@@ -1,8 +1,9 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Plane, Menu, X, Phone, Mail, User, LogOut } from 'lucide-react'
+import { Plane, Menu, X, Phone, Mail, User, LogOut, Clock } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBusinessHours } from '@/hooks/useBusinessHours'
 import { Button } from '@/components/ui/button'
 
 export default function Header() {
@@ -10,6 +11,7 @@ export default function Header() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const location = useLocation()
   const { user, signOut } = useAuth()
+  const { businessHours, loading: hoursLoading } = useBusinessHours()
 
   const isActive = (path: string) => location.pathname === path
 
@@ -69,8 +71,27 @@ export default function Header() {
                 <span>sales@quietcraftsolutions.com</span>
               </div>
             </div>
-            <div className="text-sm">
-              Serving NJ to Guyana & Caribbean | Mon-Fri 9AM-6PM, Sat 9AM-2PM
+            <div className="flex items-center space-x-2 text-sm">
+              <span>Serving NJ to Guyana & Caribbean</span>
+              <span>|</span>
+              {hoursLoading ? (
+                <span className="flex items-center space-x-1">
+                  <Clock className="h-3 w-3 animate-spin" />
+                  <span>Loading hours...</span>
+                </span>
+              ) : (
+                <span className="flex items-center space-x-1">
+                  <Clock className="h-3 w-3" />
+                  <span>
+                    {businessHours.weekdayHours}, {businessHours.saturdayHours}
+                  </span>
+                  {businessHours.isOpen && (
+                    <span className="ml-2 px-2 py-0.5 bg-green-500 text-white text-xs rounded-full">
+                      OPEN
+                    </span>
+                  )}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -80,13 +101,22 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <img 
-              src="/QCS_Cargo_Logo.png" 
-              alt="QCS Cargo - Precision Air Cargo Solutions" 
+          <Link
+            to="/"
+            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+            title="QCS Cargo - Return to Homepage"
+          >
+            <img
+              src="/qcs-logo.svg"
+              alt="QCS Cargo - Precision Air Cargo Solutions"
               className="h-12 w-auto"
+              onError={(e) => {
+                // Fallback to PNG if SVG fails to load
+                const target = e.target as HTMLImageElement;
+                target.src = "/QCS_Cargo_Logo.png";
+              }}
             />
-            <div>
+            <div className="hidden sm:block">
               <h1 className="text-2xl font-bold text-primary">QCS Cargo</h1>
               <p className="text-sm text-slate-600">Precision Air Cargo Solutions</p>
             </div>

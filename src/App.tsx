@@ -50,7 +50,12 @@ import AdminSettings from '@/pages/admin/AdminSettings'
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <Routes>
           {/* Public Routes with Layout */}
           <Route path="/" element={

@@ -1,21 +1,38 @@
 -- Migration: create_vehicles_table
 -- Created at: 1756916295
 
--- Create vehicles table for capacity management
-CREATE TABLE vehicles (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    name TEXT NOT NULL,
-    capacity_lbs INTEGER NOT NULL DEFAULT 1000,
-    service_area JSONB, -- Store service area information
-    active BOOLEAN DEFAULT true,
-    base_location_zip TEXT,
-    base_location_lat DECIMAL(10, 7),
-    base_location_lng DECIMAL(10, 7),
-    base_location_geom GEOMETRY(POINT, 4326),
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- Create vehicles table for capacity management (if not exists from base tables)
+DO $$ 
+BEGIN
+    -- Add additional columns to existing vehicles table if they don't exist
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'vehicles') THEN
+        -- Add missing columns if they don't exist
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS capacity_lbs INTEGER NOT NULL DEFAULT 1000;
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS service_area JSONB;
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS base_location_zip TEXT;
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS base_location_lat DECIMAL(10, 7);
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS base_location_lng DECIMAL(10, 7);
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS base_location_geom GEOMETRY(POINT, 4326);
+        ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS notes TEXT;
+    ELSE
+        -- Create the table if it doesn't exist
+        CREATE TABLE vehicles (
+            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+            name TEXT NOT NULL,
+            capacity_lbs INTEGER NOT NULL DEFAULT 1000,
+            service_area JSONB,
+            active BOOLEAN DEFAULT true,
+            base_location_zip TEXT,
+            base_location_lat DECIMAL(10, 7),
+            base_location_lng DECIMAL(10, 7),
+            base_location_geom GEOMETRY(POINT, 4326),
+            notes TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+    END IF;
+END $$;
 
 -- Create indexes for performance
 CREATE INDEX idx_vehicles_active ON vehicles(active);

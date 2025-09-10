@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { Calculator, Package, Plane, DollarSign, Clock, AlertCircle, Truck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import { Destination, CalculatedRate, ShippingCalculatorData } from '@/lib/types'
 
 export default function ShippingCalculator() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [formData, setFormData] = useState<ShippingCalculatorData>({
     weight: 0,
@@ -28,18 +31,19 @@ export default function ShippingCalculator() {
     loadDestinations()
   }, [])
 
-  // Pre-select destination from URL parameters
+  // Pre-select destination from URL parameters (only if not already chosen)
   useEffect(() => {
     const destinationId = searchParams.get('destination')
-    const countryName = searchParams.get('country')
-    
-    if (destinationId && parseInt(destinationId)) {
-      setFormData(prev => ({
-        ...prev,
-        destinationId: parseInt(destinationId)
-      }))
+    if (destinationId) {
+      const id = parseInt(destinationId, 10)
+      if (!Number.isNaN(id) && formData.destinationId === 0) {
+        setFormData(prev => ({
+          ...prev,
+          destinationId: id
+        }))
+      }
     }
-  }, [searchParams, destinations])
+  }, [searchParams, formData.destinationId])
 
   const loadDestinations = async () => {
     try {
@@ -113,6 +117,47 @@ export default function ShippingCalculator() {
     })
     setCalculatedRate(null)
     setError(null)
+  }
+
+  const handleCreateShipment = () => {
+    if (!user) {
+      // User not logged in - redirect to login with return URL to create shipment page
+      const params = new URLSearchParams({
+        destination_id: formData.destinationId.toString(),
+        weight: formData.weight.toString(),
+        service_type: formData.serviceType,
+        declared_value: formData.declaredValue.toString()
+      })
+      const returnUrl = encodeURIComponent(`/dashboard/create-shipment?${params.toString()}`)
+      navigate(`/auth/login?returnUrl=${returnUrl}`)
+    } else {
+      // User is logged in - navigate directly to create shipment page with pre-filled data
+      const params = new URLSearchParams({
+        destination_id: formData.destinationId.toString(),
+        weight: formData.weight.toString(),
+        service_type: formData.serviceType,
+        declared_value: formData.declaredValue.toString(),
+        ...(formData.dimensions?.length && { length: formData.dimensions.length.toString() }),
+        ...(formData.dimensions?.width && { width: formData.dimensions.width.toString() }),
+        ...(formData.dimensions?.height && { height: formData.dimensions.height.toString() })
+      })
+      navigate(`/dashboard/create-shipment?${params.toString()}`)
+    }
+  }
+
+  const handleRequestQuote = () => {
+    if (!calculatedRate) return
+    
+    // Navigate to contact page with pre-filled quote information
+    const params = new URLSearchParams({
+      inquiry: 'shipping',
+      subject: `Shipping Quote Request - ${calculatedRate.destination.country}`,
+      destination: calculatedRate.destination.country,
+      weight: formData.weight.toString(),
+      service: formData.serviceType,
+      total_cost: calculatedRate.rateBreakdown.totalCost.toString()
+    })
+    navigate(`/contact?${params.toString()}`)
   }
 
   return (
@@ -227,11 +272,11 @@ export default function ShippingCalculator() {
                     Destination *
                   </label>
                   <select
-                    value={formData.destinationId}
-                    onChange={(e) => setFormData({ ...formData, destinationId: parseInt(e.target.value) })}
+                    value={formData.destinationId || ''}
+                    onChange={(e) => setFormData({ ...formData, destinationId: parseInt(e.target.value) || 0 })}
                     className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                   >
-                    <option value={0}>Select destination...</option>
+                    <option value="">Select destination...</option>
                     {destinations.map((dest) => (
                       <option key={dest.id} value={dest.id}>
                         {dest.country_name} - {dest.city_name}
@@ -419,19 +464,26 @@ export default function ShippingCalculator() {
 
                   {/* Action Buttons */}
                   <div className="space-y-3">
-                    <button className="w-full bg-indigo-700 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-800 transition-colors">
-                      Request Quote
+                    <button
+                      onClick={handleCreateShipment}
+                      className="w-full bg-indigo-700 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-800 transition-colors flex items-center justify-center"
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      {user ? 'Create Shipment' : 'Sign In to Create Shipment'}
                     </button>
-                    <Link 
+                    <button
+                      onClick={handleRequestQuote}
+                      className="w-full border border-indigo-700 text-indigo-700 py-3 px-6 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+                    >
+                      Request Quote via Email
+                    </button>
+                    <Link
                       to={`/booking?destinationId=${formData.destinationId}&serviceType=${formData.serviceType}&weight=${formData.weight}`}
                       className="w-full border border-orange-500 text-orange-600 py-3 px-6 rounded-lg font-semibold hover:bg-orange-50 transition-colors flex items-center justify-center"
                     >
                       <Truck className="h-4 w-4 mr-2" />
                       Schedule Pickup with this Quote
                     </Link>
-                    <button className="w-full border border-indigo-700 text-indigo-700 py-3 px-6 rounded-lg font-semibold hover:bg-indigo-50 transition-colors">
-                      Save Quote
-                    </button>
                   </div>
                 </div>
               ) : (

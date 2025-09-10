@@ -1,3 +1,5 @@
+ // @ts-nocheck
+
 Deno.serve(async (req) => {
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
@@ -54,11 +56,7 @@ Deno.serve(async (req) => {
 
         console.log('Checking business hours for date:', date);
 
-        // Get business hours for the requested date
-        const businessHoursQuery = `
-            SELECT * FROM get_business_hours('${requestDate.toISOString().split('T')[0]}');
-        `;
-
+        // Get business hours for the requested date using the new function
         const businessHoursResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/get_business_hours`, {
             method: 'POST',
             headers: {
@@ -80,22 +78,40 @@ Deno.serve(async (req) => {
 
         // Check if closed that day
         if (businessHours.length > 0 && businessHours[0].is_closed) {
+            const closureMessage = businessHours[0].is_holiday 
+                ? `Closed for ${businessHours[0].holiday_name || 'holiday'}`
+                : `Closed on ${businessHours[0].day_name?.trim() || 'this day'}`;
+                
             return new Response(JSON.stringify({
                 data: {
                     available_windows: [],
                     reason: 'Closed',
-                    message: 'No service available on this date'
+                    message: closureMessage,
+                    is_holiday: businessHours[0].is_holiday,
+                    holiday_name: businessHours[0].holiday_name
                 }
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
         }
 
-        // Get business hours or default to 8 AM - 5 PM
-        const openTime = businessHours[0]?.open_time || '08:00';
-        const closeTime = businessHours[0]?.close_time || '17:00';
+        // Get business hours - no fallback to hardcoded times
+        if (!businessHours.length || !businessHours[0].open_time || !businessHours[0].close_time) {
+            return new Response(JSON.stringify({
+                data: {
+                    available_windows: [],
+                    reason: 'No Hours Configured',
+                    message: 'Business hours not configured for this date'
+                }
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
 
-        console.log('Business hours:', { openTime, closeTime });
+        const openTime = businessHours[0].open_time;
+        const closeTime = businessHours[0].close_time;
+
+        console.log('Business hours:', { openTime, closeTime, day_name: businessHours[0].day_name });
 
         // Calculate distance if ZIP code is provided using PostGIS
         let distance_miles = null;

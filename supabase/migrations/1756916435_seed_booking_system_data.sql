@@ -55,11 +55,11 @@ INSERT INTO postal_geos (zip_code, city, state, county, latitude, longitude) VAL
 ('08901', 'New Brunswick', 'NJ', 'Middlesex', 40.4862, -74.4518);
 
 -- Seed vehicles table with sample fleet
-INSERT INTO vehicles (name, capacity_lbs, service_area, base_location_zip, base_location_lat, base_location_lng, notes) VALUES
-('QCS Truck 1', 2000, '{"service_areas": ["North Jersey", "Hudson County", "Bergen County"], "max_radius_miles": 25}', '07030', 40.7439, -74.0324, 'Primary delivery vehicle for North Jersey area'),
-('QCS Truck 2', 1500, '{"service_areas": ["Central Jersey", "Middlesex County", "Union County"], "max_radius_miles": 30}', '08901', 40.4862, -74.4518, 'Central Jersey service vehicle'),
-('QCS Van 1', 800, '{"service_areas": ["Local deliveries", "Essex County"], "max_radius_miles": 20}', '07017', 40.7673, -74.2049, 'Small package and local delivery van'),
-('QCS Truck 3', 2500, '{"service_areas": ["Long distance", "Ocean County", "Monmouth County"], "max_radius_miles": 50}', '08701', 40.0979, -74.2177, 'Heavy capacity truck for large shipments');
+INSERT INTO vehicles (name, type, capacity_lbs, service_area, base_location_zip, base_location_lat, base_location_lng, notes) VALUES
+('QCS Truck 1', 'truck', 2000, '{"service_areas": ["North Jersey", "Hudson County", "Bergen County"], "max_radius_miles": 25}', '07030', 40.7439, -74.0324, 'Primary delivery vehicle for North Jersey area'),
+('QCS Truck 2', 'truck', 1500, '{"service_areas": ["Central Jersey", "Middlesex County", "Union County"], "max_radius_miles": 30}', '08901', 40.4862, -74.4518, 'Central Jersey service vehicle'),
+('QCS Van 1', 'van', 800, '{"service_areas": ["Local deliveries", "Essex County"], "max_radius_miles": 20}', '07017', 40.7673, -74.2049, 'Small package and local delivery van'),
+('QCS Truck 3', 'truck', 2500, '{"service_areas": ["Long distance", "Ocean County", "Monmouth County"], "max_radius_miles": 50}', '08701', 40.0979, -74.2177, 'Heavy capacity truck for large shipments');
 
 -- Seed availability_overrides with holidays and blackout dates for 2025
 INSERT INTO availability_overrides (date, is_closed, reason) VALUES

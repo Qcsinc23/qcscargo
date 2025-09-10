@@ -1,35 +1,7 @@
 -- Migration: admin_system_seed_data
 -- Created at: 1756923367
-
--- Migration: admin_system_seed_data
--- Created at: 1756925200
 -- Purpose: Seed initial admin data and sample staff profiles
-
--- Create sample staff profiles (these would be created when real staff users register)
-INSERT INTO staff_profiles (user_id, role, full_name, phone, email, department, active, permissions) VALUES
--- Note: In production, these would reference actual auth.users entries
-('11111111-1111-1111-1111-111111111111', 'admin', 'Admin User', '555-0101', 'admin@qcscargo.com', 'Operations', true, '{"all_permissions": true}'),
-('22222222-2222-2222-2222-222222222222', 'staff', 'Operations Staff', '555-0102', 'staff@qcscargo.com', 'Operations', true, '{"manage_bookings": true, "view_reports": true}'),
-('33333333-3333-3333-3333-333333333333', 'driver', 'Driver One', '555-0103', 'driver1@qcscargo.com', 'Fleet', true, '{"view_assignments": true, "update_status": true}'),
-('44444444-4444-4444-4444-444444444444', 'customer_service', 'CS Representative', '555-0104', 'cs@qcscargo.com', 'Customer Service', true, '{"manage_customer_communications": true, "view_bookings": true}')
-ON CONFLICT (user_id) DO NOTHING;
-
--- Create sample admin overrides for holidays and special dates
-INSERT INTO admin_overrides (override_type, title, description, date_start, date_end, reason, created_by, active) VALUES
-('blackout', 'Christmas Day 2024', 'No service available on Christmas Day', '2024-12-25 00:00:00+00', '2024-12-25 23:59:59+00', 'Federal Holiday - Office Closed', '11111111-1111-1111-1111-111111111111', true),
-('blackout', 'New Years Day 2025', 'No service available on New Years Day', '2025-01-01 00:00:00+00', '2025-01-01 23:59:59+00', 'Federal Holiday - Office Closed', '11111111-1111-1111-1111-111111111111', true),
-('capacity_block', 'Fleet Maintenance Window', 'Reduced capacity during maintenance', '2025-09-15 08:00:00+00', '2025-09-15 16:00:00+00', 'Scheduled vehicle maintenance', '11111111-1111-1111-1111-111111111111', true),
-('service_exception', 'Hurricane Preparedness', 'Special service adjustments for severe weather', '2025-08-01 00:00:00+00', '2025-09-30 23:59:59+00', 'Hurricane season precautions', '11111111-1111-1111-1111-111111111111', true)
-ON CONFLICT (id) DO NOTHING;
-
--- Seed some sample customer insights data (this would normally be generated automatically)
-INSERT INTO customer_insights (customer_id, total_bookings, total_revenue, average_booking_value, preferred_service_type, customer_tier, booking_frequency, satisfaction_rating) VALUES
--- Note: These would reference actual customer user IDs
-('55555555-5555-5555-5555-555555555555', 12, 2400.00, 200.00, 'express', 'premium', 'monthly', 4.5),
-('66666666-6666-6666-6666-666666666666', 25, 3750.00, 150.00, 'standard', 'vip', 'weekly', 4.8),
-('77777777-7777-7777-7777-777777777777', 3, 450.00, 150.00, 'standard', 'standard', 'occasional', 4.2),
-('88888888-8888-8888-8888-888888888888', 1, 125.00, 125.00, 'standard', 'new', 'one_time', 4.0)
-ON CONFLICT (customer_id) DO NOTHING;
+-- NOTE: This migration now works with the user registration trigger system
 
 -- Create notification templates for common scenarios
 CREATE TABLE IF NOT EXISTS notification_templates (
@@ -93,6 +65,7 @@ GRANT ALL ON notification_templates TO authenticated;
 GRANT ALL ON admin_dashboard_config TO authenticated;
 
 -- Update existing bookings with some admin fields (for demo purposes)
+-- Only update if there are existing bookings and they don't have priority_level set
 UPDATE bookings 
 SET 
     priority_level = CASE 
@@ -100,7 +73,6 @@ SET
         WHEN estimated_weight > 1000 THEN 'urgent'
         ELSE 'standard'
     END,
-    created_by = COALESCE(customer_id, '55555555-5555-5555-5555-555555555555'),
     updated_at = NOW()
 WHERE priority_level IS NULL;
 
@@ -161,4 +133,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute permission
-GRANT EXECUTE ON FUNCTION get_admin_dashboard_stats(text) TO authenticated;;
+GRANT EXECUTE ON FUNCTION get_admin_dashboard_stats(text) TO authenticated;

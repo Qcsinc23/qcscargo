@@ -23,9 +23,19 @@ Deno.serve(async (req) => {
             items // Array of shipment items
         } = requestData;
 
-        // Validate required fields
+        // Enhanced validation
         if (!destination_id || !service_level || !items || !Array.isArray(items) || items.length === 0) {
             throw new Error('Missing required fields: destination_id, service_level, and items array');
+        }
+
+        // Validate each item
+        for (const item of items) {
+            if (!item.description || !item.weight || !item.quantity) {
+                throw new Error('Each item must have description, weight, and quantity');
+            }
+            if (parseFloat(item.weight) <= 0 || parseInt(item.quantity) <= 0) {
+                throw new Error('Item weight and quantity must be greater than 0');
+            }
         }
 
         // Get Supabase configuration
@@ -53,7 +63,8 @@ Deno.serve(async (req) => {
         });
 
         if (!userResponse.ok) {
-            throw new Error('Invalid authentication token');
+            const errorText = await userResponse.text();
+            throw new Error(`Invalid authentication token: ${errorText}`);
         }
 
         const userData = await userResponse.json();
@@ -62,28 +73,27 @@ Deno.serve(async (req) => {
         // Calculate total weight and validate items
         let totalWeight = 0;
         for (const item of items) {
-            if (!item.description || !item.weight || !item.quantity) {
-                throw new Error('Each item must have description, weight, and quantity');
-            }
             totalWeight += parseFloat(item.weight) * parseInt(item.quantity);
         }
 
         // Generate tracking number
         const trackingNumber = `QCS${Date.now()}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
-        // Create the main shipment record
+        // Create the main shipment record with proper schema alignment
         const shipmentData = {
             tracking_number: trackingNumber,
             customer_id: customerId,
-            destination_id,
+            destination_id: parseInt(destination_id), // Ensure integer type
             service_type: service_level, // Map service_level to service_type
             status: 'pending_pickup',
             pickup_scheduled_at: pickup_date || null,
             special_instructions: special_instructions || '',
             total_declared_value: declared_value ? parseFloat(declared_value) : null,
             total_weight: totalWeight,
-            weight_lbs: totalWeight // Also set weight_lbs for compatibility
+            origin_address: 'QCS Cargo - New Jersey' // Default origin
         };
+
+        console.log('Creating shipment with data:', shipmentData);
 
         const shipmentResponse = await fetch(`${supabaseUrl}/rest/v1/shipments`, {
             method: 'POST',
@@ -98,6 +108,7 @@ Deno.serve(async (req) => {
 
         if (!shipmentResponse.ok) {
             const errorText = await shipmentResponse.text();
+            console.error('Shipment creation failed:', errorText);
             throw new Error(`Failed to create shipment: ${errorText}`);
         }
 
@@ -105,19 +116,23 @@ Deno.serve(async (req) => {
         const shipment = shipmentResult[0];
         const shipmentId = shipment.id;
 
-        // Insert shipment items
+        console.log('Shipment created successfully:', shipment);
+
+        // Insert shipment items with proper schema alignment
         const shipmentItems = items.map(item => ({
-            shipment_id: shipmentId,
+            shipment_id: shipmentId, // Use the returned shipment ID
             description: item.description,
-            weight_lbs: parseFloat(item.weight), // Use weight_lbs instead of weight
+            weight_lbs: parseFloat(item.weight), // Align with schema
             quantity: parseInt(item.quantity),
-            length_inches: item.length ? parseFloat(item.length) : null, // Use length_inches
-            width_inches: item.width ? parseFloat(item.width) : null, // Use width_inches
-            height_inches: item.height ? parseFloat(item.height) : null, // Use height_inches
+            length_inches: item.length ? parseFloat(item.length) : null,
+            width_inches: item.width ? parseFloat(item.width) : null,
+            height_inches: item.height ? parseFloat(item.height) : null,
             declared_value: item.value ? parseFloat(item.value) : 0, // Required field, default to 0
             category: item.category || 'general',
             notes: item.notes || ''
         }));
+
+        console.log('Creating shipment items:', shipmentItems);
 
         const itemsResponse = await fetch(`${supabaseUrl}/rest/v1/shipment_items`, {
             method: 'POST',
@@ -132,34 +147,34 @@ Deno.serve(async (req) => {
 
         if (!itemsResponse.ok) {
             const errorText = await itemsResponse.text();
-            // If items insertion fails, we should ideally roll back the shipment
-            // For now, log the error but still return the shipment ID
             console.error('Failed to insert shipment items:', errorText);
+            // Don't fail the entire operation, but log the error
+            console.error('Shipment created but items insertion failed');
         }
 
         const insertedItems = itemsResponse.ok ? await itemsResponse.json() : [];
 
-        // Create initial tracking entry
-        const trackingData = {
-            shipment_id: shipmentId,
-            status: 'created',
-            location: 'QCS Cargo - New Jersey',
-            notes: 'Shipment created and pending pickup',
-            timestamp: new Date().toISOString()
-        };
+        // Create initial tracking entry (optional - only if tracking table exists)
+        try {
+            const trackingData = {
+                shipment_id: shipmentId,
+                status: 'created',
+                location: 'QCS Cargo - New Jersey',
+                notes: 'Shipment created and pending pickup',
+                timestamp: new Date().toISOString()
+            };
 
-        const trackingResponse = await fetch(`${supabaseUrl}/rest/v1/shipment_tracking`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'apikey': serviceRoleKey,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(trackingData)
-        });
-
-        if (!trackingResponse.ok) {
-            console.error('Failed to create initial tracking entry');
+            await fetch(`${supabaseUrl}/rest/v1/shipment_tracking`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${serviceRoleKey}`,
+                    'apikey': serviceRoleKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(trackingData)
+            });
+        } catch (trackingError) {
+            console.log('Tracking entry creation skipped (table may not exist)');
         }
 
         // Return success response with shipment details
@@ -187,7 +202,8 @@ Deno.serve(async (req) => {
         const errorResponse = {
             error: {
                 code: 'SHIPMENT_CREATION_FAILED',
-                message: error.message
+                message: error.message,
+                details: error.stack || 'No additional details available'
             }
         };
 
