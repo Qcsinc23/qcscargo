@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
 
         const user = await userResponse.json();
         
-        // Check if user has admin role
-        const profileResponse = await fetch(`${supabaseUrl}/rest/v1/user_profiles?select=role&user_id=eq.${user.id}`, {
+        // Check if user has admin role - handle both 'role' and 'user_type' columns
+        const profileResponse = await fetch(`${supabaseUrl}/rest/v1/user_profiles?select=role,user_type&id=eq.${user.id}`, {
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
                 'apikey': serviceRoleKey
@@ -60,7 +60,14 @@ Deno.serve(async (req) => {
         }
 
         const profiles = await profileResponse.json();
-        if (!profiles.length || profiles[0].role !== 'admin') {
+        if (!profiles.length) {
+            throw new Error('User profile not found');
+        }
+
+        const profile = profiles[0];
+        const isAdmin = profile.role === 'admin' || profile.user_type === 'admin';
+        
+        if (!isAdmin) {
             throw new Error('Insufficient permissions - admin access required');
         }
 

@@ -1,17 +1,35 @@
-Deno.serve(async (req) => {
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE, PATCH',
-        'Access-Control-Max-Age': '86400',
-        'Access-Control-Allow-Credentials': 'false'
-    };
+import { verifyAdminAccess, corsHeaders, handleOptions, createErrorResponse, createSuccessResponse, logAdminAction } from '../_shared/auth-utils.ts';
 
+Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
-        return new Response(null, { status: 200, headers: corsHeaders });
+        return handleOptions();
     }
 
     try {
+        // Get environment variables
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+        if (!supabaseUrl || !serviceRoleKey) {
+            return createErrorResponse('CONFIG_ERROR', 'Supabase configuration missing', 500);
+        }
+
+        // CRITICAL SECURITY FIX: Verify admin authentication
+        const authHeader = req.headers.get('authorization');
+        const authResult = await verifyAdminAccess(authHeader, supabaseUrl, serviceRoleKey);
+
+        if (!authResult.success) {
+            return createErrorResponse('UNAUTHORIZED', authResult.error || 'Admin access required', 401);
+        }
+
+        // Log admin action for audit trail
+        logAdminAction('REPORTS_ACCESS', authResult.user!, {
+            method: req.method,
+            url: req.url
+        });
+
+        console.log(`Admin reports access granted to: ${authResult.user!.email}`);
+
         const { 
             report_type,
             date_range,
@@ -19,14 +37,13 @@ Deno.serve(async (req) => {
             export_format = 'json' // 'json', 'csv'
         } = await req.json();
 
-        console.log('Admin reports request:', { report_type, date_range, filters, export_format });
-
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-        if (!supabaseUrl || !serviceRoleKey) {
-            throw new Error('Supabase configuration missing');
-        }
+        console.log('Admin reports request:', {
+            admin: authResult.user!.email,
+            report_type,
+            date_range,
+            filters,
+            export_format
+        });
 
         if (!report_type) {
             throw new Error('Report type is required');
@@ -48,9 +65,13 @@ Deno.serve(async (req) => {
             const cachedData = await cacheResponse.json();
             if (cachedData.length > 0) {
                 console.log('Returning cached report data');
-                return new Response(JSON.stringify({ data: cachedData[0].data, cached: true }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                // Log cached report access
+                logAdminAction('REPORTS_CACHED_ACCESS', authResult.user!, {
+                    report_type,
+                    cache_key: cacheKey
                 });
+
+                return createSuccessResponse({ data: cachedData[0].data, cached: true });
             }
         }
 
@@ -122,6 +143,12 @@ Deno.serve(async (req) => {
         // Format response based on export format
         if (export_format === 'csv') {
             const csvData = convertToCSV(reportData);
+            // Log CSV export
+            logAdminAction('REPORTS_CSV_EXPORT', authResult.user!, {
+                report_type,
+                export_format: 'csv'
+            });
+
             return new Response(csvData, {
                 headers: {
                     ...corsHeaders,
@@ -142,24 +169,20 @@ Deno.serve(async (req) => {
             }
         };
 
-        return new Response(JSON.stringify(result), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        // Log successful report generation
+        logAdminAction('REPORTS_GENERATED', authResult.user!, {
+            report_type,
+            date_range,
+            filters,
+            export_format,
+            cached: false
         });
+
+        return createSuccessResponse(result);
 
     } catch (error) {
         console.error('Admin reports error:', error);
-
-        const errorResponse = {
-            error: {
-                code: 'ADMIN_REPORTS_FAILED',
-                message: error.message
-            }
-        };
-
-        return new Response(JSON.stringify(errorResponse), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return createErrorResponse('ADMIN_REPORTS_FAILED', error.message, 500);
     }
 });
 

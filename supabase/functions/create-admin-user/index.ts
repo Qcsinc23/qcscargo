@@ -1,20 +1,29 @@
-Deno.serve(async (req) => {
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name, x-request-id, x-user-agent, x-forwarded-for',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE, PATCH',
-        'Access-Control-Max-Age': '86400',
-        'Access-Control-Allow-Credentials': 'false'
-    };
+import { verifyAdminAccess, corsHeaders, handleOptions, createErrorResponse, createSuccessResponse, logAdminAction } from '../_shared/auth-utils.ts';
 
+Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
-        return new Response(null, {
-            status: 200,
-            headers: corsHeaders
-        });
+        return handleOptions();
     }
 
     try {
+        // Get environment variables first
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+
+        if (!serviceRoleKey || !supabaseUrl) {
+            return createErrorResponse('CONFIG_ERROR', 'Missing Supabase configuration', 500);
+        }
+
+        // SECURITY: Verify admin authentication for user creation
+        const authHeader = req.headers.get('authorization');
+        const authResult = await verifyAdminAccess(authHeader, supabaseUrl, serviceRoleKey);
+
+        if (!authResult.success) {
+            return createErrorResponse('UNAUTHORIZED', authResult.error || 'Admin access required to create users', 401);
+        }
+
+        console.log(`Admin user creation request from: ${authResult.user!.email}`);
+
       // Get parameters from request body
       const requestBody = await req.json();
       const { email, password, role = 'authenticated' } = requestBody;
@@ -28,18 +37,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get environment variables
-      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-
-      if (!serviceRoleKey || !supabaseUrl) {
-        return new Response(JSON.stringify({
-          error: { code: 'CONFIG_ERROR', message: 'Missing Supabase configuration' }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        });
-      }
+      // Log admin action
+      logAdminAction('CREATE_ADMIN_USER_ATTEMPT', authResult.user!, {
+        target_email: email,
+        target_role: role
+      });
 
       // Generate user ID
       const userId = crypto.randomUUID();
@@ -104,7 +106,15 @@ Deno.serve(async (req) => {
         }
 
         const userData = await adminResponse.json();
-        return new Response(JSON.stringify({
+        
+        // Log successful user creation
+        logAdminAction('CREATE_ADMIN_USER_SUCCESS', authResult.user!, {
+          created_user_id: userData.id,
+          created_user_email: userData.email,
+          method: 'admin_api'
+        });
+
+        return createSuccessResponse({
           success: true,
           message: 'Admin user created successfully via Admin API',
           user: {
@@ -113,13 +123,19 @@ Deno.serve(async (req) => {
             created_at: userData.created_at,
             method: 'admin_api'
           }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       const userData = await response.json();
-      return new Response(JSON.stringify({
+      
+      // Log successful user creation
+      logAdminAction('CREATE_ADMIN_USER_SUCCESS', authResult.user!, {
+        created_user_id: userId,
+        created_user_email: email,
+        method: 'direct_sql'
+      });
+
+      return createSuccessResponse({
         success: true,
         message: 'Admin user created successfully via direct SQL',
         user: {
@@ -128,17 +144,10 @@ Deno.serve(async (req) => {
           created_at: now,
           method: 'direct_sql'
         }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
     } catch (error) {
-      logger.error('Function error:', error);
-      return new Response(JSON.stringify({
-        error: { code: 'FUNCTION_ERROR', message: error.message }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
+      console.error('Create admin user function error:', error);
+      return createErrorResponse('FUNCTION_ERROR', error.message, 500);
     }
   });

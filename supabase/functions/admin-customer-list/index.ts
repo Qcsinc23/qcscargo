@@ -1,17 +1,35 @@
-Deno.serve(async (req) => {
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE, PATCH',
-        'Access-Control-Max-Age': '86400',
-        'Access-Control-Allow-Credentials': 'false'
-    };
+import { verifyAdminAccess, corsHeaders, handleOptions, createErrorResponse, createSuccessResponse, logAdminAction } from '../_shared/auth-utils.ts';
 
+Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
-        return new Response(null, { status: 200, headers: corsHeaders });
+        return handleOptions();
     }
 
     try {
+        // Get environment variables
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+        if (!supabaseUrl || !serviceRoleKey) {
+            return createErrorResponse('CONFIG_ERROR', 'Supabase configuration missing', 500);
+        }
+
+        // CRITICAL SECURITY FIX: Verify admin authentication
+        const authHeader = req.headers.get('authorization');
+        const authResult = await verifyAdminAccess(authHeader, supabaseUrl, serviceRoleKey);
+
+        if (!authResult.success) {
+            return createErrorResponse('UNAUTHORIZED', authResult.error || 'Admin access required', 401);
+        }
+
+        // Log admin action for audit trail
+        logAdminAction('CUSTOMER_LIST_ACCESS', authResult.user!, {
+            method: req.method,
+            url: req.url
+        });
+
+        console.log(`Admin customer list access granted to: ${authResult.user!.email}`);
+
         const {
             search_term = '',
             page = 1,
@@ -21,19 +39,20 @@ Deno.serve(async (req) => {
             filters = {}
         } = await req.json();
 
-        console.log('Admin customer list request:', { search_term, page, limit, sort_by, sort_order, filters });
-
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-        if (!supabaseUrl || !serviceRoleKey) {
-            throw new Error('Supabase configuration missing');
-        }
+        console.log('Admin customer list request:', {
+            admin: authResult.user!.email,
+            search_term,
+            page,
+            limit,
+            sort_by,
+            sort_order,
+            filters
+        });
 
         // Build query for customer profiles with search and filters
         let query = 'select=*';
         let countQuery = 'select=count';
-        const queryFilters = [];
+        const queryFilters: string[] = [];
 
         // Search functionality
         if (search_term && search_term.trim().length > 0) {
@@ -238,23 +257,17 @@ Deno.serve(async (req) => {
             }
         };
 
-        return new Response(JSON.stringify(result), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        // Log successful data access
+        logAdminAction('CUSTOMER_LIST_SUCCESS', authResult.user!, {
+            customers_returned: enrichedCustomers.length,
+            total_customers: totalCount,
+            filters_applied: { search_term, ...filters }
         });
+
+        return createSuccessResponse(result);
 
     } catch (error) {
         console.error('Admin customer list error:', error);
-
-        const errorResponse = {
-            error: {
-                code: 'ADMIN_CUSTOMER_LIST_FAILED',
-                message: error.message
-            }
-        };
-
-        return new Response(JSON.stringify(errorResponse), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return createErrorResponse('ADMIN_CUSTOMER_LIST_FAILED', error.message, 500);
     }
 });
