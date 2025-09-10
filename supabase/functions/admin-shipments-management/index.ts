@@ -43,42 +43,93 @@ Deno.serve(async (req) => {
         const userData = await userResponse.json();
         const userId = userData.id;
 
-        // Check if user is admin - try both id and user_id fields
-        const adminCheckResponse = await fetch(
-            `${supabaseUrl}/rest/v1/user_profiles?or=(id.eq.${userId},user_id.eq.${userId})&select=role,user_type`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${serviceRoleKey}`,
-                    'apikey': serviceRoleKey
-                }
-            }
-        );
+        // Check admin role with multiple fallback strategies
+        let isAdmin = false;
+        let adminCheckMethod = 'unknown';
 
-        if (!adminCheckResponse.ok) {
-            console.error('Admin check failed with status:', adminCheckResponse.status);
-            const errorText = await adminCheckResponse.text();
-            console.error('Admin check error:', errorText);
-            throw new Error('Failed to verify admin status');
+        try {
+            // Method 1: Check user_profiles using id (primary method)
+            const adminCheckResponse = await fetch(
+                `${supabaseUrl}/rest/v1/user_profiles?id=eq.${userId}&select=role,user_type`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                }
+            );
+
+            if (adminCheckResponse.ok) {
+                const adminData = await adminCheckResponse.json();
+                console.log('Admin check via id result:', adminData);
+                
+                if (adminData && adminData.length > 0) {
+                    const profile = adminData[0];
+                    if (profile.role === 'admin' || profile.user_type === 'admin') {
+                        isAdmin = true;
+                        adminCheckMethod = 'user_profiles_id';
+                    }
+                }
+            } else {
+                console.error('Admin check via id failed with status:', adminCheckResponse.status);
+                const errorText = await adminCheckResponse.text();
+                console.error('Admin check via id error:', errorText);
+            }
+        } catch (error) {
+            console.error('Error in admin check via id:', error);
         }
 
-        const adminData = await adminCheckResponse.json();
-        console.log('Admin check result:', adminData);
-        
-        if (!adminData || adminData.length === 0) {
-            // Try to check user metadata as fallback
-            console.log('No profile found, checking user metadata...');
+        // Method 2: Fallback to user_id field if id method failed
+        if (!isAdmin) {
+            try {
+                const adminCheckResponse = await fetch(
+                    `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=role,user_type`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey
+                        }
+                    }
+                );
+
+                if (adminCheckResponse.ok) {
+                    const adminData = await adminCheckResponse.json();
+                    console.log('Admin check via user_id result:', adminData);
+                    
+                    if (adminData && adminData.length > 0) {
+                        const profile = adminData[0];
+                        if (profile.role === 'admin' || profile.user_type === 'admin') {
+                            isAdmin = true;
+                            adminCheckMethod = 'user_profiles_user_id';
+                        }
+                    }
+                } else {
+                    console.error('Admin check via user_id failed with status:', adminCheckResponse.status);
+                }
+            } catch (error) {
+                console.error('Error in admin check via user_id:', error);
+            }
+        }
+
+        // Method 3: Check JWT metadata as final fallback
+        if (!isAdmin) {
+            console.log('Database admin check failed, trying JWT metadata...');
             const userMetadata = userData.user_metadata || {};
             const appMetadata = userData.app_metadata || {};
             
-            if (userMetadata.role !== 'admin' && appMetadata.role !== 'admin') {
-                throw new Error('Access denied: Admin role required');
+            if (userMetadata.role === 'admin' ||
+                userMetadata.user_type === 'admin' ||
+                appMetadata.role === 'admin' ||
+                appMetadata.user_type === 'admin') {
+                isAdmin = true;
+                adminCheckMethod = 'jwt_metadata';
             }
-        } else {
-            // Check if user has admin role
-            const profile = adminData[0];
-            if (profile.role !== 'admin' && profile.user_type !== 'admin') {
-                throw new Error('Access denied: Admin role required');
-            }
+        }
+
+        console.log(`Admin check result: ${isAdmin} (method: ${adminCheckMethod})`);
+
+        if (!isAdmin) {
+            throw new Error('Access denied: Admin role required');
         }
 
         // Parse request data and query parameters
