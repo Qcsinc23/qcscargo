@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import ScrollToTop from '@/components/ScrollToTop'
 import { Toaster } from 'sonner'
 
 // Public Pages
@@ -57,6 +58,7 @@ function App() {
           v7_relativeSplatPath: true
         }}
       >
+        <ScrollToTop />
         <Routes>
           {/* Public Routes with Layout */}
           <Route path="/" element={
