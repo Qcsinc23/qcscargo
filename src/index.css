@@ -66,12 +66,19 @@ img {
   position: fixed;
 }
 
-/* Custom utilities for better text handling */
+/* Custom utilities for better text handling and mobile layout */
 @layer utilities {
   .no-wrap {
     white-space: nowrap;
   }
   .text-balance {
     text-wrap: balance;
+  }
+  /* Sticky CTA height (h-14 = 56px). Adjust if you change bar height */
+  .pb-sticky-safe {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
+  }
+  .scroll-mb-sticky {
+    scroll-margin-bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
   }
 }
