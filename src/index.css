@@ -76,12 +76,12 @@ img {
   }
   /* sticky top header + sticky bottom CTA spacing */
   .pt-header-safe {
-    padding-top: calc(56px + env(safe-area-inset-top));
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
   }   /* header h-14 */
   .pb-sticky-safe {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom) + 12px);
-  } /* CTA h-14 */
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 56px + 12px);
+  } /* CTA h-14 + header h-14 + buffer */
   .scroll-mb-sticky {
-    scroll-margin-bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
+    scroll-margin-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px);
   }
 }

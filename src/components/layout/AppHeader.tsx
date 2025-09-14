@@ -33,14 +33,8 @@ export function AppHeader() {
           }} />
         </a>
 
-        {/* Actions right: menu; (Call/Email live in bottom sticky CTA) */}
-        <div className="flex items-center gap-3">
-          <a href="tel:+12012490929" className="sr-only sm:not-sr-only hidden sm:flex items-center gap-1 text-sm font-medium">
-            <Phone className="h-4 w-4" /> Call
-          </a>
-          <a href="mailto:sales@quietcraftsolutions.com" className="sr-only sm:not-sr-only hidden sm:flex items-center gap-1 text-sm font-medium no-wrap">
-            <Mail className="h-4 w-4" /> Email
-          </a>
+        {/* Actions right: menu only (Call/Email live in bottom sticky CTA) */}
+        <div className="flex items-center">
           <button aria-label="Open menu" className="p-2 rounded-lg hover:bg-slate-100" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <Menu className="h-6 w-6" />
           </button>

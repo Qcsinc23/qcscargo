@@ -1,7 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
-import Layout from '@/components/Layout'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ScrollToTop from '@/components/ScrollToTop'
 import { Toaster } from 'sonner'
@@ -60,87 +59,23 @@ function App() {
       >
         <ScrollToTop />
         <Routes>
-          {/* Public Routes with Layout */}
-          <Route path="/" element={
-            <Layout>
-              <HomePage />
-            </Layout>
-          } />
-          <Route path="/shipping-calculator" element={
-            <Layout>
-              <ShippingCalculator />
-            </Layout>
-          } />
-          <Route path="/how-it-works" element={
-            <Layout>
-              <HowItWorks />
-            </Layout>
-          } />
-          <Route path="/contact" element={
-            <Layout>
-              <ContactPage />
-            </Layout>
-          } />
-          <Route path="/faq" element={
-            <Layout>
-              <FAQPage />
-            </Layout>
-          } />
-          <Route path="/service-areas" element={
-            <Layout>
-              <ServiceAreas />
-            </Layout>
-          } />
-          <Route path="/about" element={
-            <Layout>
-              <AboutPage />
-            </Layout>
-          } />
-          <Route path="/business-services" element={
-            <Layout>
-              <BusinessServices />
-            </Layout>
-          } />
-          <Route path="/tracking" element={
-            <Layout>
-              <TrackingPage />
-            </Layout>
-          } />
-          <Route path="/rates" element={
-            <Layout>
-              <RatesPage />
-            </Layout>
-          } />
-          <Route path="/services" element={
-            <Layout>
-              <AirCargoShipping />
-            </Layout>
-          } />
-          <Route path="/air-cargo-shipping" element={
-            <Layout>
-              <AirCargoShipping />
-            </Layout>
-          } />
-          <Route path="/support" element={
-            <Layout>
-              <SupportPage />
-            </Layout>
-          } />
-          <Route path="/shipping" element={
-            <Layout>
-              <RatesPage />
-            </Layout>
-          } />
-          <Route path="/privacy-policy" element={
-            <Layout>
-              <PrivacyPolicyPage />
-            </Layout>
-          } />
-          <Route path="/terms" element={
-            <Layout>
-              <TermsOfServicePage />
-            </Layout>
-          } />
+          {/* Public Routes with AppLayout */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/shipping-calculator" element={<ShippingCalculator />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/service-areas" element={<ServiceAreas />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/business-services" element={<BusinessServices />} />
+          <Route path="/tracking" element={<TrackingPage />} />
+          <Route path="/rates" element={<RatesPage />} />
+          <Route path="/services" element={<AirCargoShipping />} />
+          <Route path="/air-cargo-shipping" element={<AirCargoShipping />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/shipping" element={<RatesPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
 
           {/* Auth Routes (no layout) */}
           <Route path="/auth/login" element={<LoginPage />} />

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, Users, TrendingUp, Package, Clock, Shield, DollarSign, CheckCircle, ArrowRight } from 'lucide-react'
+import { AppLayout } from '@/components/layout/AppLayout'
 
 export default function BusinessServices() {
   const businessServices = [
@@ -99,6 +100,11 @@ export default function BusinessServices() {
   ]
 
   return (
+    <AppLayout showDesktopBreadcrumb={true} breadcrumbSlot={
+      <div className="px-6 py-3">
+        <p className="text-sm text-slate-600">Home / Business Services</p>
+      </div>
+    }>
     <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
@@ -381,5 +387,6 @@ export default function BusinessServices() {
         </div>
       </section>
     </div>
+    </AppLayout>
   )
 }

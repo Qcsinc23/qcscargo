@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { AppLayout } from '@/components/layout/AppLayout'
 
 export default function ContactPage() {
   const [searchParams] = useSearchParams()
@@ -105,35 +106,46 @@ export default function ContactPage() {
 
   if (success) {
     return (
-      <div className="bg-rose-50 py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="h-12 w-12 text-green-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-rose-900 mb-4">
-              Thank You for Contacting QCS Cargo!
-            </h1>
-            <p className="text-xl text-pink-600 mb-8">
-              We've received your message and will respond within 24 hours. 
-              Our team is here to help with all your Caribbean shipping needs.
-            </p>
-            <div className="space-x-4">
-              <button
-                onClick={() => setSuccess(false)}
-                className="bg-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-pink-700 transition-colors"
-              >
-                Send Another Message
-              </button>
+      <AppLayout showStickyCTA={false}>
+        <div className="bg-rose-50 py-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="h-12 w-12 text-green-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-rose-900 mb-4">
+                Thank You for Contacting QCS Cargo!
+              </h1>
+              <p className="text-xl text-pink-600 mb-8">
+                We've received your message and will respond within 24 hours.
+                Our team is here to help with all your Caribbean shipping needs.
+              </p>
+              <div className="space-x-4">
+                <button
+                  onClick={() => setSuccess(false)}
+                  className="bg-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-pink-700 transition-colors"
+                >
+                  Send Another Message
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </AppLayout>
     )
   }
 
   return (
-    <div className="bg-white">
+    <AppLayout showDesktopBreadcrumb={true} breadcrumbSlot={
+      <div className="px-6 py-3">
+        <p className="text-sm text-slate-600">Home / Contact</p>
+      </div>
+    }>
+      {/* Mobile breadcrumb - hidden on desktop */}
+      <p className="md:hidden text-xs text-slate-500 mt-1 mb-3 px-4">
+        Home / Contact
+      </p>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-rose-900 to-rose-700 text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -218,7 +230,7 @@ export default function ContactPage() {
                       required
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
+                      className="scroll-mb-sticky w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
                       placeholder="Your full name"
                     />
                   </div>
@@ -231,7 +243,7 @@ export default function ContactPage() {
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
+                      className="scroll-mb-sticky w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
                       placeholder="your@email.com"
                     />
                   </div>
@@ -247,7 +259,7 @@ export default function ContactPage() {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
+                      className="scroll-mb-sticky w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
                       placeholder="(201) 555-0123"
                     />
                   </div>
@@ -258,7 +270,7 @@ export default function ContactPage() {
                     <select
                       value={formData.inquiryType}
                       onChange={(e) => setFormData({ ...formData, inquiryType: e.target.value })}
-                      className="w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
+                      className="scroll-mb-sticky w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
                     >
                       {inquiryTypes.map((type) => (
                         <option key={type.value} value={type.value}>
@@ -278,7 +290,7 @@ export default function ContactPage() {
                     type="text"
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    className="w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
+                    className="scroll-mb-sticky w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
                     placeholder="Brief subject line"
                   />
                 </div>
@@ -293,7 +305,7 @@ export default function ContactPage() {
                     rows={5}
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
+                    className="scroll-mb-sticky w-full p-3 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-700 focus:border-pink-700"
                     placeholder="Tell us how we can help you with your Caribbean shipping needs..."
                   ></textarea>
                 </div>
@@ -328,6 +340,7 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </AppLayout>
   )
 }

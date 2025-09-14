@@ -162,11 +162,15 @@ export default function ShippingCalculator() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout showDesktopBreadcrumb={true} breadcrumbSlot={
+      <div className="px-6 py-3">
+        <p className="text-sm text-slate-600">Home / Shipping Calculator</p>
+      </div>
+    }>
       <section className="px-4 pt-3 max-w-screen-md mx-auto">
         {/* Mobile breadcrumb - hidden on desktop */}
-        <p className="md:hidden text-xs text-slate-500 mt-2 mb-3">
-          Home <span className="mx-1">/</span> Shipping Calculator
+        <p className="md:hidden text-xs text-slate-500 mt-1 mb-3">
+          Home / Shipping Calculator
         </p>
 
         {/* Page Title & Subtitle - responsive sizing */}
@@ -183,23 +187,23 @@ export default function ShippingCalculator() {
             Shipment Details
           </h2>
 
-          {/* Weight Input - with scroll margin for sticky CTA */}
+          {/* Weight Input - with proper input group styling */}
           <label className="mt-4 block text-sm font-medium text-slate-700">Weight *</label>
-          <div className="mt-1.5 flex gap-2">
+          <div className="mt-1.5 flex">
             <input
               type="number"
               min="0.1"
               step="0.1"
               value={weightUnit === 'lbs' ? formData.weight || '' : convertWeight(formData.weight, 'lbs', 'kg') || ''}
               onChange={(e) => handleWeightChange(parseFloat(e.target.value) || 0)}
-              className="scroll-mb-sticky w-full h-12 rounded-xl border border-slate-300 px-3 outline-none focus:ring-4 focus:ring-violet-200"
+              className="scroll-mb-sticky w-full h-12 rounded-l-xl border border-slate-300 px-3 outline-none focus:ring-4 focus:ring-violet-200"
               placeholder="Enter weight"
               inputMode="decimal"
             />
             <select
               value={weightUnit}
               onChange={(e) => setWeightUnit(e.target.value as 'lbs' | 'kg')}
-              className="scroll-mb-sticky h-12 rounded-xl border border-slate-300 px-3"
+              className="scroll-mb-sticky h-12 rounded-r-xl border border-l-0 border-slate-300 px-3 bg-slate-50 hover:bg-slate-100"
             >
               <option value="lbs">lbs</option>
               <option value="kg">kg</option>

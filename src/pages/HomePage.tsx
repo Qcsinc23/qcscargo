@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Plane, Shield, Clock, Globe, Star, CheckCircle, Truck, Package, MapPin, Phone } from 'lucide-react'
+import { AppLayout } from '@/components/layout/AppLayout'
 
 export default function HomePage() {
   const testimonials = [
@@ -76,6 +77,7 @@ export default function HomePage() {
   ]
 
   return (
+    <AppLayout>
     <div className="bg-white">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-rose-800 via-pink-700 to-rose-700 text-white overflow-hidden">
@@ -340,5 +342,6 @@ export default function HomePage() {
         </div>
       </section>
     </div>
+    </AppLayout>
   )
 }
