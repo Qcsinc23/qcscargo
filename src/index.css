@@ -74,10 +74,13 @@ img {
   .text-balance {
     text-wrap: balance;
   }
-  /* Sticky CTA height (h-14 = 56px). Adjust if you change bar height */
+  /* sticky top header + sticky bottom CTA spacing */
+  .pt-header-safe {
+    padding-top: calc(56px + env(safe-area-inset-top));
+  }   /* header h-14 */
   .pb-sticky-safe {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
-  }
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + 12px);
+  } /* CTA h-14 */
   .scroll-mb-sticky {
     scroll-margin-bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
   }

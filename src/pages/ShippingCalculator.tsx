@@ -4,8 +4,7 @@ import { Calculator, Package, Plane, DollarSign, Clock, AlertCircle, Truck } fro
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Destination, CalculatedRate, ShippingCalculatorData } from '@/lib/types'
-import { MobileHeader } from '@/components/MobileHeader'
-import { StickyCTA } from '@/components/StickyCTA'
+import { AppLayout } from '@/components/layout/AppLayout'
 
 export default function ShippingCalculator() {
   const [searchParams] = useSearchParams()
@@ -163,16 +162,8 @@ export default function ShippingCalculator() {
   }
 
   return (
-    <div className="min-h-dvh md:min-h-screen bg-white">
-      {/* Mobile Header - hidden on desktop */}
-      <MobileHeader />
-      
-      {/* Desktop Header - hidden on mobile */}
-      <div className="hidden md:block">
-        {/* Desktop header content would go here */}
-      </div>
-
-      <main className="pb-sticky-safe px-4 pt-3 max-w-screen-md mx-auto">
+    <AppLayout>
+      <section className="px-4 pt-3 max-w-screen-md mx-auto">
         {/* Mobile breadcrumb - hidden on desktop */}
         <p className="md:hidden text-xs text-slate-500 mt-2 mb-3">
           Home <span className="mx-1">/</span> Shipping Calculator
@@ -403,10 +394,7 @@ export default function ShippingCalculator() {
             </div>
           </section>
         )}
-      </main>
-
-      {/* Sticky CTA - hidden on desktop */}
-      <StickyCTA />
-    </div>
+      </section>
+    </AppLayout>
   )
 }
