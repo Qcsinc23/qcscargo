@@ -449,7 +449,8 @@ export default function CreateShipmentPage() {
           </Alert>
         )}
 
-        <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+        <form onSubmit={handleSubmit}>
+          <div className="mt-4 rounded-2xl border border-slate-200 p-4">
           <h2 className="text-lg font-semibold mb-4">Destination & Service</h2>
 
           <label className="block text-sm font-medium text-slate-700">Destination Country</label>
