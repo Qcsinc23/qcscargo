@@ -1,23 +1,32 @@
-import { Phone, Mail, Menu, ChevronLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronLeft, Menu, X, User, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "react-router-dom";
-import { useState } from "react";
-import { User, LogOut } from "lucide-react";
+import clsx from "clsx";
 
 type HeaderProps = {
-  back?: { href: string; label?: string }; // show back chevron on auth flows
+  back?: { href: string; label?: string };
+  // if you render a public sticky CTA elsewhere, pass a setter so we can hide it when menu is open
+  onMenuToggle?: (open: boolean) => void;
 };
 
-export function AppHeader({ back }: HeaderProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+export function AppHeader({ back, onMenuToggle }: HeaderProps) {
+  const [open, setOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("overflow-hidden", open); // lock scroll
+    onMenuToggle?.(open);
+    return () => document.documentElement.classList.remove("overflow-hidden");
+  }, [open, onMenuToggle]);
 
   const handleSignOut = async () => {
     try {
       await signOut();
       setIsUserMenuOpen(false);
+      setOpen(false);
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -26,8 +35,8 @@ export function AppHeader({ back }: HeaderProps) {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 bg-white/95 backdrop-blur border-b">
-      {/* Mobile: ONE ROW ONLY (h-14) */}
+    <header className="fixed inset-x-0 top-0 z-40 isolate bg-white/95 backdrop-blur border-b">
+      {/* Mobile row (one row only) */}
       <div className="md:hidden h-14 flex items-center justify-between px-3">
         {back ? (
           <Link to={back.href} className="flex items-center gap-2 -ml-1">
@@ -42,14 +51,18 @@ export function AppHeader({ back }: HeaderProps) {
             }} />
           </Link>
         )}
-        <button aria-label="Open menu" className="p-2 rounded-lg hover:bg-slate-100" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          <Menu className="h-6 w-6" />
+        <button
+          aria-label={open ? "Close menu" : "Open menu"}
+          className="p-2 rounded-lg hover:bg-slate-100"
+          onClick={() => setOpen(v => !v)}
+        >
+          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
-      {/* Desktop header */}
+      {/* Desktop row */}
       <div className="hidden md:flex h-16 items-center justify-between px-6">
-        <a href="/" className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-3">
           <img src="/logo.svg" alt="QCS Cargo" className="h-8 w-auto" onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = "/QCS_Cargo_Logo.png";
@@ -58,7 +71,7 @@ export function AppHeader({ back }: HeaderProps) {
             <h1 className="text-xl font-bold text-slate-900">QCS Cargo</h1>
             <p className="text-sm text-slate-600">Precision Air Cargo Solutions</p>
           </div>
-        </a>
+        </Link>
         <nav className="flex items-center gap-6 text-sm">
           <Link to="/shipping-calculator" className={`hover:text-fuchsia-700 ${isActive('/shipping-calculator') ? 'text-fuchsia-700' : 'text-slate-700'}`}>
             Shipping Calculator
@@ -123,71 +136,77 @@ export function AppHeader({ back }: HeaderProps) {
         </nav>
       </div>
 
-      {/* Mobile Navigation Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden border-t bg-white">
-          <nav className="px-3 py-4 space-y-2">
-            <Link
-              to="/shipping-calculator"
-              className={`block px-3 py-2 font-medium ${isActive('/shipping-calculator') ? 'text-fuchsia-700 bg-slate-100' : 'text-slate-700 hover:text-fuchsia-700 hover:bg-slate-100'}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Shipping Calculator
-            </Link>
-            <Link
-              to="/services"
-              className={`block px-3 py-2 font-medium ${isActive('/services') ? 'text-fuchsia-700 bg-slate-100' : 'text-slate-700 hover:text-fuchsia-700 hover:bg-slate-100'}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Services
-            </Link>
-            <Link
-              to="/contact"
-              className={`block px-3 py-2 font-medium ${isActive('/contact') ? 'text-fuchsia-700 bg-slate-100' : 'text-slate-700 hover:text-fuchsia-700 hover:bg-slate-100'}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Contact
-            </Link>
-            
-            {/* User Menu or Auth Buttons for Mobile */}
-            {user ? (
-              <>
-                <Link
-                  to="/dashboard"
-                  className="block px-3 py-2 font-medium text-slate-700 hover:text-fuchsia-700 hover:bg-slate-100"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/dashboard/create-shipment"
-                  className="block px-3 py-2 font-medium text-slate-700 hover:text-fuchsia-700 hover:bg-slate-100"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Create Shipment
-                </Link>
-                <button
-                  onClick={() => {
-                    handleSignOut();
-                    setIsMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-3 py-2 font-medium text-red-600 hover:bg-red-50"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/shipping-calculator"
-                className="block px-3 py-2 font-medium text-fuchsia-700 bg-fuchsia-50 rounded-lg"
-                onClick={() => setIsMenuOpen(false)}
+      {/* Mobile full-screen menu overlay */}
+      <div
+        className={clsx(
+          "md:hidden fixed inset-0 z-50 bg-white",
+          "pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]",
+          "transition-transform duration-300 ease-in-out",
+          open ? "translate-y-0" : "-translate-y-full"
+        )}
+        onClick={() => setOpen(false)} // tap outside items closes
+      >
+        <nav
+          className="px-4 py-6 space-y-1 text-lg font-medium text-slate-800 overflow-y-auto"
+          onClick={e => e.stopPropagation()} // let taps on links not close before navigation
+        >
+          <Link 
+            className={`block py-3 border-b transition-colors ${isActive('/shipping-calculator') ? 'text-fuchsia-700' : 'text-slate-800 hover:text-fuchsia-700'}`} 
+            to="/shipping-calculator"
+            onClick={() => setOpen(false)}
+          >
+            Shipping Calculator
+          </Link>
+          <Link 
+            className={`block py-3 border-b transition-colors ${isActive('/services') ? 'text-fuchsia-700' : 'text-slate-800 hover:text-fuchsia-700'}`} 
+            to="/services"
+            onClick={() => setOpen(false)}
+          >
+            Services
+          </Link>
+          <Link 
+            className={`block py-3 border-b transition-colors ${isActive('/contact') ? 'text-fuchsia-700' : 'text-slate-800 hover:text-fuchsia-700'}`} 
+            to="/contact"
+            onClick={() => setOpen(false)}
+          >
+            Contact
+          </Link>
+          
+          {user ? (
+            <>
+              <Link 
+                className={`block py-3 border-b transition-colors ${isActive('/dashboard') ? 'text-fuchsia-700' : 'text-slate-800 hover:text-fuchsia-700'}`} 
+                to="/dashboard"
+                onClick={() => setOpen(false)}
               >
-                Get Free Quote
+                Dashboard
               </Link>
-            )}
-          </nav>
-        </div>
-      )}
+              <Link 
+                className={`block py-3 border-b transition-colors ${isActive('/dashboard/create-shipment') ? 'text-fuchsia-700' : 'text-slate-800 hover:text-fuchsia-700'}`} 
+                to="/dashboard/create-shipment"
+                onClick={() => setOpen(false)}
+              >
+                Create Shipment
+              </Link>
+              <hr className="my-2" />
+              <button
+                className="block py-3 text-red-600 hover:text-red-700 transition-colors"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <Link 
+              className="block py-3 text-fuchsia-700 font-semibold" 
+              to="/shipping-calculator"
+              onClick={() => setOpen(false)}
+            >
+              Get Free Quote
+            </Link>
+          )}
+        </nav>
+      </div>
     </header>
   );
 }

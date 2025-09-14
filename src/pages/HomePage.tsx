@@ -89,28 +89,27 @@ export default function HomePage() {
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="relative container mx-auto px-4 py-16 sm:py-20 md:py-24">
-          <div className="max-w-screen-md mx-auto text-center">
-            <h1 className="text-white leading-tight font-bold text-[clamp(28px,6vw,48px)] text-balance">
-              Precision Air Cargo to Guyana & the Caribbean
-            </h1>
-            <p className="mt-3 text-white/90 text-[clamp(14px,3.8vw,18px)] text-balance">
-              Professional air freight services from New Jersey with consolidation, secure storage, and competitive rates for the Caribbean diaspora community
-            </p>
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link
-                to="/shipping-calculator"
-                className="rounded-xl px-4 py-3 font-semibold bg-fuchsia-600 text-white hover:bg-fuchsia-700 transition-colors inline-flex items-center justify-center"
-              >
-                Get Free Quote
-              </Link>
-              <Link
-                to="/how-it-works"
-                className="rounded-xl px-4 py-3 font-semibold bg-white text-gray-900 hover:bg-gray-100 transition-colors inline-flex items-center justify-center"
-              >
-                Learn How It Works
-              </Link>
-            </div>
+        <div className="relative px-4 pt-8 pb-8 max-w-screen-sm mx-auto">
+          <h1 className="text-white font-extrabold leading-tight tracking-[-0.01em] text-[clamp(28px,7vw,40px)] text-balance">
+            Precision Air Cargo to Guyana &amp; the Caribbean
+          </h1>
+          <p className="mt-2 text-white/90 text-[clamp(14px,4vw,18px)]">
+            Professional air freight services from New Jersey with consolidation, secure storage, and competitive rates for the Caribbean diaspora community
+          </p>
+
+          <div className="mt-5 flex gap-3">
+            <Link
+              to="/shipping-calculator"
+              className="h-12 px-5 rounded-xl bg-fuchsia-600 text-white font-semibold flex items-center justify-center hover:bg-fuchsia-700 transition-colors"
+            >
+              Get Free Quote
+            </Link>
+            <Link
+              to="/how-it-works"
+              className="h-12 px-5 rounded-xl bg-white text-slate-900 font-semibold flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              Learn How It Works
+            </Link>
           </div>
         </div>
       </section>
@@ -326,15 +325,15 @@ export default function HomePage() {
             Get an instant quote and start shipping with New Jersey's most trusted Caribbean precision cargo specialists.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              to="/shipping-calculator" 
-              className="bg-pink-700 text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-pink-700/90 transition-colors inline-flex items-center justify-center"
+            <Link
+              to="/shipping-calculator"
+              className="h-12 px-8 rounded-xl bg-fuchsia-600 text-white font-semibold hover:bg-fuchsia-700 transition-colors inline-flex items-center justify-center"
             >
               Calculate Shipping Cost <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
-            <Link 
-              to="/contact" 
-              className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rose-900 transition-colors inline-flex items-center justify-center"
+            <Link
+              to="/contact"
+              className="h-12 px-8 rounded-xl border-2 border-white text-white font-semibold hover:bg-white hover:text-rose-900 transition-colors inline-flex items-center justify-center"
             >
               Speak with an Expert
             </Link>
