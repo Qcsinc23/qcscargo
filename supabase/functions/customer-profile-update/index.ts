@@ -52,15 +52,15 @@ Deno.serve(async (req) => {
         const userId = userData.id;
         console.log('Updating profile for user:', userId);
 
-        // Validate and sanitize profile data
+        // Validate and sanitize profile data with safe string handling
         const validatedProfile = {
-            first_name: profileData.first_name?.trim() || '',
-            last_name: profileData.last_name?.trim() || '',
-            email: profileData.email?.trim() || userData.email || '',
-            company_name: profileData.company_name?.trim() || '',
-            contact_person: profileData.contact_person?.trim() || '',
-            phone: profileData.phone?.trim() || '',
-            phone_country_code: profileData.phone_country_code?.trim() || '+1',
+            first_name: (profileData.first_name && typeof profileData.first_name === 'string') ? profileData.first_name.trim() : '',
+            last_name: (profileData.last_name && typeof profileData.last_name === 'string') ? profileData.last_name.trim() : '',
+            email: (profileData.email && typeof profileData.email === 'string') ? profileData.email.trim() : (userData.email || ''),
+            company_name: (profileData.company_name && typeof profileData.company_name === 'string') ? profileData.company_name.trim() : '',
+            contact_person: (profileData.contact_person && typeof profileData.contact_person === 'string') ? profileData.contact_person.trim() : '',
+            phone: (profileData.phone && typeof profileData.phone === 'string') ? profileData.phone.trim() : '',
+            phone_country_code: (profileData.phone_country_code && typeof profileData.phone_country_code === 'string') ? profileData.phone_country_code.trim() : '+1',
             address_line1: profileData.address_line1?.trim() || '',
             address_line2: profileData.address_line2?.trim() || '',
             city: profileData.city?.trim() || '',
@@ -106,8 +106,20 @@ Deno.serve(async (req) => {
                 'Puerto Rico': '+1-787'
             };
             
-            if (!validatedProfile.phone_country_code || !validatedProfile.phone_country_code.startsWith('+1')) {
-                validatedProfile.phone_country_code = caribbeanCodes[validatedProfile.country] || '+1';
+            // Safe Caribbean phone country code processing with comprehensive null checks
+            try {
+                const currentCode = validatedProfile.phone_country_code;
+                const isValidString = currentCode && typeof currentCode === 'string' && currentCode.trim() !== '';
+                const startsWithPlusOne = isValidString && currentCode.startsWith('+1');
+                
+                if (!isValidString || !startsWithPlusOne) {
+                    validatedProfile.phone_country_code = caribbeanCodes[validatedProfile.country] || '+1';
+                    console.log('Updated Caribbean phone country code for', validatedProfile.country);
+                }
+            } catch (error) {
+                console.error('Error processing Caribbean phone country code:', error);
+                // Fallback to safe default
+                validatedProfile.phone_country_code = '+1';
             }
         }
 

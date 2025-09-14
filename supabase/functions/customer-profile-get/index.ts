@@ -109,9 +109,19 @@ Deno.serve(async (req) => {
         const profile = profiles[0];
         console.log('Profile found for user:', userId, 'Completion:', profile.profile_completion_percentage + '%');
 
-        // If profile has a photo URL, construct full URL if it's just a file name
-        if (profile.profile_photo_url && !profile.profile_photo_url.startsWith('http')) {
-            profile.profile_photo_url = `${supabaseUrl}/storage/v1/object/public/profile-photos/${profile.profile_photo_url}`;
+        // Safe profile photo URL processing with comprehensive null checks
+        try {
+            if (profile.profile_photo_url &&
+                typeof profile.profile_photo_url === 'string' &&
+                profile.profile_photo_url.trim() !== '' &&
+                !profile.profile_photo_url.startsWith('http')) {
+                profile.profile_photo_url = `${supabaseUrl}/storage/v1/object/public/profile-photos/${profile.profile_photo_url}`;
+                console.log('Profile photo URL converted to full URL');
+            }
+        } catch (error) {
+            console.error('Error processing profile photo URL:', error);
+            // Set to null if there's any error processing the URL
+            profile.profile_photo_url = null;
         }
 
         const result = {
