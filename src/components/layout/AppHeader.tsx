@@ -1,10 +1,14 @@
-import { Phone, Mail, Menu } from "lucide-react";
+import { Phone, Mail, Menu, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { User, LogOut } from "lucide-react";
 
-export function AppHeader() {
+type HeaderProps = {
+  back?: { href: string; label?: string }; // show back chevron on auth flows
+};
+
+export function AppHeader({ back }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
@@ -25,20 +29,22 @@ export function AppHeader() {
     <header className="fixed inset-x-0 top-0 z-50 bg-white/95 backdrop-blur border-b">
       {/* Mobile: ONE ROW ONLY (h-14) */}
       <div className="md:hidden h-14 flex items-center justify-between px-3">
-        {/* Brand left */}
-        <a href="/" className="flex items-center gap-2">
-          <img src="/logo.svg" alt="QCS Cargo" className="h-7 w-auto" onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = "/QCS_Cargo_Logo.png";
-          }} />
-        </a>
-
-        {/* Actions right: menu only (Call/Email live in bottom sticky CTA) */}
-        <div className="flex items-center">
-          <button aria-label="Open menu" className="p-2 rounded-lg hover:bg-slate-100" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            <Menu className="h-6 w-6" />
-          </button>
-        </div>
+        {back ? (
+          <Link to={back.href} className="flex items-center gap-2 -ml-1">
+            <ChevronLeft className="h-6 w-6" />
+            <span className="text-sm font-medium">{back.label ?? "Back"}</span>
+          </Link>
+        ) : (
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/logo.svg" alt="QCS Cargo" className="h-7 w-auto" onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = "/QCS_Cargo_Logo.png";
+            }} />
+          </Link>
+        )}
+        <button aria-label="Open menu" className="p-2 rounded-lg hover:bg-slate-100" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <Menu className="h-6 w-6" />
+        </button>
       </div>
 
       {/* Desktop header */}

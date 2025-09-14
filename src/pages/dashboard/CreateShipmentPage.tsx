@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Destination } from '@/lib/types'
@@ -12,16 +12,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Loader2, 
-  Package, 
-  Plus, 
-  Trash2, 
-  AlertCircle, 
-  Calculator,
-  ArrowLeft
+import { AuthLayout } from '@/components/layout/AuthLayout'
+import {
+  Loader2,
+  Package,
+  Plus,
+  Trash2,
+  AlertCircle,
+  Calculator
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
 interface ShipmentItem {
   description: string
@@ -435,23 +434,14 @@ export default function CreateShipmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/dashboard">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Link>
-            </Button>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">Create New Shipment</h1>
-          <p className="text-gray-600 mt-1">Fill in the details below to create your shipment to the Caribbean</p>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-6 py-8">
+    <AuthLayout back={{ href: "/dashboard", label: "Dashboard" }} showTabs={false}>
+      <section className="px-4 pt-3 max-w-screen-md mx-auto">
+        <h1 className="text-[clamp(22px,5.8vw,32px)] leading-tight font-extrabold text-slate-900">
+          Create New Shipment
+        </h1>
+        <p className="mt-1 text-slate-600 text-[clamp(13px,3.6vw,16px)]">
+          Fill in the details below to create your shipment to the Caribbean
+        </p>
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
@@ -459,294 +449,201 @@ export default function CreateShipmentPage() {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Destination and Service */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Destination & Service</CardTitle>
-              <CardDescription>Choose where you're shipping and how fast you need it</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="destination">Destination Country</Label>
-                  <Select value={formData.destination_id} onValueChange={(value) => updateFormData('destination_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select destination" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {destinations.map((dest) => (
-                        <SelectItem key={dest.id} value={dest.id.toString()}>
-                          {dest.country_name} ({dest.city_name}) - From ${dest.rate_per_lb_201_plus}/lb
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="service">Service Level</Label>
-                  <Select value={formData.service_level} onValueChange={(value) => updateFormData('service_level', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {serviceTypes.map((service) => (
-                        <SelectItem key={service.value} value={service.value}>
-                          <div>
-                            <div>{service.label}</div>
-                            <div className="text-xs text-gray-500">{service.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="pickup_date">Preferred Pickup Date (Optional)</Label>
-                  <Input
-                    id="pickup_date"
-                    type="date"
-                    value={formData.pickup_date}
-                    onChange={(e) => updateFormData('pickup_date', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="declared_value">Declared Value (USD) - Optional</Label>
-                  <Input
-                    id="declared_value"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={formData.declared_value || ''}
-                    onChange={(e) => updateFormData('declared_value', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+          <h2 className="text-lg font-semibold mb-4">Destination & Service</h2>
 
-          {/* Items */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Shipment Items</CardTitle>
-                  <CardDescription>Add all items you want to ship</CardDescription>
+          <label className="block text-sm font-medium text-slate-700">Destination Country</label>
+          <div className="mt-1">
+            <select
+              value={formData.destination_id}
+              onChange={(e) => updateFormData('destination_id', e.target.value)}
+              className="w-full h-12 rounded-xl border border-slate-300 px-3 text-ellipsis"
+            >
+              <option value="">Select destination</option>
+              {destinations.map((dest) => (
+                <option key={dest.id} value={dest.id.toString()}>
+                  {dest.country_name} ({dest.city_name}) - From ${dest.rate_per_lb_201_plus}/lb
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <label className="mt-4 block text-sm font-medium text-slate-700">Service Level</label>
+          <div className="mt-1">
+            <select
+              value={formData.service_level}
+              onChange={(e) => updateFormData('service_level', e.target.value)}
+              className="w-full h-12 rounded-xl border border-slate-300 px-3 text-ellipsis"
+            >
+              {serviceTypes.map((service) => (
+                <option key={service.value} value={service.value}>
+                  {service.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <label className="mt-4 block text-sm font-medium text-slate-700">Preferred Pickup Date (Optional)</label>
+          <input
+            className="mt-1 w-full h-12 rounded-xl border border-slate-300 px-3"
+            type="date"
+            value={formData.pickup_date}
+            onChange={(e) => updateFormData('pickup_date', e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+          />
+
+          <label className="mt-4 block text-sm font-medium text-slate-700">Declared Value (USD) — Optional</label>
+          <input
+            className="mt-1 w-full h-12 rounded-xl border border-slate-300 px-3"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={formData.declared_value || ''}
+            onChange={(e) => updateFormData('declared_value', parseFloat(e.target.value) || 0)}
+          />
+        </div>
+
+          {/* Items - simplified form */}
+          <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Shipment Items</h2>
+              <button
+                type="button"
+                onClick={addItem}
+                className="text-sm text-shopify-pink hover:text-shopify-maroon"
+              >
+                + Add Item
+              </button>
+            </div>
+            
+            {formData.items.map((item, index) => (
+              <div key={index} className="mb-4 p-3 border rounded-xl">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium text-slate-900">Item {index + 1}</h3>
+                  {formData.items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
-                <Button type="button" variant="outline" onClick={addItem}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Item
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {formData.items.map((item, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-medium text-gray-900">Item {index + 1}</h3>
-                    {formData.items.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
+                    <input
+                      className="w-full h-10 rounded-lg border border-slate-300 px-3"
+                      placeholder="e.g., Electronics, Clothing, etc."
+                      value={item.description}
+                      onChange={(e) => updateItem(index, 'description', e.target.value)}
+                      required
+                    />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="md:col-span-2 lg:col-span-1">
-                      <Label>Description *</Label>
-                      <Input
-                        placeholder="e.g., Electronics, Clothing, etc."
-                        value={item.description}
-                        onChange={(e) => updateItem(index, 'description', e.target.value)}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Weight (lbs) *</label>
+                      <input
+                        className="w-full h-10 rounded-lg border border-slate-300 px-3"
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        placeholder="0.0"
+                        value={item.weight || ''}
+                        onChange={(e) => updateItem(index, 'weight', parseFloat(e.target.value) || 0)}
                         required
                       />
                     </div>
-                    
                     <div>
-                      <Label>Category</Label>
-                      <Select value={item.category} onValueChange={(value) => updateItem(index, 'category', value)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {itemCategories.map((cat) => (
-                            <SelectItem key={cat.value} value={cat.value}>
-                              {cat.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label>Weight (lbs) *</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0.1"
-                          placeholder="0.0"
-                          value={item.weight || ''}
-                          onChange={(e) => updateItem(index, 'weight', parseFloat(e.target.value) || 0)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Quantity *</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="1"
-                          value={item.quantity || ''}
-                          onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <Label>Length (inches)</Label>
-                      <Input
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Quantity *</label>
+                      <input
+                        className="w-full h-10 rounded-lg border border-slate-300 px-3"
                         type="number"
-                        step="0.1"
-                        min="0"
-                        placeholder="0.0"
-                        value={item.length || ''}
-                        onChange={(e) => updateItem(index, 'length', parseFloat(e.target.value) || undefined)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Width (inches)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        placeholder="0.0"
-                        value={item.width || ''}
-                        onChange={(e) => updateItem(index, 'width', parseFloat(e.target.value) || undefined)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Height (inches)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        placeholder="0.0"
-                        value={item.height || ''}
-                        onChange={(e) => updateItem(index, 'height', parseFloat(e.target.value) || undefined)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Value (USD)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={item.value || ''}
-                        onChange={(e) => updateItem(index, 'value', parseFloat(e.target.value) || undefined)}
+                        min="1"
+                        placeholder="1"
+                        value={item.quantity || ''}
+                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                        required
                       />
                     </div>
                   </div>
-                  
-                  <div className="mt-4">
-                    <Label>Notes (Optional)</Label>
-                    <Textarea
-                      placeholder="Any special handling instructions for this item..."
-                      value={item.notes || ''}
-                      onChange={(e) => updateItem(index, 'notes', e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Special Instructions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Special Instructions</CardTitle>
-              <CardDescription>Any additional information for handling your shipment</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Special handling requirements, delivery instructions, etc."
-                value={formData.special_instructions}
-                onChange={(e) => updateFormData('special_instructions', e.target.value)}
-                rows={3}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Calculator className="h-5 w-5 mr-2" />
-                Shipment Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <p className="text-2xl font-bold text-blue-600">{formData.items.length}</p>
-                  <p className="text-sm text-gray-600">Items</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-green-600">{getTotalWeight().toFixed(1)} lbs</p>
-                  <p className="text-sm text-gray-600">Total Weight</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-purple-600">${getTotalValue().toFixed(2)}</p>
-                  <p className="text-sm text-gray-600">Total Value</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-orange-600">${estimatedCost.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600">Estimated Cost</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
 
-          {/* Submit */}
-          <div className="flex justify-end space-x-4">
-            <Button type="button" variant="outline" asChild>
-              <Link to="/dashboard">Cancel</Link>
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Shipment...
-                </>
-              ) : (
-                <>
-                  <Package className="mr-2 h-4 w-4" />
-                  Create Shipment
-                </>
-              )}
-            </Button>
+          {/* Special Instructions */}
+          <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+            <h2 className="text-lg font-semibold mb-3">Special Instructions</h2>
+            <textarea
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              placeholder="Special handling requirements, delivery instructions, etc."
+              value={formData.special_instructions}
+              onChange={(e) => updateFormData('special_instructions', e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          {/* Summary - compact */}
+          <div className="mt-4 rounded-2xl border border-slate-200 p-4 bg-slate-50">
+            <h3 className="font-semibold mb-3 flex items-center">
+              <Calculator className="h-5 w-5 mr-2" />
+              Shipment Summary
+            </h3>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <p className="text-xl font-bold text-blue-600">{formData.items.length}</p>
+                <p className="text-xs text-slate-600">Items</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-green-600">{getTotalWeight().toFixed(1)} lbs</p>
+                <p className="text-xs text-slate-600">Total Weight</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-purple-600">${getTotalValue().toFixed(2)}</p>
+                <p className="text-xs text-slate-600">Total Value</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-orange-600">${estimatedCost.toFixed(2)}</p>
+                <p className="text-xs text-slate-600">Estimated Cost</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit - sticky bottom */}
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t md:relative md:border-0 md:bg-transparent md:p-0">
+            <div className="max-w-screen-md mx-auto flex gap-3">
+              <Link
+                to="/dashboard"
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-300 text-slate-700 font-medium text-center"
+              >
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 py-3 px-4 rounded-xl bg-shopify-pink text-white font-medium disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    <Package className="mr-2 h-4 w-4" />
+                    Create Shipment
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </form>
-      </div>
-    </div>
+      </section>
+    </AuthLayout>
   )
 }

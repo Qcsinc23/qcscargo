@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Link, useNavigate } from 'react-router-dom'
-import { 
-  Package, 
-  Plus, 
-  TrendingUp, 
-  Clock, 
-  FileText, 
+import { AuthLayout } from '@/components/layout/AuthLayout'
+import {
+  Package,
+  Plus,
+  TrendingUp,
+  Clock,
+  FileText,
   MapPin,
   DollarSign,
   AlertCircle,
@@ -233,70 +234,29 @@ export default function CustomerDashboard() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-shopify-rose to-shopify-roseDark">
-      <BreadcrumbNavigation 
-        customItems={[
-          { label: 'Dashboard', current: true }
-        ]}
-      />
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-shopify-maroon">
-                Welcome back{profile ? `, ${profile.first_name}` : ''}!
-              </h1>
-              <p className="text-shopify-roseGray mt-1">
-                {profile?.company_name ? `${profile.company_name} • ` : ''}Manage your shipments and track deliveries
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button asChild>
-                <Link to="/dashboard/create-shipment">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Shipment
-                </Link>
-              </Button>
-              
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/customer/profile">
-                    <User className="h-4 w-4 mr-2" />
-                    My Profile
-                  </Link>
-                </Button>
-                
-                <div className="flex items-center gap-2 text-sm text-shopify-roseGray">
-                  <span>{user?.email}</span>
-                </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleSignOut}
-                  disabled={signingOut}
-                >
-                  {signingOut ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-shopify-maroon mr-2"></div>
-                      Signing out...
-                    </>
-                  ) : (
-                    <>
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign Out
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  // Get user name with fallback to prevent "null" greeting
+  const getUserName = () => {
+    if (profile?.first_name) return profile.first_name;
+    if (profile?.last_name) return profile.last_name;
+    if (user?.email) return user.email.split('@')[0];
+    return "there";
+  };
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {error && (
+  return (
+    <AuthLayout showTabs>
+      <section className="px-4 pt-3 max-w-screen-md mx-auto">
+        <div className="flex items-center justify-between">
+          <h1 className="text-[clamp(22px,5.8vw,32px)] leading-tight font-extrabold text-slate-900">
+            Welcome back, {getUserName()}!
+          </h1>
+          <Link to="/dashboard/create-shipment" className="shrink-0 ml-3 rounded-xl px-3 py-2 bg-emerald-700 text-white font-semibold">
+            + New Shipment
+          </Link>
+        </div>
+
+        {/* Cards: tighten spacing on mobile */}
+        <div className="mt-4 grid gap-3">
+          {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
             <div className="flex items-center">
               <AlertCircle className="h-4 w-4 mr-2" />
@@ -304,251 +264,144 @@ export default function CustomerDashboard() {
             </div>
           </div>
         )}
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-shopify-roseGray">Total Shipments</p>
-                  <p className="text-3xl font-bold text-shopify-maroon">{stats?.total_shipments || 0}</p>
-                </div>
-                <div className="bg-shopify-pink/10 p-3 rounded-full">
-                  <Package className="h-6 w-6 text-shopify-pink" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-shopify-roseGray">Upcoming Bookings</p>
-                  <p className="text-3xl font-bold text-shopify-maroon">{stats?.upcoming_bookings || 0}</p>
-                </div>
-                <div className="bg-shopify-lavender/10 p-3 rounded-full">
-                  <Clock className="h-6 w-6 text-shopify-lavender" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-shopify-roseGray">In Transit</p>
-                  <p className="text-3xl font-bold text-shopify-maroon">{stats?.in_transit_shipments || 0}</p>
-                </div>
-                <div className="bg-shopify-success/10 p-3 rounded-full">
-                  <Truck className="h-6 w-6 text-shopify-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-shopify-roseGray">Total Spent</p>
-                  <p className="text-3xl font-bold text-shopify-maroon">{formatCurrency(stats?.total_spent || 0)}</p>
-                </div>
-                <div className="bg-shopify-maroon/10 p-3 rounded-full">
-                  <DollarSign className="h-6 w-6 text-shopify-maroon" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Recent Shipments */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Recent Shipments</CardTitle>
-                <CardDescription>Your latest shipping activity</CardDescription>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/dashboard/shipments">
-                  View All
-                </Link>
-              </Button>
+        {/* Stats Grid - compact for mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="rounded-2xl border border-slate-200 bg-rose-50/40 p-4">
+            <div className="text-slate-600 text-sm">Total Shipments</div>
+            <div className="mt-1 text-3xl font-bold text-shopify-maroon">{stats?.total_shipments || 0}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-purple-50/40 p-4">
+            <div className="text-slate-600 text-sm">Upcoming Bookings</div>
+            <div className="mt-1 text-3xl font-bold text-shopify-maroon">{stats?.upcoming_bookings || 0}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-green-50/40 p-4">
+            <div className="text-slate-600 text-sm">In Transit</div>
+            <div className="mt-1 text-3xl font-bold text-shopify-maroon">{stats?.in_transit_shipments || 0}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-amber-50/40 p-4">
+            <div className="text-slate-600 text-sm">Total Spent</div>
+            <div className="mt-1 text-3xl font-bold text-shopify-maroon">{formatCurrency(stats?.total_spent || 0)}</div>
+          </div>
+        </div>
+
+        {/* Recent Shipments - compact cards */}
+        <div className="space-y-3 mb-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-slate-900">Recent Shipments</h2>
+            <Link to="/dashboard/shipments" className="text-sm text-shopify-pink hover:text-shopify-maroon">
+              View All
+            </Link>
+          </div>
+          {recentShipments.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 p-6 text-center">
+              <Package className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+              <h3 className="font-medium text-slate-900 mb-1">No shipments yet</h3>
+              <p className="text-sm text-slate-600 mb-3">Start by creating your first shipment</p>
+              <Link to="/dashboard/create-shipment" className="text-sm text-shopify-pink hover:text-shopify-maroon">
+                Create Shipment →
+              </Link>
             </div>
-          </CardHeader>
-          <CardContent>
-            {recentShipments.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-shopify-maroon mb-2">No shipments yet</h3>
-                <p className="text-shopify-roseGray mb-4">Start by creating your first shipment</p>
-                <Button asChild>
-                  <Link to="/dashboard/create-shipment">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Shipment
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentShipments.map((shipment) => (
-                  <div key={shipment.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-white">
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-shopify-pink/10 p-2 rounded-full">
-                        <Package className="h-4 w-4 text-shopify-pink" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-shopify-maroon">
-                          To {shipment.destination_country}
+          ) : (
+            <div className="space-y-2">
+              {recentShipments.map((shipment) => (
+                <div key={shipment.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        To {shipment.destination_country}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        {shipment.total_weight} lbs • {formatDate(shipment.created_at)}
+                      </p>
+                      {shipment.latest_tracking && (
+                        <p className="text-xs text-slate-500">
+                          Last seen: {shipment.latest_tracking.location}
                         </p>
-                        <p className="text-sm text-shopify-roseGray">
-                          {shipment.total_weight} lbs • {formatDate(shipment.created_at)}
-                        </p>
-                        {shipment.latest_tracking && (
-                          <p className="text-xs text-shopify-roseGray">
-                            Last seen: {shipment.latest_tracking.location}
-                          </p>
-                        )}
-                      </div>
+                      )}
                     </div>
                     <div className="text-right">
                       {getStatusBadge(shipment.status)}
-                      <p className="text-sm text-shopify-roseGray mt-1">
+                      <p className="text-sm text-slate-600 mt-1">
                         {formatCurrency(shipment.estimated_cost)}
                       </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Bookings */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Upcoming Bookings</CardTitle>
-                <CardDescription>Your scheduled pickups and drop-offs</CardDescription>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/booking">
-                  Schedule New
-                </Link>
-              </Button>
+                </div>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent>
-            {upcomingBookings.length === 0 ? (
-              <div className="text-center py-8">
-                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-shopify-maroon mb-2">No upcoming bookings</h3>
-                <p className="text-shopify-roseGray mb-4">Schedule a pickup or drop-off for your next shipment</p>
-                <Button asChild>
-                  <Link to="/booking">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Schedule Booking
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {upcomingBookings.map((booking) => {
-                  const windowStart = new Date(booking.window_start)
-                  const windowEnd = new Date(booking.window_end)
-                  
-                  return (
-                    <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-white">
-                      <div className="flex items-center space-x-4">
-                        <div className="bg-shopify-lavender/10 p-2 rounded-full">
-                          <Clock className="h-4 w-4 text-shopify-lavender" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-shopify-maroon capitalize">
-                            {booking.pickup_or_drop} - {booking.estimated_weight} lbs
-                          </p>
-                          <p className="text-sm text-shopify-roseGray">
-                            {windowStart.toLocaleDateString('en-US', { 
-                              weekday: 'short', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })} • {windowStart.toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              hour12: true 
-                            })} - {windowEnd.toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              hour12: true 
-                            })}
-                          </p>
-                          <p className="text-xs text-shopify-roseGray">
-                            {booking.address?.street}, {booking.address?.city}, {booking.address?.state}
-                          </p>
-                        </div>
+          )}
+        </div>
+
+        {/* Upcoming Bookings - compact cards */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-slate-900">Upcoming Bookings</h2>
+            <Link to="/booking" className="text-sm text-shopify-pink hover:text-shopify-maroon">
+              Schedule New
+            </Link>
+          </div>
+          {upcomingBookings.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 p-6 text-center">
+              <Clock className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+              <h3 className="font-medium text-slate-900 mb-1">No upcoming bookings</h3>
+              <p className="text-sm text-slate-600 mb-3">Schedule a pickup or drop-off for your next shipment</p>
+              <Link to="/booking" className="text-sm text-shopify-pink hover:text-shopify-maroon">
+                Schedule Booking →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingBookings.map((booking) => {
+                const windowStart = new Date(booking.window_start)
+                const windowEnd = new Date(booking.window_end)
+                
+                return (
+                  <div key={booking.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-slate-900 capitalize">
+                          {booking.pickup_or_drop} - {booking.estimated_weight} lbs
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          {windowStart.toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })} • {windowStart.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })} - {windowEnd.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {booking.address?.street}, {booking.address?.city}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <Badge 
+                        <Badge
                           variant={booking.status === 'confirmed' ? 'default' : 'secondary'}
-                          className={booking.status === 'confirmed' ? 'bg-shopify-success text-white' : ''}
+                          className={booking.status === 'confirmed' ? 'bg-green-600 text-white' : ''}
                         >
                           {booking.status}
                         </Badge>
-                        <p className="text-xs text-shopify-roseGray mt-1 capitalize">
+                        <p className="text-xs text-slate-500 mt-1 capitalize">
                           {booking.service_type} service
                         </p>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <Link to="/dashboard/create-shipment" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-6 text-center">
-                <div className="bg-shopify-pink/10 p-3 rounded-full w-fit mx-auto mb-4">
-                  <Plus className="h-6 w-6 text-shopify-pink" />
-                </div>
-                <h3 className="font-semibold text-shopify-maroon mb-2">Create Shipment</h3>
-                <p className="text-sm text-shopify-roseGray">Start a new shipment to the Caribbean</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to="/booking" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-6 text-center">
-                <div className="bg-light-cyan/20 p-3 rounded-full w-fit mx-auto mb-4">
-                  <Clock className="h-6 w-6 text-blue-gray" />
-                </div>
-                <h3 className="font-semibold text-sophisticated-olive mb-2">Schedule Booking</h3>
-                <p className="text-sm text-sophisticated-blueGray">Book pickup or drop-off time slots</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to="/tracking" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-6 text-center">
-                <div className="bg-light-mauve/20 p-3 rounded-full w-fit mx-auto mb-4">
-                  <MapPin className="h-6 w-6 text-blue-gray" />
-                </div>
-                <h3 className="font-semibold text-sophisticated-olive mb-2">Track Shipment</h3>
-                <p className="text-sm text-sophisticated-blueGray">Follow your packages in real-time</p>
-              </CardContent>
-            </Card>
-          </Link>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      </section>
+    </AuthLayout>
   )
 }
