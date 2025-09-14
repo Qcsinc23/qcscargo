@@ -79,38 +79,32 @@ export default function HomePage() {
     <div className="bg-white">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-rose-800 via-pink-700 to-rose-700 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/10"></div>
         <div className="absolute inset-0 opacity-15">
-          <img 
-            src="/hero-air-cargo-plane.png" 
-            alt="Professional air cargo operations" 
+          <img
+            src="/hero-air-cargo-plane.png"
+            alt="Professional air cargo operations"
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="relative container mx-auto px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex flex-col items-center gap-8">
-              <div className="flex-1">
-                <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-                  Precision Air Cargo to 
-                  <span className="text-pink-200"> Guyana & the Caribbean</span>
-                </h1>
-                <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto">
-                  Professional air freight services from New Jersey with consolidation, 
-                  secure storage, and competitive rates for the Caribbean diaspora community
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                to="/shipping-calculator" 
-                className="bg-pink-700 text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-pink-700/90 transition-colors inline-flex items-center justify-center"
+        <div className="relative container mx-auto px-4 py-16 sm:py-20 md:py-24">
+          <div className="max-w-screen-md mx-auto text-center">
+            <h1 className="text-white leading-tight font-bold text-[clamp(28px,6vw,48px)] text-balance">
+              Precision Air Cargo to Guyana & the Caribbean
+            </h1>
+            <p className="mt-3 text-white/90 text-[clamp(14px,3.8vw,18px)] text-balance">
+              Professional air freight services from New Jersey with consolidation, secure storage, and competitive rates for the Caribbean diaspora community
+            </p>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to="/shipping-calculator"
+                className="rounded-xl px-4 py-3 font-semibold bg-fuchsia-600 text-white hover:bg-fuchsia-700 transition-colors inline-flex items-center justify-center"
               >
-                Get Free Quote <ArrowRight className="ml-2 h-5 w-5" />
+                Get Free Quote
               </Link>
-              <Link 
-                to="/how-it-works" 
-                className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rose-900 transition-colors inline-flex items-center justify-center"
+              <Link
+                to="/how-it-works"
+                className="rounded-xl px-4 py-3 font-semibold bg-white text-gray-900 hover:bg-gray-100 transition-colors inline-flex items-center justify-center"
               >
                 Learn How It Works
               </Link>
