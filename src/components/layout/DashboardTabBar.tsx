@@ -19,9 +19,9 @@ export function DashboardTabBar() {
           <span>Home</span>
         </Link>
         <Link 
-          to="/dashboard/shipments" 
+          to="/dashboard/create-shipment" 
           className={`flex flex-col items-center justify-center gap-1 text-xs font-medium ${
-            isActive('/dashboard/shipments') ? 'text-shopify-pink' : 'text-slate-600'
+            isActive('/dashboard/create-shipment') ? 'text-shopify-pink' : 'text-slate-600'
           }`}
         >
           <Package className="h-5 w-5" />

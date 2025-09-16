@@ -30,7 +30,9 @@ export interface RecoveryResult {
  */
 export async function attemptReconnection(): Promise<boolean> {
   try {
-    const { error } = await supabase.from('user_profiles').select('count').limit(1);
+    const { error } = await supabase
+      .from('user_profiles')
+      .select('*', { head: true, count: 'exact' });
     return !error;
   } catch (error) {
     errorLogger.error('Database reconnection failed', { error });
@@ -73,7 +75,9 @@ export async function refreshSupabaseClient(): Promise<boolean> {
 export async function testBasicOperations(): Promise<boolean> {
   try {
     // Test read operation
-    const { error: readError } = await supabase.from('user_profiles').select('count').limit(1);
+    const { error: readError } = await supabase
+      .from('user_profiles')
+      .select('*', { head: true, count: 'exact' });
     if (readError) return false;
 
     // Test auth operation

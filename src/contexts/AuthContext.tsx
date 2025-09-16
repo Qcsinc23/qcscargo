@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isStaff, setIsStaff] = useState(false)
@@ -87,8 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Special cases for admin access (fallback)
       if (!role) {
         if (user.email === 'admin@qcscargo.com' ||
-            user.email?.endsWith('@minimax.com') ||
-            user.email?.endsWith('@minimaxi.cn')) {
+            user.email?.endsWith('@quietcraftsolutions.com')) {
           role = 'admin'
         } else {
           role = 'customer'

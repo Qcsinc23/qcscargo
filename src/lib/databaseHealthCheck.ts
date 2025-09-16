@@ -35,8 +35,10 @@ export interface DatabaseHealthStatus {
  */
 export async function checkConnection(): Promise<HealthCheckResult> {
   try {
-    const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
-    
+    const { error } = await supabase
+      .from('user_profiles')
+      .select('*', { head: true, count: 'exact' });
+
     if (error) {
       return {
         status: 'error',
@@ -70,7 +72,9 @@ export async function checkTables(): Promise<HealthCheckResult> {
 
   try {
     for (const table of criticalTables) {
-      const { data, error } = await supabase.from(table).select('*').limit(1);
+      const { error } = await supabase
+        .from(table)
+        .select('*', { head: true, count: 'exact' });
       results.push({
         table,
         accessible: !error,
@@ -248,7 +252,9 @@ export async function performHealthCheck(): Promise<DatabaseHealthStatus> {
  */
 export async function isDatabaseAccessible(): Promise<boolean> {
   try {
-    const { error } = await supabase.from('user_profiles').select('count').limit(1);
+    const { error } = await supabase
+      .from('user_profiles')
+      .select('*', { head: true, count: 'exact' });
     return !error;
   } catch {
     return false;

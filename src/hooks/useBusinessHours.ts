@@ -133,18 +133,16 @@ export function useBusinessHours() {
         if (today.is_closed) {
           todayStatus = today.is_holiday ? `Closed - ${today.holiday_name}` : 'Closed Today'
         } else if (today.open_time && today.close_time) {
-          // Format times consistently
-          const formatTime = (time: string) => {
-            const [hours, minutes] = time.split(':')
-            return `${hours}:${minutes}`
-          }
-          
-          todayStatus = `Open ${formatTime(today.open_time)}-${formatTime(today.close_time)}`
-          
-          // Check if currently open
+          const normalize = (time: string) => time.slice(0, 5)
+
+          todayStatus = `Open ${normalize(today.open_time)}-${normalize(today.close_time)}`
+
+          // Check if currently open by comparing normalized HH:MM strings
           const now = new Date()
-          const currentTime = now.toTimeString().slice(0, 5) // HH:MM format
-          isOpen = currentTime >= today.open_time && currentTime <= today.close_time
+          const currentTime = now.toTimeString().slice(0, 5)
+          const openTime = normalize(today.open_time)
+          const closeTime = normalize(today.close_time)
+          isOpen = currentTime >= openTime && currentTime <= closeTime
         }
       }
 

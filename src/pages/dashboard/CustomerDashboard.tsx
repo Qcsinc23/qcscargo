@@ -64,16 +64,52 @@ interface DashboardStats {
 }
 
 const statusConfig = {
-  pending_pickup: { label: 'Pending Pickup', color: 'orange', icon: Clock },
-  picked_up: { label: 'Picked Up', color: 'blue', icon: Truck },
-  processing: { label: 'Processing', color: 'blue', icon: Package },
-  in_transit: { label: 'In Transit', color: 'purple', icon: MapPin },
-  customs_clearance: { label: 'Customs', color: 'yellow', icon: AlertCircle },
-  out_for_delivery: { label: 'Out for Delivery', color: 'green', icon: Truck },
-  delivered: { label: 'Delivered', color: 'green', icon: CheckCircle },
-  exception: { label: 'Exception', color: 'red', icon: AlertCircle },
-  cancelled: { label: 'Cancelled', color: 'gray', icon: AlertCircle }
-}
+  pending_pickup: {
+    label: 'Pending Pickup',
+    icon: Clock,
+    badgeClass: 'text-orange-600 border-orange-200 bg-orange-50'
+  },
+  picked_up: {
+    label: 'Picked Up',
+    icon: Truck,
+    badgeClass: 'text-blue-600 border-blue-200 bg-blue-50'
+  },
+  processing: {
+    label: 'Processing',
+    icon: Package,
+    badgeClass: 'text-blue-600 border-blue-200 bg-blue-50'
+  },
+  in_transit: {
+    label: 'In Transit',
+    icon: MapPin,
+    badgeClass: 'text-purple-600 border-purple-200 bg-purple-50'
+  },
+  customs_clearance: {
+    label: 'Customs',
+    icon: AlertCircle,
+    badgeClass: 'text-yellow-600 border-yellow-200 bg-yellow-50'
+  },
+  out_for_delivery: {
+    label: 'Out for Delivery',
+    icon: Truck,
+    badgeClass: 'text-green-600 border-green-200 bg-green-50'
+  },
+  delivered: {
+    label: 'Delivered',
+    icon: CheckCircle,
+    badgeClass: 'text-green-600 border-green-200 bg-green-50'
+  },
+  exception: {
+    label: 'Exception',
+    icon: AlertCircle,
+    badgeClass: 'text-red-600 border-red-200 bg-red-50'
+  },
+  cancelled: {
+    label: 'Cancelled',
+    icon: AlertCircle,
+    badgeClass: 'text-gray-600 border-gray-200 bg-gray-50'
+  }
+} as const
 
 export default function CustomerDashboard() {
   const { user, signOut } = useAuth()
@@ -194,7 +230,7 @@ export default function CustomerDashboard() {
     const Icon = config.icon
     
     return (
-      <Badge variant="outline" className={`text-${config.color}-600 border-${config.color}-200 bg-${config.color}-50`}>
+      <Badge variant="outline" className={config.badgeClass}>
         <Icon className="h-3 w-3 mr-1" />
         {config.label}
       </Badge>

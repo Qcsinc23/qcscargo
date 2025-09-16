@@ -106,7 +106,9 @@ const DatabaseDiagnostics: React.FC = () => {
     addLog('Testing database connection...')
     
     try {
-      const { data, error } = await supabase.from('user_profiles').select('count').limit(1)
+      const { error } = await supabase
+        .from('user_profiles')
+        .select('*', { head: true, count: 'exact' })
       
       if (error) {
         addLog(`Connection test failed: ${error.message}`)
