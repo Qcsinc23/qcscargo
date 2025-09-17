@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 import { StickyCTA } from "../StickyCTA";
+import Footer from "../Footer";
 
 export function AppLayout({
   children,
@@ -24,6 +25,7 @@ export function AppLayout({
       <main className={showStickyCTA && !hideCTA ? "pb-sticky-safe" : ""}>
         {children}
       </main>
+      <Footer />
       {showStickyCTA && !hideCTA && <StickyCTA />}
     </div>
   );

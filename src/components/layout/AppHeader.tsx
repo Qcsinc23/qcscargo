@@ -128,12 +128,20 @@ export function AppHeader({ back, onMenuToggle }: HeaderProps) {
                 )}
               </div>
             ) : (
-              <Link
-                to="/shipping-calculator"
-                className="rounded-xl px-3 py-2 bg-fuchsia-600 text-white font-semibold hover:bg-fuchsia-700 transition-colors"
-              >
-                Get Free Quote
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/auth/login"
+                  className="px-3 py-2 text-sm font-medium text-slate-700 hover:text-fuchsia-700 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/shipping-calculator"
+                  className="rounded-xl px-3 py-2 bg-fuchsia-600 text-white font-semibold hover:bg-fuchsia-700 transition-colors"
+                >
+                  Get Free Quote
+                </Link>
+              </div>
             )}
           </nav>
         </div>
@@ -198,7 +206,21 @@ export function AppHeader({ back, onMenuToggle }: HeaderProps) {
                 </div>
               </>
             ) : (
-              <div className="pt-4">
+              <div className="pt-4 space-y-3">
+                <Link
+                  className="block rounded-xl border border-slate-200 py-4 text-center font-medium text-slate-800 hover:border-fuchsia-200 hover:text-fuchsia-700 transition-colors"
+                  to="/auth/login"
+                  onClick={() => setOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  className="block rounded-xl border border-slate-200 py-4 text-center font-medium text-slate-800 hover:border-fuchsia-200 hover:text-fuchsia-700 transition-colors"
+                  to="/auth/register"
+                  onClick={() => setOpen(false)}
+                >
+                  Create Account
+                </Link>
                 <Link
                   className="block py-4 px-6 bg-fuchsia-600 text-white font-semibold rounded-xl text-center hover:bg-fuchsia-700 transition-colors"
                   to="/shipping-calculator"
