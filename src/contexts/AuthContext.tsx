@@ -16,6 +16,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const FALLBACK_ADMIN_EMAILS = new Set([
+  'admin@qcscargo.com',
+  'sherwyn.graham@quietcraftsolutions.com'
+])
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -86,12 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Special cases for admin access (fallback)
       if (!role) {
-        if (user.email === 'admin@qcscargo.com' ||
-            user.email?.endsWith('@quietcraftsolutions.com')) {
-          role = 'admin'
-        } else {
-          role = 'customer'
-        }
+        role = user.email && FALLBACK_ADMIN_EMAILS.has(user.email) ? 'admin' : 'customer'
       }
       
       console.log('Final role determination:', {
