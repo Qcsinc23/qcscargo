@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, Users, TrendingUp, Package, Clock, Shield, DollarSign, CheckCircle, ArrowRight } from 'lucide-react'
-import { AppLayout } from '@/components/layout/AppLayout'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function BusinessServices() {
   const businessServices = [
@@ -99,8 +99,14 @@ export default function BusinessServices() {
     { range: "1000+ lbs/month", discount: "Custom", savings: "Significant savings" }
   ]
 
+  const pageSeo = {
+    title: 'Business Air Cargo Solutions | QCS Cargo',
+    description: 'Streamline Caribbean commercial shipments with scheduled pickups, consolidation, and compliance support from QCS Cargo.',
+    canonicalPath: '/business-services'
+  }
+
   return (
-    <AppLayout showDesktopBreadcrumb={true} breadcrumbSlot={
+    <MarketingLayout seo={pageSeo} showDesktopBreadcrumb={true} breadcrumbSlot={
       <div className="px-6 py-3">
         <p className="text-sm text-slate-600">Home / Business Services</p>
       </div>
@@ -283,7 +289,7 @@ export default function BusinessServices() {
                 "QCS Cargo's understanding of medical supply regulations and their reliable transit times 
                 have been crucial for our Caribbean operations. The volume discounts save us over $800/month."
               </p>
-              <div className="text-sm text-primary font-medium">15% volume discount • Net 15 terms</div>
+              <div className="text-sm text-primary font-medium">15% volume discount ??? Net 15 terms</div>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-lg">
@@ -295,7 +301,7 @@ export default function BusinessServices() {
                 "The dedicated account manager and priority processing have streamlined our Caribbean 
                 supply chain. We've reduced shipping costs by 20% while improving delivery reliability."
               </p>
-              <div className="text-sm text-primary font-medium">Custom rates • Priority support</div>
+              <div className="text-sm text-primary font-medium">Custom rates ??? Priority support</div>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-lg">
@@ -307,7 +313,7 @@ export default function BusinessServices() {
                 "QCS Cargo's cultural understanding and non-profit discounts have made it possible for us 
                 to support more Caribbean cultural events and educational programs."
               </p>
-              <div className="text-sm text-primary font-medium">Non-profit rates • Special handling</div>
+              <div className="text-sm text-primary font-medium">Non-profit rates ??? Special handling</div>
             </div>
           </div>
         </div>
@@ -387,6 +393,7 @@ export default function BusinessServices() {
         </div>
       </section>
     </div>
-    </AppLayout>
+    </MarketingLayout>
   )
 }
+

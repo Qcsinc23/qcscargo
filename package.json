@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "yes | pnpm install && vite",
-    "build": "yes | pnpm install && rm -rf node_modules/.vite-temp && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "build:prod": "yes | pnpm install && rm -rf node_modules/.vite-temp && tsc -b && BUILD_MODE=prod vite build",
     "lint": "yes | pnpm install && eslint .",
-    "preview": "yes | pnpm install && vite preview"
+    "preview": "yes | pnpm install && vite preview",
+    "prebuild": "node ./scripts/prebuild.mjs",
+    "generate:sitemap": "node ./scripts/prebuild.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -51,6 +53,7 @@
     "react": "^18.3.1",
     "react-day-picker": "8.10.1",
     "react-dom": "^18.3.1",
+    "react-helmet-async": "^1.3.0",
     "react-hook-form": "^7.54.2",
     "react-resizable-panels": "^2.1.7",
     "react-router-dom": "^6",

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { ChevronDown, ChevronUp, Search, HelpCircle, Plane, Package, DollarSign, Clock, Shield } from 'lucide-react'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function FAQPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -74,7 +75,7 @@ export default function FAQPage() {
         {
           id: 'dimensional-weight',
           question: 'What is dimensional weight?',
-          answer: 'Dimensional weight is calculated as Length × Width × Height ÷ 166 (for inches). If this exceeds actual weight, dimensional weight is used for billing. This ensures fair pricing for large, lightweight packages.'
+          answer: 'Dimensional weight is calculated as Length ?? Width ?? Height ?? 166 (for inches). If this exceeds actual weight, dimensional weight is used for billing. This ensures fair pricing for large, lightweight packages.'
         },
         {
           id: 'additional-fees',
@@ -190,8 +191,31 @@ export default function FAQPage() {
     )
   })).filter(category => category.questions.length > 0 || searchTerm === '')
 
+  const faqStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqCategories.flatMap(category =>
+      category.questions.map(question => ({
+        '@type': 'Question',
+        name: question.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: question.answer
+        }
+      }))
+    )
+  }
+
+  const pageSeo = {
+    title: 'QCS Cargo FAQ | Caribbean Shipping Answers',
+    description: 'Find answers to common questions about Caribbean air cargo rates, packaging, customs, and delivery with QCS Cargo.',
+    canonicalPath: '/faq',
+    structuredData: faqStructuredData
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-slate-900 to-slate-700 text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -306,6 +330,8 @@ export default function FAQPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { AppLayout } from '@/components/layout/AppLayout'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function ContactPage() {
   const [searchParams] = useSearchParams()
@@ -104,9 +104,46 @@ export default function ContactPage() {
     }
   ]
 
+  const pageSeo = {
+    title: 'Contact QCS Cargo | Caribbean Air Cargo Support in Kearny, NJ',
+    description: 'Call or message QCS Cargo for Caribbean air cargo quotes, tracking support, and facility visits in Kearny, New Jersey.',
+    canonicalPath: '/contact',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'LogisticsBusiness',
+      name: 'QCS Cargo',
+      url: 'https://www.qcs-cargo.com/contact',
+      telephone: '201-249-0929',
+      email: 'sales@quietcraftsolutions.com',
+      image: 'https://www.qcs-cargo.com/hero-air-cargo-plane.png',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: '35 Obrien St, E12',
+        addressLocality: 'Kearny',
+        addressRegion: 'NJ',
+        postalCode: '07032',
+        addressCountry: 'US'
+      },
+      openingHoursSpecification: [
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          opens: '09:00',
+          closes: '18:00'
+        },
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: 'Saturday',
+          opens: '09:00',
+          closes: '14:00'
+        }
+      ]
+    }
+  }
+
   if (success) {
     return (
-      <AppLayout showStickyCTA={false}>
+      <MarketingLayout showStickyCTA={false} seo={pageSeo}>
         <div className="bg-rose-50 py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
@@ -131,12 +168,12 @@ export default function ContactPage() {
             </div>
           </div>
         </div>
-      </AppLayout>
+      </MarketingLayout>
     )
   }
 
   return (
-    <AppLayout showDesktopBreadcrumb={true} breadcrumbSlot={
+    <MarketingLayout seo={pageSeo} showDesktopBreadcrumb={true} breadcrumbSlot={
       <div className="px-6 py-3">
         <p className="text-sm text-slate-600">Home / Contact</p>
       </div>
@@ -205,10 +242,10 @@ export default function ContactPage() {
                     Kearny, NJ 07032
                   </p>
                   <div className="space-y-2 text-sm text-pink-600">
-                    <p>• Secure, climate-controlled facility</p>
-                    <p>• Professional cargo handling equipment</p>
-                    <p>• Convenient parking available</p>
-                    <p>• Easy access from Newark and Jersey City</p>
+                    <p>??? Secure, climate-controlled facility</p>
+                    <p>??? Professional cargo handling equipment</p>
+                    <p>??? Convenient parking available</p>
+                    <p>??? Easy access from Newark and Jersey City</p>
                   </div>
                 </div>
               </div>
@@ -341,6 +378,7 @@ export default function ContactPage() {
         </div>
       </section>
       </div>
-    </AppLayout>
+    </MarketingLayout>
   )
 }
+

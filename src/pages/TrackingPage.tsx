@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Search, Package, Plane, MapPin, Clock, AlertCircle, CheckCircle, Truck } from 'lucide-react'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function TrackingPage() {
   const [trackingNumber, setTrackingNumber] = useState('')
@@ -178,8 +179,15 @@ export default function TrackingPage() {
     }
   }
 
+  const pageSeo = {
+    title: 'Track Your Shipment | QCS Cargo Tracking',
+    description: 'Enter your QCS Cargo tracking number to see the latest updates on your Caribbean shipment.',
+    canonicalPath: '/tracking'
+  }
+
   return (
-    <div className="bg-slate-50 min-h-screen py-12">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-slate-50 min-h-screen py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -397,6 +405,8 @@ export default function TrackingPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

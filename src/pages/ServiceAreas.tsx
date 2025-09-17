@@ -4,6 +4,7 @@ import { MapPin, Plane, Clock, DollarSign, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Destination } from '@/lib/types'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function ServiceAreas() {
   const { user } = useAuth()
@@ -79,8 +80,15 @@ export default function ServiceAreas() {
     }
   }
 
+  const pageSeo = {
+    title: 'Caribbean Service Areas | QCS Cargo Destinations',
+    description: 'Review the Caribbean destinations QCS Cargo serves along with transit times and delivery options from New Jersey.',
+    canonicalPath: '/service-areas'
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
@@ -181,7 +189,7 @@ export default function ServiceAreas() {
                     onClick={() => setSelectedDestination(null)}
                     className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
                   >
-                    ×
+                    ??
                   </button>
                 </div>
 
@@ -348,6 +356,8 @@ export default function ServiceAreas() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

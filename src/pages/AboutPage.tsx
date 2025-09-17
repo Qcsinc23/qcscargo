@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, Users, Award, Plane, MapPin, Clock, Heart, CheckCircle } from 'lucide-react'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function AboutPage() {
   const teamMembers = [
@@ -60,8 +61,23 @@ export default function AboutPage() {
     }
   ]
 
+  const pageSeo = {
+    title: 'About QCS Cargo | Caribbean Air Cargo Specialists',
+    description: 'Learn about the QCS Cargo mission, experienced team, and compliance certifications serving Caribbean shipments.',
+    canonicalPath: '/about',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'QCS Cargo',
+      url: 'https://www.qcs-cargo.com/about',
+      foundingDate: '2015',
+      logo: 'https://www.qcs-cargo.com/QCS_Cargo_Logo.png'
+    }
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-sophisticated-blue-dark to-sophisticated-blue-dark text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -375,6 +391,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

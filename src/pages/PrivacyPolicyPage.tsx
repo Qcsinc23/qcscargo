@@ -1,9 +1,18 @@
 import React from 'react'
 import { Shield, FileText, Calendar, Mail } from 'lucide-react'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function PrivacyPolicyPage() {
+  const pageSeo = {
+    title: 'Privacy Policy | QCS Cargo',
+    description: 'Learn how QCS Cargo handles customer information for Caribbean shipping services, including data usage and security.',
+    canonicalPath: '/privacy-policy',
+    noindex: true
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -39,21 +48,21 @@ export default function PrivacyPolicyPage() {
                 We collect personal information that you voluntarily provide to us when:
               </p>
               <ul className="text-gray-700 space-y-2 ml-4">
-                <li>• Creating an account on our website</li>
-                <li>• Requesting shipping quotes or services</li>
-                <li>• Contacting us for customer support</li>
-                <li>• Subscribing to our newsletter or updates</li>
-                <li>• Processing shipment transactions</li>
+                <li>??? Creating an account on our website</li>
+                <li>??? Requesting shipping quotes or services</li>
+                <li>??? Contacting us for customer support</li>
+                <li>??? Subscribing to our newsletter or updates</li>
+                <li>??? Processing shipment transactions</li>
               </ul>
               
               <h4 className="font-semibold mt-6 mb-2">This may include:</h4>
               <ul className="text-gray-700 space-y-1 ml-4">
-                <li>• Full name and contact information</li>
-                <li>• Email address and phone number</li>
-                <li>• Shipping addresses (origin and destination)</li>
-                <li>• Payment information (processed securely through third parties)</li>
-                <li>• Business information and tax identification numbers</li>
-                <li>• Package contents and shipping preferences</li>
+                <li>??? Full name and contact information</li>
+                <li>??? Email address and phone number</li>
+                <li>??? Shipping addresses (origin and destination)</li>
+                <li>??? Payment information (processed securely through third parties)</li>
+                <li>??? Business information and tax identification numbers</li>
+                <li>??? Package contents and shipping preferences</li>
               </ul>
             </div>
             
@@ -63,11 +72,11 @@ export default function PrivacyPolicyPage() {
                 When you visit our website, we automatically collect certain information:
               </p>
               <ul className="text-gray-700 space-y-1 ml-4">
-                <li>• IP address and browser type</li>
-                <li>• Device information and operating system</li>
-                <li>• Pages visited and time spent on our site</li>
-                <li>• Referring website and search terms used</li>
-                <li>• Cookies and similar tracking technologies</li>
+                <li>??? IP address and browser type</li>
+                <li>??? Device information and operating system</li>
+                <li>??? Pages visited and time spent on our site</li>
+                <li>??? Referring website and search terms used</li>
+                <li>??? Cookies and similar tracking technologies</li>
               </ul>
             </div>
           </div>
@@ -85,11 +94,11 @@ export default function PrivacyPolicyPage() {
                   Service Delivery
                 </h3>
                 <ul className="text-gray-700 space-y-2">
-                  <li>• Process and fulfill shipping requests</li>
-                  <li>• Communicate about shipment status</li>
-                  <li>• Provide customer support</li>
-                  <li>• Generate shipping documentation</li>
-                  <li>• Handle customs and regulatory requirements</li>
+                  <li>??? Process and fulfill shipping requests</li>
+                  <li>??? Communicate about shipment status</li>
+                  <li>??? Provide customer support</li>
+                  <li>??? Generate shipping documentation</li>
+                  <li>??? Handle customs and regulatory requirements</li>
                 </ul>
               </div>
               
@@ -99,11 +108,11 @@ export default function PrivacyPolicyPage() {
                   Business Operations
                 </h3>
                 <ul className="text-gray-700 space-y-2">
-                  <li>• Improve our website and services</li>
-                  <li>• Send service updates and notifications</li>
-                  <li>• Conduct business analytics</li>
-                  <li>• Comply with legal obligations</li>
-                  <li>• Prevent fraud and security threats</li>
+                  <li>??? Improve our website and services</li>
+                  <li>??? Send service updates and notifications</li>
+                  <li>??? Conduct business analytics</li>
+                  <li>??? Comply with legal obligations</li>
+                  <li>??? Prevent fraud and security threats</li>
                 </ul>
               </div>
             </div>
@@ -154,11 +163,11 @@ export default function PrivacyPolicyPage() {
                 We implement appropriate technical and organizational security measures to protect your personal information:
               </p>
               <ul className="text-gray-700 space-y-1 ml-4">
-                <li>• SSL encryption for data transmission</li>
-                <li>• Secure servers and database protection</li>
-                <li>• Access controls and employee training</li>
-                <li>• Regular security assessments and updates</li>
-                <li>• Secure payment processing through certified providers</li>
+                <li>??? SSL encryption for data transmission</li>
+                <li>??? Secure servers and database protection</li>
+                <li>??? Access controls and employee training</li>
+                <li>??? Regular security assessments and updates</li>
+                <li>??? Secure payment processing through certified providers</li>
               </ul>
               
               <h4 className="font-semibold mt-6 mb-2">Data Retention</h4>
@@ -289,6 +298,7 @@ export default function PrivacyPolicyPage() {
           
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }

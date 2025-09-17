@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { DollarSign, Info, Package, Plane, Shield, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Destination } from '@/lib/types'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function RatesPage() {
   const [destinations, setDestinations] = useState<Destination[]>([])
@@ -57,7 +58,7 @@ export default function RatesPage() {
       title: 'Small Personal Package',
       details: '5 lbs to Georgetown, Guyana',
       calculation: [
-        'Base rate: 5 lbs × $4.50 = $22.50',
+        'Base rate: 5 lbs ?? $4.50 = $22.50',
         'Insurance (optional): $200 value = $15.00',
         'Total: $37.50'
       ],
@@ -67,7 +68,7 @@ export default function RatesPage() {
       title: 'Medium Consolidated Shipment',
       details: '35 lbs to Kingston, Jamaica (2 packages)',
       calculation: [
-        'Base rate: 35 lbs × $4.75 = $166.25',
+        'Base rate: 35 lbs ?? $4.75 = $166.25',
         'Consolidation: 1 additional package = $5.00',
         'Total: $171.25'
       ],
@@ -77,7 +78,7 @@ export default function RatesPage() {
       title: 'Large Business Shipment',
       details: '150 lbs to Port of Spain, Trinidad',
       calculation: [
-        'Base rate: 150 lbs × $4.25 = $637.50',
+        'Base rate: 150 lbs ?? $4.25 = $637.50',
         'Business discount (10%): -$63.75',
         'Express processing: $15.00',
         'Total: $588.75'
@@ -86,8 +87,15 @@ export default function RatesPage() {
     }
   ]
 
+  const pageSeo = {
+    title: 'Caribbean Air Cargo Rates | QCS Cargo Pricing',
+    description: 'View the latest QCS Cargo air cargo rates, transit times, and service options for Caribbean destinations.',
+    canonicalPath: '/rates'
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
@@ -262,7 +270,7 @@ export default function RatesPage() {
                 <div>
                   <h4 className="font-medium mb-2 text-primary">Dimensional Weight</h4>
                   <p className="text-gray-700 mb-4">
-                    Calculated as Length × Width × Height ÷ 166 (inches). Billable weight is the greater of actual or dimensional weight.
+                    Calculated as Length ?? Width ?? Height ?? 166 (inches). Billable weight is the greater of actual or dimensional weight.
                   </p>
                   
                   <h4 className="font-medium mb-2 text-primary">Rate Validity</h4>
@@ -274,10 +282,10 @@ export default function RatesPage() {
                 <div>
                   <h4 className="font-medium mb-2 text-primary">What's Included</h4>
                   <ul className="text-gray-700 space-y-1 mb-4">
-                    <li>• Professional packaging review</li>
-                    <li>• Customs documentation prep</li>
-                    <li>• Up to 7 days free storage</li>
-                    <li>• Shipment tracking</li>
+                    <li>??? Professional packaging review</li>
+                    <li>??? Customs documentation prep</li>
+                    <li>??? Up to 7 days free storage</li>
+                    <li>??? Shipment tracking</li>
                   </ul>
                   
                   <h4 className="font-medium mb-2 text-primary">Not Included</h4>
@@ -446,6 +454,8 @@ export default function RatesPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

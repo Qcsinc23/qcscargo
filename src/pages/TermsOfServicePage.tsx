@@ -1,9 +1,18 @@
 import React from 'react'
 import { FileText, Shield, Calendar, AlertTriangle } from 'lucide-react'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function TermsOfServicePage() {
+  const pageSeo = {
+    title: 'Terms of Service | QCS Cargo',
+    description: 'Review the terms and conditions for Caribbean air cargo services from QCS Cargo.',
+    canonicalPath: '/terms',
+    noindex: true
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
@@ -55,21 +64,21 @@ export default function TermsOfServicePage() {
               <div className="bg-white border border-gray-200 p-6 rounded-lg">
                 <h3 className="text-xl font-semibold mb-4">Core Services</h3>
                 <ul className="text-gray-700 space-y-2">
-                  <li>• Air cargo shipping and freight forwarding</li>
-                  <li>• Package consolidation services</li>
-                  <li>• Customs documentation preparation</li>
-                  <li>• Secure storage and handling</li>
-                  <li>• Pickup and delivery coordination</li>
+                  <li>??? Air cargo shipping and freight forwarding</li>
+                  <li>??? Package consolidation services</li>
+                  <li>??? Customs documentation preparation</li>
+                  <li>??? Secure storage and handling</li>
+                  <li>??? Pickup and delivery coordination</li>
                 </ul>
               </div>
               <div className="bg-white border border-gray-200 p-6 rounded-lg">
                 <h3 className="text-xl font-semibold mb-4">Additional Services</h3>
                 <ul className="text-gray-700 space-y-2">
-                  <li>• Packaging and crating services</li>
-                  <li>• Insurance coverage options</li>
-                  <li>• Express and priority shipping</li>
-                  <li>• Business account services</li>
-                  <li>• Shipment tracking and notifications</li>
+                  <li>??? Packaging and crating services</li>
+                  <li>??? Insurance coverage options</li>
+                  <li>??? Express and priority shipping</li>
+                  <li>??? Business account services</li>
+                  <li>??? Shipment tracking and notifications</li>
                 </ul>
               </div>
             </div>
@@ -101,18 +110,18 @@ export default function TermsOfServicePage() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <ul className="text-gray-700 space-y-1">
-                    <li>• Hazardous materials and chemicals</li>
-                    <li>• Weapons and ammunition</li>
-                    <li>• Illegal drugs and substances</li>
-                    <li>• Perishable food items</li>
-                    <li>• Live animals or plants</li>
+                    <li>??? Hazardous materials and chemicals</li>
+                    <li>??? Weapons and ammunition</li>
+                    <li>??? Illegal drugs and substances</li>
+                    <li>??? Perishable food items</li>
+                    <li>??? Live animals or plants</li>
                   </ul>
                   <ul className="text-gray-700 space-y-1">
-                    <li>• Flammable liquids and gases</li>
-                    <li>• Precious metals and stones</li>
-                    <li>• Currency and negotiable instruments</li>
-                    <li>• Items violating intellectual property</li>
-                    <li>• Items prohibited by destination country</li>
+                    <li>??? Flammable liquids and gases</li>
+                    <li>??? Precious metals and stones</li>
+                    <li>??? Currency and negotiable instruments</li>
+                    <li>??? Items violating intellectual property</li>
+                    <li>??? Items prohibited by destination country</li>
                   </ul>
                 </div>
               </div>
@@ -136,22 +145,22 @@ export default function TermsOfServicePage() {
             <div className="bg-gray-50 p-6 rounded-lg mb-6">
               <h3 className="text-xl font-semibold mb-4">Rates and Charges</h3>
               <ul className="text-gray-700 space-y-2">
-                <li>• Rates are based on actual or dimensional weight, whichever is greater</li>
-                <li>• Quotes are valid for 30 days from issuance</li>
-                <li>• Additional charges may apply for special handling, oversize items, or express service</li>
-                <li>• Fuel surcharges and carrier fees may be added as applicable</li>
-                <li>• All prices exclude customs duties, taxes, and destination country fees</li>
+                <li>??? Rates are based on actual or dimensional weight, whichever is greater</li>
+                <li>??? Quotes are valid for 30 days from issuance</li>
+                <li>??? Additional charges may apply for special handling, oversize items, or express service</li>
+                <li>??? Fuel surcharges and carrier fees may be added as applicable</li>
+                <li>??? All prices exclude customs duties, taxes, and destination country fees</li>
               </ul>
             </div>
             
             <div className="bg-primary/5 p-6 rounded-lg">
               <h3 className="text-xl font-semibold mb-4">Payment Terms</h3>
               <ul className="text-gray-700 space-y-2">
-                <li>• Payment is due at time of service unless credit terms are pre-approved</li>
-                <li>• We accept cash, check, and major credit cards</li>
-                <li>• Business accounts may be eligible for NET 30 payment terms</li>
-                <li>• Late payments may incur service charges and interest</li>
-                <li>• Unpaid invoices may result in suspension of services</li>
+                <li>??? Payment is due at time of service unless credit terms are pre-approved</li>
+                <li>??? We accept cash, check, and major credit cards</li>
+                <li>??? Business accounts may be eligible for NET 30 payment terms</li>
+                <li>??? Late payments may incur service charges and interest</li>
+                <li>??? Unpaid invoices may result in suspension of services</li>
               </ul>
             </div>
           </div>
@@ -288,6 +297,8 @@ export default function TermsOfServicePage() {
           
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

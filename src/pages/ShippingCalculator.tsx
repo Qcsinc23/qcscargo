@@ -4,7 +4,7 @@ import { Calculator, Package, Plane, DollarSign, Clock, AlertCircle, Truck } fro
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Destination, CalculatedRate, ShippingCalculatorData } from '@/lib/types'
-import { AppLayout } from '@/components/layout/AppLayout'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function ShippingCalculator() {
   const [searchParams] = useSearchParams()
@@ -161,8 +161,14 @@ export default function ShippingCalculator() {
     navigate(`/contact?${params.toString()}`)
   }
 
+  const pageSeo = {
+    title: 'Caribbean Shipping Calculator | QCS Cargo Rates',
+    description: 'Estimate air cargo rates from New Jersey to Caribbean destinations in minutes with the QCS Cargo calculator.',
+    canonicalPath: '/shipping-calculator'
+  }
+
   return (
-    <AppLayout showDesktopBreadcrumb={true} breadcrumbSlot={
+    <MarketingLayout seo={pageSeo} showDesktopBreadcrumb={true} breadcrumbSlot={
       <div className="px-6 py-3">
         <p className="text-sm text-slate-600">Home / Shipping Calculator</p>
       </div>
@@ -359,11 +365,11 @@ export default function ShippingCalculator() {
               <div className="flex items-center mb-1">
                 <Plane className="h-4 w-4 text-indigo-700 mr-2" />
                 <span className="font-medium text-indigo-900 text-sm">
-                  New Jersey → {calculatedRate.destination.country}
+                  New Jersey ??? {calculatedRate.destination.country}
                 </span>
               </div>
               <div className="text-xs text-indigo-800">
-                {calculatedRate.destination.city} • {calculatedRate.transitTime.estimate}
+                {calculatedRate.destination.city} ??? {calculatedRate.transitTime.estimate}
               </div>
             </div>
 
@@ -376,7 +382,7 @@ export default function ShippingCalculator() {
                 </span>
               </div>
               <p className="text-xs text-green-700 mt-1">
-                Valid 30 days • Excludes customs duties & taxes
+                Valid 30 days ??? Excludes customs duties & taxes
               </p>
             </div>
 
@@ -399,6 +405,7 @@ export default function ShippingCalculator() {
           </section>
         )}
       </section>
-    </AppLayout>
+    </MarketingLayout>
   )
 }
+

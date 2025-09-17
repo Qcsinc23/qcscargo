@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Plane, Shield, Clock, Globe, Star, CheckCircle, Truck, Package, MapPin, Phone } from 'lucide-react'
-import { AppLayout } from '@/components/layout/AppLayout'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function HomePage() {
   const testimonials = [
@@ -76,9 +76,22 @@ export default function HomePage() {
     { country: "Suriname", city: "Paramaribo", days: "4-6 days", rate: "from $3.75/lb" }
   ]
 
+  const pageSeo = {
+    title: 'Precision Air Cargo to the Caribbean | QCS Cargo',
+    description: 'Ship from New Jersey to the Caribbean with QCS Cargo. Fast consolidation, secure handling, and door-to-door support.',
+    canonicalPath: '/',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'QCS Cargo',
+      url: 'https://www.qcs-cargo.com/',
+      logo: 'https://www.qcs-cargo.com/QCS_Cargo_Logo.png'
+    }
+  }
+
   return (
-    <AppLayout>
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-rose-800 via-pink-700 to-rose-700 text-white overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/10"></div>
@@ -341,6 +354,8 @@ export default function HomePage() {
         </div>
       </section>
     </div>
-    </AppLayout>
+    </MarketingLayout>
   )
 }
+
+

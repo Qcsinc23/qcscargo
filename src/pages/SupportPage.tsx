@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function SupportPage() {
   const [formData, setFormData] = useState({
@@ -50,8 +51,15 @@ export default function SupportPage() {
     }
   }
 
+  const pageSeo = {
+    title: 'Customer Support | QCS Cargo Help Center',
+    description: 'Get help with QCS Cargo shipments, tracking, and account support from our Caribbean air cargo team.',
+    canonicalPath: '/support'
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
@@ -329,6 +337,8 @@ export default function SupportPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

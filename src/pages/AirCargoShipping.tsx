@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Plane, Package, Shield, Clock, CheckCircle, ArrowRight, Truck, Globe, DollarSign, Users, Star } from 'lucide-react'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function AirCargoShipping() {
   const services = [
@@ -162,8 +163,15 @@ export default function AirCargoShipping() {
     }
   ]
 
+  const pageSeo = {
+    title: 'Air Cargo Shipping to the Caribbean | QCS Cargo Services',
+    description: 'Explore QCS Cargo air freight options from New Jersey to Guyana, Jamaica, Trinidad, and more with consolidation, tracking, and insurance.',
+    canonicalPath: '/air-cargo-shipping'
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
@@ -362,6 +370,8 @@ export default function AirCargoShipping() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+

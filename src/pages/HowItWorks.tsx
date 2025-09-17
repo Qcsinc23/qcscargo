@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Package, Plane, FileText, Truck, CheckCircle } from 'lucide-react'
+import { MarketingLayout } from '@/components/layout/MarketingLayout'
 
 export default function HowItWorks() {
   const steps = [
@@ -109,8 +110,15 @@ export default function HowItWorks() {
     }
   ]
 
+  const pageSeo = {
+    title: 'How QCS Cargo Air Shipping Works | Step-by-Step Guide',
+    description: 'Understand the QCS Cargo air freight process from quote to delivery across the Caribbean.',
+    canonicalPath: '/how-it-works'
+  }
+
   return (
-    <div className="bg-white">
+    <MarketingLayout seo={pageSeo}>
+      <div className="bg-white">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-slate-900 to-slate-700 text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -283,6 +291,8 @@ export default function HowItWorks() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </MarketingLayout>
   )
 }
+
