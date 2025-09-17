@@ -47,6 +47,7 @@ import VehicleEditPage from '@/pages/admin/VehicleEditPage'
 import AdminCustomerInsights from '@/pages/admin/AdminCustomerInsights'
 import AdminBookingCalendar from '@/pages/admin/AdminBookingCalendar'
 import AdminSettings from '@/pages/admin/AdminSettings'
+import AdminMailboxes from '@/pages/admin/AdminMailboxes'
 
 function App() {
   return (
@@ -128,6 +129,7 @@ function App() {
             <Route path="vehicles/:id" element={<VehicleDetailsPage />} />
             <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />
             <Route path="customers" element={<AdminCustomerInsights />} />
+            <Route path="mailboxes" element={<AdminMailboxes />} />
             <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>

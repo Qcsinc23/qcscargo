@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Link, useNavigate } from 'react-router-dom'
@@ -21,6 +20,8 @@ import {
   User
 } from 'lucide-react'
 import { BreadcrumbNavigation } from '@/components/BreadcrumbNavigation'
+import { useVirtualAddress } from '@/hooks/useVirtualAddress'
+import VirtualAddressCard from '@/components/VirtualAddressCard'
 
 interface UserProfile {
   first_name: string
@@ -121,12 +122,19 @@ export default function CustomerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [signingOut, setSigningOut] = useState(false)
+  const { address, loading: addressLoading, error: addressError, fetchAddress } = useVirtualAddress()
 
   useEffect(() => {
     if (user) {
       loadDashboardData()
     }
   }, [user])
+
+  useEffect(() => {
+    if (user) {
+      fetchAddress()
+    }
+  }, [user, fetchAddress])
 
   const handleSignOut = async () => {
     try {
@@ -320,6 +328,19 @@ export default function CustomerDashboard() {
             <div className="text-slate-600 text-sm">Total Spent</div>
             <div className="mt-1 text-3xl font-bold text-shopify-maroon">{formatCurrency(stats?.total_spent || 0)}</div>
           </div>
+        </div>
+
+        {/* Virtual Mailbox */}
+        <div className="mb-6">
+          {addressError && (
+            <div className="mb-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4" />
+                <span>{addressError}</span>
+              </div>
+            </div>
+          )}
+          <VirtualAddressCard address={address} loading={addressLoading} onRefresh={fetchAddress} />
         </div>
 
         {/* Recent Shipments - compact cards */}

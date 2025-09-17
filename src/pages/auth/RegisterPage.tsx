@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Lock, User, Building, Phone, MapPin, AlertCircle, CheckCircle } from 'lucide-react'
+import { Loader2, Mail, Lock, User, Building, Phone, MapPin, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { logAuthError, logDatabaseError, logValidationError } from '../../lib/errorLogger'
+import { useVirtualAddress } from '@/hooks/useVirtualAddress'
+import VirtualAddressCard from '@/components/VirtualAddressCard'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -24,6 +26,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const { address: virtualAddress, loading: addressLoading, error: addressError, fetchAddress } = useVirtualAddress()
 
   const { signUp } = useAuth()
   const navigate = useNavigate()
@@ -138,14 +141,15 @@ export default function RegisterPage() {
         }
       }
 
+      if (data.session) {
+        try {
+          await fetchAddress()
+        } catch (addressFetchError) {
+          console.warn('Mailbox not ready immediately after signup:', addressFetchError)
+        }
+      }
+
       setSuccess(true)
-      setTimeout(() => {
-        navigate('/auth/login', {
-          state: {
-            message: 'Registration successful! Please check your email to verify your account.'
-          }
-        })
-      }, 3000)
 
     } catch (err: any) {
       console.error('Registration error:', err)
@@ -159,25 +163,37 @@ export default function RegisterPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-100/30 to-pink-100/30 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-rose-900">Registration Successful!</CardTitle>
-            <CardDescription>
-              Please check your email for a verification link before signing in.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-pink-600 mb-4">
-              We've sent a verification email to <strong>{formData.email}</strong>
-            </p>
-            <Button 
-              onClick={() => navigate('/auth/login')} 
-              className="w-full"
-            >
-              Go to Sign In
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-3xl space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-rose-900">Registration Successful!</CardTitle>
+              <CardDescription>
+                Please check your email for a verification link before signing in.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-pink-600">
+                We've sent a verification email to <strong>{formData.email}</strong>. Once you verify, you can log in and
+                start shipping.
+              </p>
+              <Button onClick={() => navigate('/auth/login')} className="w-full">
+                Go to Sign In
+              </Button>
+            </CardContent>
+          </Card>
+
+          {addressError && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {addressError}
+            </div>
+          )}
+
+          <VirtualAddressCard
+            address={virtualAddress}
+            loading={addressLoading}
+            onRefresh={fetchAddress}
+          />
+        </div>
       </div>
     )
   }
