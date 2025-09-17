@@ -68,12 +68,16 @@ const AdminLayout: React.FC = () => {
                   src="/qcs-logo.svg"
                   alt="QCS Cargo - Precision Air Cargo Solutions"
                   className="h-8 w-auto mr-2"
+                  loading="lazy"
+                  decoding="async"
+                  width="128"
+                  height="32"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = "/QCS_Cargo_Logo.png";
                   }}
                 />
-                <h1 className="text-xl font-bold text-gray-900">QCS Admin</h1>
+                <span className="text-xl font-bold text-gray-900">QCS Admin</span>
               </Link>
             </div>
             <nav className="mt-5 flex-1 px-2 space-y-1">
@@ -173,21 +177,25 @@ const MobileNavigation: React.FC<{
     <>
       <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
         <div className="flex-shrink-0 flex items-center px-4 mb-8">
-          <Link
-            to="/"
-            className="flex items-center hover:opacity-80 transition-opacity"
-            title="QCS Cargo - Return to Homepage"
-          >
-            <img
-              src="/qcs-logo.svg"
-              alt="QCS Cargo - Precision Air Cargo Solutions"
-              className="h-8 w-auto mr-2"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "/QCS_Cargo_Logo.png";
+            <Link
+              to="/"
+              className="flex items-center hover:opacity-80 transition-opacity"
+              title="QCS Cargo - Return to Homepage"
+            >
+              <img
+                src="/qcs-logo.svg"
+                alt="QCS Cargo - Precision Air Cargo Solutions"
+                className="h-8 w-auto mr-2"
+                loading="lazy"
+                decoding="async"
+                width="128"
+                height="32"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/QCS_Cargo_Logo.png";
               }}
             />
-            <h1 className="text-xl font-bold text-gray-900">QCS Admin</h1>
+            <span className="text-xl font-bold text-gray-900">QCS Admin</span>
           </Link>
         </div>
         <nav className="mt-5 px-2 space-y-1">

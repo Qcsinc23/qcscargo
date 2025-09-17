@@ -134,15 +134,19 @@ export default function Header() {
               src="/qcs-logo.svg"
               alt="QCS Cargo - Precision Air Cargo Solutions"
               className="h-8 md:h-12 w-auto"
+              width="160"
+              height="48"
+              loading="lazy"
+              decoding="async"
               onError={(e) => {
                 // Fallback to PNG if SVG fails to load
                 const target = e.target as HTMLImageElement;
                 target.src = "/QCS_Cargo_Logo.png";
               }}
             />
-            <div className="hidden sm:block">
-              <h1 className="text-lg md:text-2xl font-bold text-primary">QCS Cargo</h1>
-              <p className="text-xs md:text-sm text-slate-600">Precision Air Cargo Solutions</p>
+            <div className="hidden sm:block text-primary">
+              <span className="block text-lg md:text-2xl font-bold">QCS Cargo</span>
+              <span className="block text-xs md:text-sm text-slate-600">Precision Air Cargo Solutions</span>
             </div>
           </Link>
 

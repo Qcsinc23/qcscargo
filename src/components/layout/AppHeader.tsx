@@ -47,10 +47,19 @@ export function AppHeader({ back, onMenuToggle }: HeaderProps) {
             </Link>
           ) : (
             <Link to="/" className="flex items-center gap-2">
-              <img src="/logo.svg" alt="QCS Cargo" className="h-7 w-auto" onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "/QCS_Cargo_Logo.png";
-              }} />
+              <img
+                src="/logo.svg"
+                alt="QCS Cargo"
+                className="h-7 w-auto"
+                loading="lazy"
+                decoding="async"
+                width="112"
+                height="28"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/QCS_Cargo_Logo.png";
+                }}
+              />
             </Link>
           )}
           <button
@@ -65,13 +74,22 @@ export function AppHeader({ back, onMenuToggle }: HeaderProps) {
         {/* Desktop row */}
         <div className="hidden md:flex h-16 items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/logo.svg" alt="QCS Cargo" className="h-8 w-auto" onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = "/QCS_Cargo_Logo.png";
-            }} />
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">QCS Cargo</h1>
-              <p className="text-sm text-slate-600">Precision Air Cargo Solutions</p>
+            <img
+              src="/logo.svg"
+              alt="QCS Cargo"
+              className="h-8 w-auto"
+              loading="lazy"
+              decoding="async"
+              width="128"
+              height="32"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/QCS_Cargo_Logo.png";
+              }}
+            />
+            <div className="text-slate-900">
+              <span className="block text-xl font-bold">QCS Cargo</span>
+              <span className="block text-sm text-slate-600">Precision Air Cargo Solutions</span>
             </div>
           </Link>
           <nav className="flex items-center gap-6 text-sm">
