@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     const user = authData.user;
 
-    const fetchMailbox = async (client: ReturnType<typeof createClient>) =>
+    const fetchMailbox = (client: ReturnType<typeof createClient>) =>
       client
         .from('virtual_mailboxes')
         .select(
@@ -54,38 +54,34 @@ Deno.serve(async (req) => {
 
     let mailboxResult = await fetchMailbox(supabaseUser);
 
-    if (mailboxResult.error || !mailboxResult.data?.facility) {
-      if (mailboxResult.error) {
-        console.warn('Primary mailbox lookup failed, attempting service role fallback:', mailboxResult.error.message);
-      }
+    if (mailboxResult.error && mailboxResult.error.code !== 'PGRST116') {
+      console.warn('Primary mailbox lookup failed, attempting fallback:', mailboxResult.error.message);
 
       if (!supabaseServiceKey) {
-        return createErrorResponse('MAILBOX_LOOKUP_FAILED', 'Unable to retrieve mailbox details. Please contact support.');
+        return createErrorResponse('MAILBOX_FETCH_FAILED', 'Unable to retrieve mailbox details.');
       }
 
       const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
         auth: { persistSession: false, autoRefreshToken: false }
       });
 
-      mailboxResult = await supabaseService
-        .from('virtual_mailboxes')
-        .select('mailbox_number, facility:facility_id(code, address_line1, address_line2, city, state, postal_code, country)')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      mailboxResult = await fetchMailbox(supabaseService);
 
-      if (mailboxResult.error) {
+      if (mailboxResult.error && mailboxResult.error.code !== 'PGRST116') {
         console.error('Service role mailbox lookup failed:', mailboxResult.error);
         return createErrorResponse('MAILBOX_FETCH_FAILED', 'Unable to retrieve mailbox details.');
       }
+
+      if (!mailboxResult.data) {
+        return createErrorResponse('MAILBOX_NOT_FOUND', 'No virtual mailbox assigned to this user.', 404);
+      }
     }
 
-    const mailboxRow = mailboxResult.data;
-
-    if (!mailboxRow) {
+    if (!mailboxResult.data) {
       return createErrorResponse('MAILBOX_NOT_FOUND', 'No virtual mailbox assigned to this user.', 404);
     }
 
-    const facility = mailboxRow.facility as Facility | null;
+    const facility = mailboxResult.data.facility as Facility | null;
 
     if (!facility) {
       return createErrorResponse('FACILITY_NOT_FOUND', 'Mailbox facility details are missing.', 404);
@@ -142,7 +138,7 @@ Deno.serve(async (req) => {
       name,
       line1: facility.address_line1,
       line2: facility.address_line2,
-      line3: `Mailbox ${mailboxRow.mailbox_number}`,
+      line3: `Mailbox ${mailboxResult.data.mailbox_number}`,
       city: facility.city,
       state: facility.state,
       postal_code: facility.postal_code,
@@ -150,7 +146,7 @@ Deno.serve(async (req) => {
       facility_code: facility.code
     };
 
-    return createSuccessResponse({ address, mailbox_number: mailboxRow.mailbox_number });
+    return createSuccessResponse({ address, mailbox_number: mailboxResult.data.mailbox_number });
   } catch (error) {
     console.error('get-virtual-address error:', error);
     const message = error instanceof Error ? error.message : 'Unexpected error retrieving virtual address.';
