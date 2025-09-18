@@ -901,6 +901,8 @@
 !supabase/migrations/1758004002_allocate_mailbox_on_signup.sql
 !supabase/migrations/1758004003_virtual_mailboxes_rls.sql
 !supabase/migrations/1758004004_create_virtual_mailbox_details_view.sql
+!supabase/migrations/1758015000_fix_virtual_mailbox_trigger.sql
+!supabase/migrations/1758020000_fix_facilities_rls_for_virtual_address.sql
 !supabase/tables/facilities.sql
 !supabase/tables/virtual_mailboxes.sql
 
