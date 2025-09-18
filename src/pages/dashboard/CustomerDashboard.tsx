@@ -22,6 +22,7 @@ import {
 import { BreadcrumbNavigation } from '@/components/BreadcrumbNavigation'
 import { useVirtualAddress } from '@/hooks/useVirtualAddress'
 import VirtualAddressCard from '@/components/VirtualAddressCard'
+import { featureFlags } from '@/lib/featureFlags'
 
 interface UserProfile {
   first_name: string
@@ -122,7 +123,7 @@ export default function CustomerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [signingOut, setSigningOut] = useState(false)
-  const { address, loading: addressLoading, error: addressError, fetchAddress } = useVirtualAddress()
+  const { address, loading: addressLoading, error: addressError, fetchAddress, hasFetched } = useVirtualAddress()
 
   useEffect(() => {
     if (user) {
@@ -131,10 +132,14 @@ export default function CustomerDashboard() {
   }, [user])
 
   useEffect(() => {
-    if (user) {
+    if (!user) {
+      return
+    }
+
+    if (!featureFlags.virtualMailboxUi && !hasFetched && !addressLoading) {
       fetchAddress()
     }
-  }, [user, fetchAddress])
+  }, [user, hasFetched, addressLoading, fetchAddress])
 
   const handleSignOut = async () => {
     try {

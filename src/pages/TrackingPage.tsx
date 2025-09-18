@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Search, Package, Plane, MapPin, Clock, AlertCircle, CheckCircle, Truck } from 'lucide-react'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
+import { featureFlags } from '@/lib/featureFlags'
 
 export default function TrackingPage() {
   const [trackingNumber, setTrackingNumber] = useState('')
@@ -18,6 +19,8 @@ export default function TrackingPage() {
       estimatedDelivery: '2025-01-08',
       weight: '25 lbs',
       service: 'Standard Air Freight',
+      mailboxNumber: 'QCS105432',
+      consolidated: true,
       timeline: [
         {
           status: 'Package Received',
@@ -77,6 +80,8 @@ export default function TrackingPage() {
       estimatedDelivery: '2025-01-02',
       weight: '45 lbs',
       service: 'Express Air Freight',
+      mailboxNumber: 'QCS103219',
+      consolidated: false,
       timeline: [
         {
           status: 'Package Received',
@@ -294,6 +299,13 @@ export default function TrackingPage() {
                     </div>
                   </div>
                 </div>
+
+                {featureFlags.virtualMailboxUi && (
+                  <div className="mt-4 text-sm text-slate-600">
+                    Linked to mailbox <strong>{trackingResult.mailboxNumber || 'QCS#####'}</strong>
+                    {trackingResult.consolidated ? ' • Consolidated shipment' : ''}
+                  </div>
+                )}
               </div>
 
               {/* Tracking Timeline */}
@@ -409,4 +421,3 @@ export default function TrackingPage() {
     </MarketingLayout>
   )
 }
-

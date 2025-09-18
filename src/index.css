@@ -79,8 +79,8 @@ img {
   }
   /* sticky top header + sticky bottom CTA spacing */
   .pt-header-safe {
-    padding-top: calc(56px + env(safe-area-inset-top, 0px));
-  }   /* header h-14 */
+    padding-top: calc(var(--header-offset, 56px) + env(safe-area-inset-top, 0px));
+  }
   .pb-sticky-safe {
     padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 56px + 12px);
   } /* CTA h-14 + header h-14 + buffer */

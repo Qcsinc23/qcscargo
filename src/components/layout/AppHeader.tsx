@@ -1,8 +1,14 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Menu, X, User, LogOut } from "lucide-react";
+import { ChevronLeft, Menu, X, User, LogOut, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
+import AddressInlineBadge from "@/components/AddressInlineBadge";
+import {
+  useVirtualAddress,
+  VIRTUAL_MAILBOX_UTILITY_BAR_HEIGHT
+} from "@/hooks/useVirtualAddress";
+import { featureFlags } from "@/lib/featureFlags";
 
 type HeaderProps = {
   back?: { href: string; label?: string };
@@ -15,6 +21,14 @@ export function AppHeader({ back, onMenuToggle }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const {
+    address,
+    mailboxNumber,
+    loading: addressLoading,
+    error: addressError,
+    hasFetched,
+    fetchAddress
+  } = useVirtualAddress();
 
   useEffect(() => {
     document.documentElement.classList.toggle("overflow-hidden", open); // lock scroll
@@ -34,10 +48,49 @@ export function AppHeader({ back, onMenuToggle }: HeaderProps) {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const shouldRenderUtilityBar =
+    featureFlags.virtualMailboxUi && user && (addressLoading || address || addressError || hasFetched);
+
+  const headerTopOffset = shouldRenderUtilityBar ? VIRTUAL_MAILBOX_UTILITY_BAR_HEIGHT : 0;
+
   return (
     <>
+      {shouldRenderUtilityBar && (
+        <div className="fixed inset-x-0 top-0 z-[55] border-b border-slate-200 bg-slate-50">
+          <div className="mx-auto flex min-h-[36px] max-w-screen-xl items-center justify-end gap-3 px-4 text-xs text-slate-600 md:px-6">
+            {address ? (
+              <AddressInlineBadge
+                address={address}
+                mailboxNumber={mailboxNumber}
+              />
+            ) : addressLoading ? (
+              <AddressInlineBadge loading />
+            ) : addressError ? (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600" aria-hidden="true" />
+                <span className="max-w-[220px] text-left text-amber-700 md:max-w-none">{addressError}</span>
+                <button
+                  type="button"
+                  onClick={fetchAddress}
+                  className="rounded border border-amber-300 px-2 py-0.5 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="text-slate-600">
+                Your personalized mailbox will appear here as soon as it is assigned.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Fixed Header */}
-      <header className="fixed inset-x-0 top-0 z-50 isolate bg-white/95 backdrop-blur border-b">
+      <header
+        className="fixed inset-x-0 top-0 z-50 isolate border-b bg-white/95 backdrop-blur"
+        style={{ top: `${headerTopOffset}px` }}
+      >
         {/* Mobile row (one row only) */}
         <div className="md:hidden h-14 flex items-center justify-between px-3">
           {back ? (

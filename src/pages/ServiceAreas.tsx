@@ -5,13 +5,19 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Destination } from '@/lib/types'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
+import AddressInlineBadge from '@/components/AddressInlineBadge'
+import ForwardingExplainer from '@/components/ForwardingExplainer'
+import { useVirtualAddress } from '@/hooks/useVirtualAddress'
+import { featureFlags } from '@/lib/featureFlags'
 
 export default function ServiceAreas() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [destinations, setDestinations] = useState<Destination[]>([])
-  const [loading, setLoading] = useState(true)
+  const [destinationsLoading, setDestinationsLoading] = useState(true)
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null)
+  const { address, mailboxNumber, loading: addressLoading } = useVirtualAddress()
+  const showVirtualMailboxUi = featureFlags.virtualMailboxUi
 
   useEffect(() => {
     loadDestinations()
@@ -30,7 +36,7 @@ export default function ServiceAreas() {
     } catch (error) {
       console.error('Error loading destinations:', error)
     } finally {
-      setLoading(false)
+      setDestinationsLoading(false)
     }
   }
 
@@ -114,7 +120,7 @@ export default function ServiceAreas() {
             </p>
           </div>
 
-          {loading ? (
+          {destinationsLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
               <p className="text-slate-600 mt-4">Loading destinations...</p>
@@ -185,15 +191,29 @@ export default function ServiceAreas() {
                       <p className="text-xl text-slate-600">{selectedDestination.city_name}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setSelectedDestination(null)}
-                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                  >
-                    ??
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedDestination(null)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ??
+                </button>
+              </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {showVirtualMailboxUi && selectedDestination.country_name === 'Guyana' && (
+                <div className="mt-2 space-y-3">
+                  <AddressInlineBadge
+                    address={address}
+                    mailboxNumber={mailboxNumber}
+                    loading={addressLoading}
+                    onGetAddressClick={() =>
+                      navigate('/auth/register?returnUrl=/dashboard')
+                    }
+                  />
+                  <ForwardingExplainer country={selectedDestination.country_name} />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Rates Table */}
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Shipping Rates</h3>
@@ -360,4 +380,3 @@ export default function ServiceAreas() {
     </MarketingLayout>
   )
 }
-

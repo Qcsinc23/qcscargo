@@ -1,9 +1,16 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Plane, Shield, Clock, Globe, Star, CheckCircle, Truck, Package, MapPin, Phone } from 'lucide-react'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
+import AddressInlineBadge from '@/components/AddressInlineBadge'
+import { useVirtualAddress } from '@/hooks/useVirtualAddress'
+import { featureFlags } from '@/lib/featureFlags'
 
 export default function HomePage() {
+  const navigate = useNavigate()
+  const { address, mailboxNumber, loading: addressLoading } = useVirtualAddress()
+  const showVirtualMailboxUi = featureFlags.virtualMailboxUi
+
   const testimonials = [
     {
       name: "Maria Rodriguez",
@@ -124,6 +131,19 @@ export default function HomePage() {
               Learn How It Works
             </Link>
           </div>
+
+          {showVirtualMailboxUi && (
+            <div className="mt-4 flex justify-center">
+              <AddressInlineBadge
+                address={address}
+                mailboxNumber={mailboxNumber}
+                loading={addressLoading}
+                onGetAddressClick={() =>
+                  navigate('/auth/register?returnUrl=/dashboard')
+                }
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -357,5 +377,3 @@ export default function HomePage() {
     </MarketingLayout>
   )
 }
-
-

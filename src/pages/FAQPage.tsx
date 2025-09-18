@@ -51,9 +51,20 @@ export default function FAQPage() {
           answer: 'Jamaica: 4-6 days, Trinidad & Tobago: 4-6 days, Barbados: 5-7 days, Suriname: 4-6 days. These are air transit times - add 2-5 days total for processing, customs, and delivery.'
         },
         {
+          id: 'use-mailbox',
+          question: 'How do I use my U.S. mailbox on Amazon/eBay?',
+          answer: [
+            '1. Copy your U.S. address from your dashboard.',
+            '2. Paste it at checkout on Amazon or eBay.',
+            '3. Add “Mailbox QCS#####” on Address Line 2 or 3.',
+            '4. We receive, optionally consolidate, and prepare export.',
+            '5. Track your shipment online end-to-end.'
+          ].join(' ')
+        },
+        {
           id: 'consolidation',
-          question: 'How does package consolidation work?',
-          answer: 'We can combine multiple shipments into one package to save on shipping costs. There\'s a $5 fee per additional shipment consolidated. This service can significantly reduce your total shipping expenses for multiple items.'
+          question: 'What is consolidation and how does it save money?',
+          answer: 'We combine multiple incoming packages into one shipment. That usually lowers your per-pound rate and handling fees while keeping tracking visibility for every parcel.'
         },
         {
           id: 'tracking',
@@ -334,4 +345,3 @@ export default function FAQPage() {
     </MarketingLayout>
   )
 }
-

@@ -3,11 +3,13 @@ import { DollarSign, Info, Package, Plane, Shield, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Destination } from '@/lib/types'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
+import { featureFlags } from '@/lib/featureFlags'
 
 export default function RatesPage() {
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTab, setSelectedTab] = useState('rates')
+  const showVirtualMailboxUi = featureFlags.virtualMailboxUi
 
   useEffect(() => {
     loadDestinations()
@@ -164,6 +166,16 @@ export default function RatesPage() {
                 Per-pound rates based on weight tiers. Express service adds 25% surcharge.
               </p>
             </div>
+
+            {showVirtualMailboxUi && (
+              <div className="mx-auto mb-8 max-w-3xl rounded-xl border border-blue-200 bg-blue-50 p-6 text-left shadow-sm">
+                <p className="text-base font-semibold text-blue-900">Forwarding from your U.S. mailbox</p>
+                <p className="mt-2 text-sm text-blue-900/80">
+                  Use your personal U.S. address to receive from Amazon or eBay and we will forward directly to your destination.
+                  Optional <strong>consolidation</strong> lowers per-pound costs and keeps tracking continuous.
+                </p>
+              </div>
+            )}
 
             {loading ? (
               <div className="text-center py-12">
@@ -458,4 +470,3 @@ export default function RatesPage() {
     </MarketingLayout>
   )
 }
-

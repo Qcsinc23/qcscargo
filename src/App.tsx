@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ScrollToTop from '@/components/ScrollToTop'
 import { Toaster } from 'sonner'
+import { VirtualAddressProvider } from '@/hooks/useVirtualAddress'
 
 // Public Pages
 import HomePage from '@/pages/HomePage'
@@ -52,100 +53,102 @@ import AdminMailboxes from '@/pages/admin/AdminMailboxes'
 function App() {
   return (
     <AuthProvider>
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true
-        }}
-      >
-        <ScrollToTop />
-        <Routes>
-          {/* Public Routes with AppLayout */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/shipping-calculator" element={<ShippingCalculator />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/faq" element={<FAQPage />} />
-          <Route path="/service-areas" element={<ServiceAreas />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/business-services" element={<BusinessServices />} />
-          <Route path="/tracking" element={<TrackingPage />} />
-          <Route path="/rates" element={<RatesPage />} />
-          <Route path="/services" element={<AirCargoShipping />} />
-          <Route path="/air-cargo-shipping" element={<AirCargoShipping />} />
-          <Route path="/support" element={<SupportPage />} />
-          <Route path="/shipping" element={<RatesPage />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms" element={<TermsOfServicePage />} />
-
-          {/* Auth Routes (no layout) */}
-          <Route path="/auth/login" element={<LoginPage />} />
-          <Route path="/auth/register" element={<RegisterPage />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-
-          {/* Customer Portal Routes (protected, no layout) */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <AdminRedirect>
-                <CustomerDashboard />
-              </AdminRedirect>
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/create-shipment" element={
-            <ProtectedRoute>
-              <AdminRedirect>
-                <CreateShipmentPage />
-              </AdminRedirect>
-            </ProtectedRoute>
-          } />
-          <Route path="/customer/profile" element={
-            <ProtectedRoute>
-              <AdminRedirect>
-                <CustomerProfilePage />
-              </AdminRedirect>
-            </ProtectedRoute>
-          } />
-          <Route path="/booking" element={
-            <ProtectedRoute>
-              <AdminRedirect>
-                <BookingPage />
-              </AdminRedirect>
-            </ProtectedRoute>
-          } />
-
-          {/* Admin Routes (protected, no main layout) */}
-          <Route path="/admin" element={
-            <AdminRoute>
-              <AdminLayout />
-            </AdminRoute>
-          }>
-            <Route index element={<AdminDashboard />} />
-            <Route path="shipments" element={<AdminShipmentManagement />} />
-            <Route path="bookings" element={<AdminBookingManagement />} />
-            <Route path="bookings/calendar" element={<AdminBookingCalendar />} />
-            <Route path="bookings/:id" element={<BookingDetailsPage />} />
-            <Route path="bookings/:id/edit" element={<BookingEditPage />} />
-            <Route path="vehicles" element={<AdminVehicleManagement />} />
-            <Route path="vehicles/:id" element={<VehicleDetailsPage />} />
-            <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />
-            <Route path="customers" element={<AdminCustomerInsights />} />
-            <Route path="mailboxes" element={<AdminMailboxes />} />
-            <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-        </Routes>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 5000,
-            style: {
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              color: '#374151'
-            }
+      <VirtualAddressProvider>
+        <Router
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true
           }}
-        />
-      </Router>
+        >
+          <ScrollToTop />
+          <Routes>
+            {/* Public Routes with AppLayout */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/shipping-calculator" element={<ShippingCalculator />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/service-areas" element={<ServiceAreas />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/business-services" element={<BusinessServices />} />
+            <Route path="/tracking" element={<TrackingPage />} />
+            <Route path="/rates" element={<RatesPage />} />
+            <Route path="/services" element={<AirCargoShipping />} />
+            <Route path="/air-cargo-shipping" element={<AirCargoShipping />} />
+            <Route path="/support" element={<SupportPage />} />
+            <Route path="/shipping" element={<RatesPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+
+            {/* Auth Routes (no layout) */}
+            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth/register" element={<RegisterPage />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+
+            {/* Customer Portal Routes (protected, no layout) */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <AdminRedirect>
+                  <CustomerDashboard />
+                </AdminRedirect>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/create-shipment" element={
+              <ProtectedRoute>
+                <AdminRedirect>
+                  <CreateShipmentPage />
+                </AdminRedirect>
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/profile" element={
+              <ProtectedRoute>
+                <AdminRedirect>
+                  <CustomerProfilePage />
+                </AdminRedirect>
+              </ProtectedRoute>
+            } />
+            <Route path="/booking" element={
+              <ProtectedRoute>
+                <AdminRedirect>
+                  <BookingPage />
+                </AdminRedirect>
+              </ProtectedRoute>
+            } />
+
+            {/* Admin Routes (protected, no main layout) */}
+            <Route path="/admin" element={
+              <AdminRoute>
+                <AdminLayout />
+              </AdminRoute>
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="shipments" element={<AdminShipmentManagement />} />
+              <Route path="bookings" element={<AdminBookingManagement />} />
+              <Route path="bookings/calendar" element={<AdminBookingCalendar />} />
+              <Route path="bookings/:id" element={<BookingDetailsPage />} />
+              <Route path="bookings/:id/edit" element={<BookingEditPage />} />
+              <Route path="vehicles" element={<AdminVehicleManagement />} />
+              <Route path="vehicles/:id" element={<VehicleDetailsPage />} />
+              <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />
+              <Route path="customers" element={<AdminCustomerInsights />} />
+              <Route path="mailboxes" element={<AdminMailboxes />} />
+              <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
+          </Routes>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 5000,
+              style: {
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                color: '#374151'
+              }
+            }}
+          />
+        </Router>
+      </VirtualAddressProvider>
     </AuthProvider>
   )
 }
