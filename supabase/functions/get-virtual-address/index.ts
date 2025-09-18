@@ -19,9 +19,14 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseAnonKey) {
       return createErrorResponse('CONFIG_MISSING', 'Supabase configuration is missing.');
+    }
+
+    if (!supabaseServiceKey) {
+      return createErrorResponse('CONFIG_MISSING', 'Service role key is missing.');
     }
 
     const authHeader = req.headers.get('Authorization') ?? req.headers.get('authorization');
@@ -29,24 +34,24 @@ Deno.serve(async (req) => {
       return createErrorResponse('UNAUTHORIZED', 'Authorization header is required.', 401);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: { Authorization: authHeader }
       }
     });
 
-    const { data: authData, error: authError } = await supabase.auth.getUser();
+    const { data: authData, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !authData?.user) {
       return createErrorResponse('UNAUTHORIZED', 'Invalid or expired token.', 401);
     }
 
     const user = authData.user;
 
-    const { data: mailboxRow, error: mailboxError } = await supabase
+    const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: mailboxRow, error: mailboxError } = await supabaseService
       .from('virtual_mailboxes')
-      .select(
-        'mailbox_number, facility:facility_id(code, address_line1, address_line2, city, state, postal_code, country)'
-      )
+      .select('mailbox_number, facility_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -59,25 +64,43 @@ Deno.serve(async (req) => {
       return createErrorResponse('MAILBOX_NOT_FOUND', 'No virtual mailbox assigned to this user.', 404);
     }
 
-    const facility = mailboxRow.facility as Facility | null;
-    if (!facility) {
-      return createErrorResponse('FACILITY_NOT_FOUND', 'Mailbox facility details are missing.', 500);
+    const { data: facility, error: facilityError } = await supabaseService
+      .from('facilities')
+      .select('code, address_line1, address_line2, city, state, postal_code, country')
+      .eq('id', mailboxRow.facility_id)
+      .maybeSingle();
+
+    if (facilityError) {
+      console.error('Failed to fetch mailbox facility:', facilityError);
+      return createErrorResponse('FACILITY_LOOKUP_FAILED', 'Unable to load facility details.');
     }
 
-    const { data: profile } = await supabase
+    if (!facility) {
+      return createErrorResponse('FACILITY_NOT_FOUND', 'Mailbox facility details are missing.', 404);
+    }
+
+    const { data: profile, error: profileError } = await supabaseService
       .from('profiles')
       .select('full_name')
       .eq('id', user.id)
       .maybeSingle();
 
+    if (profileError) {
+      console.warn('Profiles lookup failed, continuing with fallback:', profileError.message);
+    }
+
     let name = profile?.full_name?.trim();
 
     if (!name) {
-      const { data: userProfile } = await supabase
+      const { data: userProfile, error: userProfileError } = await supabaseService
         .from('user_profiles')
         .select('first_name, last_name, contact_person')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      if (userProfileError) {
+        console.warn('User profile lookup failed, continuing with fallback:', userProfileError.message);
+      }
 
       if (userProfile?.contact_person) {
         name = String(userProfile.contact_person).trim();
