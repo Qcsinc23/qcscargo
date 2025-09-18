@@ -25,10 +25,6 @@ Deno.serve(async (req) => {
       return createErrorResponse('CONFIG_MISSING', 'Supabase configuration is missing.');
     }
 
-    if (!supabaseServiceKey) {
-      return createErrorResponse('CONFIG_MISSING', 'Service role key is missing.');
-    }
-
     const authHeader = req.headers.get('Authorization') ?? req.headers.get('authorization');
     if (!authHeader) {
       return createErrorResponse('UNAUTHORIZED', 'Authorization header is required.', 401);
@@ -47,39 +43,61 @@ Deno.serve(async (req) => {
 
     const user = authData.user;
 
-    const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+    const fetchMailbox = async (client: ReturnType<typeof createClient>) =>
+      client
+        .from('virtual_mailboxes')
+        .select(
+          'mailbox_number, facility:facility_id(code, address_line1, address_line2, city, state, postal_code, country)'
+        )
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    const { data: mailboxRow, error: mailboxError } = await supabaseService
-      .from('virtual_mailboxes')
-      .select('mailbox_number, facility_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    let mailboxResult = await fetchMailbox(supabaseUser);
 
-    if (mailboxError) {
-      console.error('Failed to fetch virtual mailbox row:', mailboxError);
-      return createErrorResponse('MAILBOX_FETCH_FAILED', 'Unable to retrieve mailbox details.');
+    if (mailboxResult.error || !mailboxResult.data?.facility) {
+      if (mailboxResult.error) {
+        console.warn('Primary mailbox lookup failed, attempting service role fallback:', mailboxResult.error.message);
+      }
+
+      if (!supabaseServiceKey) {
+        return createErrorResponse('MAILBOX_LOOKUP_FAILED', 'Unable to retrieve mailbox details. Please contact support.');
+      }
+
+      const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { persistSession: false, autoRefreshToken: false }
+      });
+
+      mailboxResult = await supabaseService
+        .from('virtual_mailboxes')
+        .select('mailbox_number, facility:facility_id(code, address_line1, address_line2, city, state, postal_code, country)')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (mailboxResult.error) {
+        console.error('Service role mailbox lookup failed:', mailboxResult.error);
+        return createErrorResponse('MAILBOX_FETCH_FAILED', 'Unable to retrieve mailbox details.');
+      }
     }
+
+    const mailboxRow = mailboxResult.data;
 
     if (!mailboxRow) {
       return createErrorResponse('MAILBOX_NOT_FOUND', 'No virtual mailbox assigned to this user.', 404);
     }
 
-    const { data: facility, error: facilityError } = await supabaseService
-      .from('facilities')
-      .select('code, address_line1, address_line2, city, state, postal_code, country')
-      .eq('id', mailboxRow.facility_id)
-      .maybeSingle();
-
-    if (facilityError) {
-      console.error('Failed to fetch mailbox facility:', facilityError);
-      return createErrorResponse('FACILITY_LOOKUP_FAILED', 'Unable to load facility details.');
-    }
+    const facility = mailboxRow.facility as Facility | null;
 
     if (!facility) {
       return createErrorResponse('FACILITY_NOT_FOUND', 'Mailbox facility details are missing.', 404);
     }
 
-    const { data: profile, error: profileError } = await supabaseService
+    const profileClient = supabaseServiceKey
+      ? createClient(supabaseUrl, supabaseServiceKey, {
+          auth: { persistSession: false, autoRefreshToken: false }
+        })
+      : supabaseUser;
+
+    const { data: profile, error: profileError } = await profileClient
       .from('profiles')
       .select('full_name')
       .eq('id', user.id)
@@ -92,7 +110,7 @@ Deno.serve(async (req) => {
     let name = profile?.full_name?.trim();
 
     if (!name) {
-      const { data: userProfile, error: userProfileError } = await supabaseService
+      const { data: userProfile, error: userProfileError } = await profileClient
         .from('user_profiles')
         .select('first_name, last_name, contact_person')
         .eq('user_id', user.id)
