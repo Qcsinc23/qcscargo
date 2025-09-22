@@ -1,0 +1,62 @@
+<svg width="720" height="520" viewBox="0 0 720 520" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Illustration of an air freight route map</title>
+  <desc id="desc">Stylized Caribbean map with route markers and an airplane flying between destinations.</desc>
+  <defs>
+    <linearGradient id="bg-gradient" x1="80" y1="40" x2="640" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE4EC" />
+      <stop offset="0.5" stop-color="#FCE7F3" />
+      <stop offset="1" stop-color="#F8F5FF" />
+    </linearGradient>
+    <linearGradient id="route-gradient" x1="160" y1="120" x2="580" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#DB2777" />
+      <stop offset="1" stop-color="#7C3AED" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 260) rotate(90) scale(260 360)">
+      <stop offset="0" stop-color="#F472B6" stop-opacity="0.25" />
+      <stop offset="1" stop-color="#F472B6" stop-opacity="0" />
+    </radialGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="20" flood-color="#F472B6" flood-opacity="0.25" />
+    </filter>
+  </defs>
+  <rect x="40" y="40" width="640" height="440" rx="32" fill="url(#bg-gradient)" />
+  <rect x="40" y="40" width="640" height="440" rx="32" fill="url(#glow)" />
+  <path d="M120 380C160 320 200 284 260 270C320 256 380 268 430 298C480 328 520 356 600 340" stroke="url(#route-gradient)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="12 14" />
+  <g filter="url(#shadow)">
+    <path d="M428 292C432 296 456 306 468 308C474 308 476 302 470 298L444 284C438 280 424 284 428 292Z" fill="#1E1B4B" fill-opacity="0.22" />
+  </g>
+  <g transform="translate(420 262) rotate(-12)">
+    <rect x="-12" y="-8" width="84" height="16" rx="8" fill="#0F172A" />
+    <rect x="20" y="-6" width="42" height="12" rx="6" fill="#F1F5F9" />
+    <polygon points="72,-1 98,0 72,8" fill="#0F172A" />
+    <rect x="-24" y="-4" width="20" height="8" rx="4" fill="#0F172A" />
+    <rect x="-28" y="-3" width="12" height="6" rx="3" fill="#F1F5F9" />
+  </g>
+  <g transform="translate(216 274)">
+    <circle cx="0" cy="0" r="20" fill="#FBCFE8" />
+    <circle cx="0" cy="0" r="10" fill="#DB2777" />
+  </g>
+  <g transform="translate(600 340)">
+    <circle cx="0" cy="0" r="20" fill="#DDD6FE" />
+    <circle cx="0" cy="0" r="10" fill="#7C3AED" />
+  </g>
+  <g transform="translate(140 370)">
+    <circle cx="0" cy="0" r="16" fill="#FCE7F3" />
+    <circle cx="0" cy="0" r="8" fill="#F472B6" />
+  </g>
+  <g transform="translate(520 220)">
+    <circle cx="0" cy="0" r="14" fill="#EDE9FE" />
+    <circle cx="0" cy="0" r="7" fill="#7C3AED" />
+  </g>
+  <g transform="translate(320 180)">
+    <path d="M-60 0C-50 -30 -20 -48 12 -46C60 -44 100 -8 104 38" stroke="#F472B6" stroke-width="3" stroke-linecap="round" />
+    <path d="M-48 -8C-46 -14 -36 -22 -26 -24C-22 -24 -18 -18 -20 -12C-24 -4 -34 2 -40 2C-44 2 -50 -2 -48 -8Z" fill="#F472B6" />
+    <circle cx="-36" cy="-4" r="6" fill="#BE123C" />
+  </g>
+  <g transform="translate(236 406)">
+    <rect x="-36" y="-18" width="120" height="36" rx="18" fill="#1E1B4B" fill-opacity="0.08" />
+    <text x="24" y="4" text-anchor="middle" font-family="'Inter', 'Segoe UI', sans-serif" font-size="14" fill="#9D174D">
+      JFK ➜ Caribbean
+    </text>
+  </g>
+</svg>
