@@ -1,3 +1,4 @@
+import React from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useLocation } from 'react-router-dom'
 
@@ -9,6 +10,8 @@ type SEOProps = {
   type?: 'website' | 'article'
   noindex?: boolean
   structuredData?: Record<string, unknown> | Array<unknown>
+  preloadImages?: string[]
+  criticalImages?: string[]
 }
 
 const BASE_URL = 'https://www.qcs-cargo.com'
@@ -20,7 +23,9 @@ export function SEO({
   coverImage = '/hero-air-cargo-plane.png',
   type = 'website',
   noindex = false,
-  structuredData
+  structuredData,
+  preloadImages = [],
+  criticalImages = []
 }: SEOProps) {
   const location = useLocation()
 
@@ -47,8 +52,63 @@ export function SEO({
     ? `${augmentedDescription.slice(0, 157)}…`
     : augmentedDescription
 
+  // Generate preload links for critical images
+  const allCriticalImages = [...criticalImages]
+  if (coverImage && !allCriticalImages.includes(coverImage)) {
+    allCriticalImages.unshift(coverImage)
+  }
+
   return (
     <Helmet prioritizeSeoTags>
+      {/* Preload critical images for LCP optimization */}
+      {allCriticalImages.map((imageUrl) => {
+        const absoluteUrl = imageUrl.startsWith('http') ? imageUrl : `${BASE_URL}${imageUrl}`
+        const imageName = imageUrl.split('/').pop()?.split('.')[0] || 'image'
+        
+        return [
+          <link
+            key={`${imageUrl}-webp`}
+            rel="preload"
+            as="image"
+            href={`${absoluteUrl.replace(/\.(png|jpg|jpeg)$/i, '.webp')}`}
+            type="image/webp"
+          />,
+          <link
+            key={`${imageUrl}-avif`}
+            rel="preload"
+            as="image"
+            href={`${absoluteUrl.replace(/\.(png|jpg|jpeg)$/i, '.avif')}`}
+            type="image/avif"
+          />,
+          <link
+            key={`${imageUrl}-fallback`}
+            rel="preload"
+            as="image"
+            href={absoluteUrl}
+            type={`image/${imageUrl.split('.').pop()?.toLowerCase() || 'jpeg'}`}
+          />
+        ]
+      })}
+      
+      {/* Preload additional images */}
+      {preloadImages.map((imageUrl) => {
+        const absoluteUrl = imageUrl.startsWith('http') ? imageUrl : `${BASE_URL}${imageUrl}`
+        return (
+          <link
+            key={imageUrl}
+            rel="preload"
+            as="image"
+            href={absoluteUrl}
+            type={`image/${imageUrl.split('.').pop()?.toLowerCase() || 'jpeg'}`}
+          />
+        )
+      })}
+      
+      {/* DNS prefetch for external domains */}
+      <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+      <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <title>{fullTitle}</title>
       <meta name="description" content={fullDescription} />
       <link rel="canonical" href={canonical} />

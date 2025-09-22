@@ -146,6 +146,14 @@ export default function HomePage() {
     title: 'Precision Air Cargo to the Caribbean | QCS Cargo',
     description: 'Ship from New Jersey to the Caribbean with QCS Cargo. Fast consolidation, secure handling, and door-to-door support.',
     canonicalPath: '/',
+    criticalImages: [
+      '/hero-air-cargo-plane.png'
+    ],
+    preloadImages: [
+      '/warehouse-operations.png',
+      '/global-shipping-network.jpg',
+      '/modern-cargo-ship.jpg'
+    ],
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'Organization',
@@ -167,6 +175,9 @@ export default function HomePage() {
               src="/hero-air-cargo-plane.png"
               alt="Professional air cargo operations"
               className="w-full h-full object-cover"
+              width="1920"
+              height="1080"
+              loading="eager"
             />
           </div>
           
@@ -265,10 +276,13 @@ export default function HomePage() {
         <section className="py-20 relative">
           <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-pink-50/30"></div>
           <div className="absolute inset-0 opacity-5">
-            <img 
-              src="/warehouse-operations.png" 
-              alt="Professional warehouse operations" 
+            <img
+              src="/warehouse-operations.png"
+              alt="Professional warehouse operations"
               className="w-full h-full object-cover"
+              width="1920"
+              height="1080"
+              loading="lazy"
             />
           </div>
           
@@ -352,10 +366,13 @@ export default function HomePage() {
         {/* Enhanced Destinations Section */}
         <section className="py-20 relative bg-gradient-to-br from-pink-50 to-purple-50">
           <div className="absolute inset-0 opacity-10">
-            <img 
-              src="/global-shipping-network.jpg" 
-              alt="Global shipping network" 
+            <img
+              src="/global-shipping-network.jpg"
+              alt="Global shipping network"
               className="w-full h-full object-cover"
+              width="1920"
+              height="1080"
+              loading="lazy"
             />
           </div>
           
@@ -455,10 +472,13 @@ export default function HomePage() {
         <section className="py-20 bg-gradient-to-r from-rose-900 via-pink-800 to-fuchsia-800 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/30"></div>
           <div className="absolute inset-0 opacity-20">
-            <img 
-              src="/modern-cargo-ship.jpg" 
-              alt="Modern cargo operations" 
+            <img
+              src="/modern-cargo-ship.jpg"
+              alt="Modern cargo operations"
               className="w-full h-full object-cover"
+              width="1920"
+              height="1080"
+              loading="lazy"
             />
           </div>
           
