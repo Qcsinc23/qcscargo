@@ -55,6 +55,25 @@ interface ShipmentSummary {
   }
 }
 
+interface Quote {
+  id: number
+  quote_reference: string
+  email: string
+  full_name: string
+  destination_id: number
+  total_cost: number
+  status: string
+  quote_expires_at: string
+  created_at: string
+  quote_metadata?: {
+    destination?: {
+      city?: string
+      country?: string
+    }
+    transit_label?: string
+  }
+}
+
 interface DashboardStats {
   total_shipments: number
   pending_shipments: number
@@ -63,6 +82,7 @@ interface DashboardStats {
   total_spent: number
   pending_documents: number
   upcoming_bookings: number
+  active_quotes: number
 }
 
 const statusConfig = {
@@ -119,6 +139,7 @@ export default function CustomerDashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [recentShipments, setRecentShipments] = useState<ShipmentSummary[]>([])
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([])
+  const [quotes, setQuotes] = useState<Quote[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -217,7 +238,25 @@ export default function CustomerDashboard() {
         setUpcomingBookings(bookingsData || [])
       }
       
+      // Load quotes
+      const { data: quotesData, error: quotesError } = await supabase
+        .from('shipping_quotes')
+        .select('*')
+        .eq('customer_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      
+      if (!quotesError) {
+        setQuotes(quotesData || [])
+      }
+      
       // Calculate stats
+      const activeQuotes = (quotesData || []).filter((q: Quote) => {
+        const now = new Date()
+        const expires = new Date(q.quote_expires_at)
+        return q.status === 'pending' && expires > now
+      }).length
+      
       const dashboardStats: DashboardStats = {
         total_shipments: shipments.length,
         pending_shipments: shipments.filter((s: any) => ['pending_pickup', 'picked_up', 'processing'].includes(s.status)).length,
@@ -225,7 +264,8 @@ export default function CustomerDashboard() {
         delivered_shipments: shipments.filter((s: any) => s.status === 'delivered').length,
         total_spent: shipments.reduce((sum: number, s: any) => sum + (parseFloat(s.total_declared_value) || 0), 0),
         pending_documents: 0, // TODO: Count from documents when we implement document requirements
-        upcoming_bookings: (bookingsData || []).length
+        upcoming_bookings: (bookingsData || []).length,
+        active_quotes: activeQuotes
       }
       
       setStats(dashboardStats)
@@ -321,9 +361,9 @@ export default function CustomerDashboard() {
             <div className="text-slate-600 text-sm">Total Shipments</div>
             <div className="mt-1 text-3xl font-bold text-shopify-maroon">{stats?.total_shipments || 0}</div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-purple-50/40 p-4">
-            <div className="text-slate-600 text-sm">Upcoming Bookings</div>
-            <div className="mt-1 text-3xl font-bold text-shopify-maroon">{stats?.upcoming_bookings || 0}</div>
+          <div className="rounded-2xl border border-slate-200 bg-violet-50/40 p-4">
+            <div className="text-slate-600 text-sm">Active Quotes</div>
+            <div className="mt-1 text-3xl font-bold text-shopify-maroon">{stats?.active_quotes || 0}</div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-green-50/40 p-4">
             <div className="text-slate-600 text-sm">In Transit</div>
@@ -347,6 +387,80 @@ export default function CustomerDashboard() {
           )}
           <VirtualAddressCard address={address} loading={addressLoading} onRefresh={fetchAddress} />
         </div>
+
+        {/* Recent Quotes - compact cards */}
+        {quotes.length > 0 && (
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-slate-900">Recent Quotes</h2>
+            </div>
+            <div className="space-y-2">
+              {quotes.map((quote) => {
+                const expires = new Date(quote.quote_expires_at)
+                const now = new Date()
+                const isExpired = expires < now
+                const isExpiringSoon = expires < new Date(now.getTime() + 48 * 60 * 60 * 1000)
+                const destination = quote.quote_metadata?.destination
+                  ? [quote.quote_metadata.destination.city, quote.quote_metadata.destination.country]
+                      .filter(Boolean)
+                      .join(', ')
+                  : 'Destination TBD'
+
+                return (
+                  <div key={quote.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-slate-900">{quote.quote_reference}</p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              isExpired
+                                ? 'text-slate-600 border-slate-300 bg-slate-50'
+                                : quote.status === 'won'
+                                ? 'text-green-600 border-green-200 bg-green-50'
+                                : 'text-violet-600 border-violet-200 bg-violet-50'
+                            }
+                          >
+                            {isExpired ? 'Expired' : quote.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-600">{destination}</p>
+                        {quote.quote_metadata?.transit_label && (
+                          <p className="text-xs text-slate-500">Transit: {quote.quote_metadata.transit_label}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-slate-900">{formatCurrency(quote.total_cost)}</p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            isExpired
+                              ? 'text-slate-500'
+                              : isExpiringSoon
+                              ? 'text-amber-600'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          {isExpired ? 'Expired' : `Expires ${formatDate(quote.quote_expires_at)}`}
+                        </p>
+                      </div>
+                    </div>
+                    {!isExpired && quote.status === 'pending' && (
+                      <div className="mt-3 pt-3 border-t border-slate-100">
+                        <Link
+                          to="/booking"
+                          className="text-sm text-shopify-pink hover:text-shopify-maroon font-medium"
+                        >
+                          Proceed to Booking →
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Recent Shipments - compact cards */}
         <div className="space-y-3 mb-6">

@@ -264,7 +264,7 @@ const QuoteEmailModal: React.FC<QuoteEmailModalProps> = ({ open, onClose, calcul
                       )}
                       {!result.emailDispatched && (
                         <p className="mt-2 text-xs text-amber-700">
-                          Email delivery pending. Our team will ensure the quotation is sent manually.
+                          ⚠️ Quote saved successfully, but email delivery is temporarily unavailable. You can view this quote in your dashboard. Our team will follow up shortly.
                         </p>
                       )}
                       {result.calculationFlagged && (
