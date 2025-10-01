@@ -158,14 +158,15 @@ const QuoteEmailModal: React.FC<QuoteEmailModalProps> = ({ open, onClose, calcul
   const expirationDate = result?.expiresAt ? new Date(result.expiresAt).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '7 days'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-6">
-      <div className="relative w-full max-w-3xl rounded-3xl bg-white shadow-xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/70 px-4 py-6 overflow-y-auto">
+      <div className="relative w-full max-w-3xl rounded-3xl bg-white shadow-2xl my-8">
         <button
           onClick={handleClose}
-          className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+          disabled={loading}
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Close quote modal"
         >
-          <span className="text-xl">×</span>
+          <span className="text-2xl font-light leading-none">×</span>
         </button>
 
         <div className="grid gap-0 md:grid-cols-[1.2fr,1fr]">
@@ -278,23 +279,36 @@ const QuoteEmailModal: React.FC<QuoteEmailModalProps> = ({ open, onClose, calcul
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading || !calculatedRate}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition hover:from-violet-700 hover:to-fuchsia-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending quotation…
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4" />
-                    Email my QCS Cargo quote
-                  </>
-                )}
-              </button>
+              {!result && (
+                <button
+                  type="submit"
+                  disabled={loading || !calculatedRate}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition hover:from-violet-700 hover:to-fuchsia-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending quotation…
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4" />
+                      Email my QCS Cargo quote
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {result && (
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-700"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Close & View on Dashboard
+                </button>
+              )}
             </form>
           </div>
 
