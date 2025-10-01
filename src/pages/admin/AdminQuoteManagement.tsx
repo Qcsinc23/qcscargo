@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ShippingQuote } from '@/lib/types'
-import { AlertCircle, ArrowPathRoundedSquare, Check, Clock, Filter, MailCheck, RefreshCcw, Search, Send, ShieldAlert } from 'lucide-react'
+import { AlertCircle, Loader2, Check, Clock, Filter, MailCheck, RefreshCcw, Search, Send, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
 const formatCurrency = (value: number) =>
@@ -197,7 +197,7 @@ const AdminQuoteManagement: React.FC = () => {
           >
             {loading ? (
               <>
-                <ArrowPathRoundedSquare className="h-4 w-4 animate-spin" /> Processing…
+                <Loader2 className="h-4 w-4 animate-spin" /> Processing…
               </>
             ) : (
               <>
