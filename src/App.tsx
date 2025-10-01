@@ -49,6 +49,7 @@ import AdminCustomerInsights from '@/pages/admin/AdminCustomerInsights'
 import AdminBookingCalendar from '@/pages/admin/AdminBookingCalendar'
 import AdminSettings from '@/pages/admin/AdminSettings'
 import AdminMailboxes from '@/pages/admin/AdminMailboxes'
+import AdminQuoteManagement from '@/pages/admin/AdminQuoteManagement'
 
 function App() {
   return (
@@ -127,6 +128,7 @@ function App() {
               <Route path="bookings/calendar" element={<AdminBookingCalendar />} />
               <Route path="bookings/:id" element={<BookingDetailsPage />} />
               <Route path="bookings/:id/edit" element={<BookingEditPage />} />
+              <Route path="quotes" element={<AdminQuoteManagement />} />
               <Route path="vehicles" element={<AdminVehicleManagement />} />
               <Route path="vehicles/:id" element={<VehicleDetailsPage />} />
               <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />

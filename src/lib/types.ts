@@ -37,6 +37,15 @@ export interface ShippingQuote {
   status: string
   quote_expires_at: string
   created_at: string
+  quote_reference?: string
+  quote_document_html?: string
+  quote_metadata?: Record<string, any>
+  follow_up_status?: string
+  follow_up_due_at?: string
+  last_follow_up_at?: string
+  follow_up_method?: string
+  follow_up_error?: string | null
+  pdf_attachment_present?: boolean
 }
 
 export interface ContactInquiry {

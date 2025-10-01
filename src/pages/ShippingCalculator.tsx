@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Destination, CalculatedRate, ShippingCalculatorData } from '@/lib/types'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
+import QuoteEmailModal from '@/components/quotes/QuoteEmailModal'
 
 export default function ShippingCalculator() {
   const [searchParams] = useSearchParams()
@@ -26,6 +27,7 @@ export default function ShippingCalculator() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs')
+  const [showQuoteModal, setShowQuoteModal] = useState(false)
 
   // Load destinations on component mount
   useEffect(() => {
@@ -118,6 +120,7 @@ export default function ShippingCalculator() {
     })
     setCalculatedRate(null)
     setError(null)
+    setShowQuoteModal(false)
   }
 
   const handleCreateShipment = () => {
@@ -147,18 +150,11 @@ export default function ShippingCalculator() {
   }
 
   const handleRequestQuote = () => {
-    if (!calculatedRate) return
-    
-    // Navigate to contact page with pre-filled quote information
-    const params = new URLSearchParams({
-      inquiry: 'shipping',
-      subject: `Shipping Quote Request - ${calculatedRate.destination.country}`,
-      destination: calculatedRate.destination.country,
-      weight: formData.weight.toString(),
-      service: formData.serviceType,
-      total_cost: calculatedRate.rateBreakdown.totalCost.toString()
-    })
-    navigate(`/contact?${params.toString()}`)
+    if (!calculatedRate) {
+      setError('Please calculate a shipping rate before requesting an email quote.')
+      return
+    }
+    setShowQuoteModal(true)
   }
 
   const pageSeo = {
@@ -365,11 +361,12 @@ export default function ShippingCalculator() {
               <div className="flex items-center mb-1">
                 <Plane className="h-4 w-4 text-indigo-700 mr-2" />
                 <span className="font-medium text-indigo-900 text-sm">
-                  New Jersey ??? {calculatedRate.destination.country}
+                  From New Jersey to {calculatedRate.destination.country}
                 </span>
               </div>
               <div className="text-xs text-indigo-800">
-                {calculatedRate.destination.city} ??? {calculatedRate.transitTime.estimate}
+                {calculatedRate.destination.city ? `${calculatedRate.destination.city}, ` : ''}
+                Estimated transit: {calculatedRate.transitTime.estimate}
               </div>
             </div>
 
@@ -382,7 +379,7 @@ export default function ShippingCalculator() {
                 </span>
               </div>
               <p className="text-xs text-green-700 mt-1">
-                Valid 30 days ??? Excludes customs duties & taxes
+                Valid for 7 days • Excludes customs duties & taxes
               </p>
             </div>
 
@@ -405,6 +402,14 @@ export default function ShippingCalculator() {
           </section>
         )}
       </section>
+      {calculatedRate && (
+        <QuoteEmailModal
+          open={showQuoteModal}
+          onClose={() => setShowQuoteModal(false)}
+          calculatedRate={calculatedRate}
+          formData={formData}
+        />
+      )}
     </MarketingLayout>
   )
 }

@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Building2
+  Building2,
+  FileText
 } from 'lucide-react'
 
 const AdminLayout: React.FC = () => {
@@ -23,6 +24,7 @@ const AdminLayout: React.FC = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, current: location.pathname === '/admin' },
+    { name: 'Quotes', href: '/admin/quotes', icon: FileText, current: location.pathname.startsWith('/admin/quotes') },
     { name: 'Bookings', href: '/admin/bookings', icon: Calendar, current: location.pathname.startsWith('/admin/bookings') },
     { name: 'Vehicles', href: '/admin/vehicles', icon: Truck, current: location.pathname.startsWith('/admin/vehicles') },
     { name: 'Customers', href: '/admin/customers', icon: Users, current: location.pathname.startsWith('/admin/customers') },
