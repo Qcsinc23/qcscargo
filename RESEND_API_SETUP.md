@@ -21,7 +21,7 @@ The quote email system uses [Resend](https://resend.com) to send branded quotati
 ### 3. Verify Sending Domain
 1. In Resend dashboard, go to **Domains**
 2. Click **Add Domain**
-3. Enter your domain: `qcscargo.com`
+3. Enter your domain: `qcs-cargo.com`
 4. Add the DNS records provided by Resend to your domain registrar:
    - SPF record
    - DKIM record  
@@ -58,7 +58,7 @@ supabase secrets list
 
 After configuration, test the system:
 
-1. Go to shipping calculator: `https://qcscargo.com/shipping-calculator`
+1. Go to shipping calculator: `https://qcs-cargo.com/shipping-calculator`
 2. Calculate a rate
 3. Click "Email my QCS Cargo quote"
 4. Fill in the form
@@ -104,7 +104,7 @@ supabase functions logs quote-request --tail
      -H 'Authorization: Bearer re_your_api_key' \
      -H 'Content-Type: application/json' \
      -d '{
-       "from": "QCS Cargo <quotes@qcscargo.com>",
+       "from": "QCS Cargo <quotes@qcs-cargo.com>",
        "to": "test@example.com",
        "subject": "Test Email",
        "html": "<p>Test</p>"
@@ -131,8 +131,8 @@ supabase functions logs quote-request --tail
 
 The system uses these email settings (defined in `quote-utils.ts`):
 
-- **From**: `QCS Cargo <quotes@qcscargo.com>`
-- **Reply-To**: `quotes@qcscargo.com`
+- **From**: `QCS Cargo <quotes@qcs-cargo.com>`
+- **Reply-To**: `quotes@qcs-cargo.com`
 - **Subject**: `Your QCS Cargo Quote {QUOTE_REFERENCE}`
 - **Attachments**: PDF quotation document
 

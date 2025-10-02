@@ -97,7 +97,7 @@ Once deployed, test the complete flow:
 
 1. **Navigate to production site**
    ```
-   https://qcscargo.com/shipping-calculator
+   https://qcs-cargo.com/shipping-calculator
    ```
 
 2. **Test Quote Generation**
@@ -108,7 +108,7 @@ Once deployed, test the complete flow:
 
 3. **Verify Dashboard Display**
    ```
-   https://qcscargo.com/dashboard
+   https://qcs-cargo.com/dashboard
    ```
    - Check "Active Quotes" stat card
    - Verify "Recent Quotes" section appears
@@ -116,7 +116,7 @@ Once deployed, test the complete flow:
 
 4. **Check Admin Interface**
    ```
-   https://qcscargo.com/admin/quotes
+   https://qcs-cargo.com/admin/quotes
    ```
    - Verify quote appears in management system
 
@@ -185,7 +185,7 @@ The frontend uses existing environment variables:
 
 Check Resend domain verification:
 1. Go to [Resend Dashboard](https://resend.com/domains)
-2. Verify `qcscargo.com` status
+2. Verify `qcs-cargo.com` status
 3. If not verified, add DNS records:
    - SPF: `v=spf1 include:_spf.resend.com ~all`
    - DKIM: (provided by Resend)

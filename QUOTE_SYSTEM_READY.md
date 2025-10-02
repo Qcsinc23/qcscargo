@@ -24,7 +24,7 @@
    ```
    http://localhost:5173/shipping-calculator
    OR
-   https://qcscargo.com/shipping-calculator
+   https://qcs-cargo.com/shipping-calculator
    ```
 
 2. **Calculate a Rate**
@@ -154,7 +154,7 @@ supabase functions logs quote-request --filter error
 
 3. **Verify Domain in Resend**
    - Go to: https://resend.com/domains
-   - Check `qcscargo.com` status is "Verified"
+   - Check `qcs-cargo.com` status is "Verified"
    - If not verified, add DNS records and verify
 
 4. **Test API Key Directly**
@@ -163,7 +163,7 @@ supabase functions logs quote-request --filter error
      -H 'Authorization: Bearer re_Ljm8woaZ_HTFW8eMEnjmUJKqxhQ6oGaaG' \
      -H 'Content-Type: application/json' \
      -d '{
-       "from": "QCS Cargo <quotes@qcscargo.com>",
+       "from": "QCS Cargo <quotes@qcs-cargo.com>",
        "to": "sherwyn.graham@quietcraftsolutions.com",
        "subject": "Test Email",
        "html": "<p>Test from QCS Cargo</p>"
