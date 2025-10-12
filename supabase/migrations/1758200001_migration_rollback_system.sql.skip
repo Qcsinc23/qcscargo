@@ -1,0 +1,350 @@
+-- Migration: Create Migration Rollback System
+-- Created: 1758200001
+-- Purpose: Add rollback capabilities and safety checks for all migrations
+
+-- Create migration tracking table
+CREATE TABLE IF NOT EXISTS public.migration_rollbacks (
+    id SERIAL PRIMARY KEY,
+    migration_name TEXT NOT NULL UNIQUE,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    rollback_sql TEXT,
+    rollback_verified BOOLEAN DEFAULT FALSE,
+    rollback_tested_at TIMESTAMPTZ,
+    created_by TEXT DEFAULT 'system',
+    notes TEXT
+);
+
+-- Create function to register migration rollback
+CREATE OR REPLACE FUNCTION public.register_migration_rollback(
+    p_migration_name TEXT,
+    p_rollback_sql TEXT,
+    p_notes TEXT DEFAULT NULL
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    INSERT INTO public.migration_rollbacks (migration_name, rollback_sql, notes)
+    VALUES (p_migration_name, p_rollback_sql, p_notes)
+    ON CONFLICT (migration_name) 
+    DO UPDATE SET 
+        rollback_sql = EXCLUDED.rollback_sql,
+        notes = EXCLUDED.notes,
+        applied_at = NOW();
+END;
+$$;
+
+-- Create function to execute rollback
+CREATE OR REPLACE FUNCTION public.execute_migration_rollback(
+    p_migration_name TEXT,
+    p_confirm BOOLEAN DEFAULT FALSE
+)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_rollback_sql TEXT;
+    v_result TEXT;
+BEGIN
+    IF NOT p_confirm THEN
+        RETURN 'Rollback not confirmed. Set p_confirm = true to execute.';
+    END IF;
+    
+    SELECT rollback_sql INTO v_rollback_sql
+    FROM public.migration_rollbacks
+    WHERE migration_name = p_migration_name;
+    
+    IF v_rollback_sql IS NULL THEN
+        RETURN 'No rollback SQL found for migration: ' || p_migration_name;
+    END IF;
+    
+    BEGIN
+        EXECUTE v_rollback_sql;
+        
+        UPDATE public.migration_rollbacks
+        SET rollback_verified = TRUE,
+            rollback_tested_at = NOW()
+        WHERE migration_name = p_migration_name;
+        
+        RETURN 'Rollback executed successfully for: ' || p_migration_name;
+    EXCEPTION
+        WHEN OTHERS THEN
+            RETURN 'Rollback failed for ' || p_migration_name || ': ' || SQLERRM;
+    END;
+END;
+$$;
+
+-- Create function to validate migration safety
+CREATE OR REPLACE FUNCTION public.validate_migration_safety(
+    p_migration_name TEXT
+)
+RETURNS TABLE(
+    check_name TEXT,
+    status TEXT,
+    message TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_rollback_exists BOOLEAN;
+    v_rollback_sql TEXT;
+    v_has_destructive_operations BOOLEAN;
+    v_has_data_migration BOOLEAN;
+BEGIN
+    -- Check if rollback exists
+    SELECT EXISTS(
+        SELECT 1 FROM public.migration_rollbacks 
+        WHERE migration_name = p_migration_name
+    ) INTO v_rollback_exists;
+    
+    IF NOT v_rollback_exists THEN
+        RETURN QUERY SELECT 
+            'rollback_exists'::TEXT,
+            'FAIL'::TEXT,
+            'No rollback SQL registered for this migration'::TEXT;
+    ELSE
+        RETURN QUERY SELECT 
+            'rollback_exists'::TEXT,
+            'PASS'::TEXT,
+            'Rollback SQL is registered'::TEXT;
+    END IF;
+    
+    -- Check for destructive operations
+    SELECT rollback_sql INTO v_rollback_sql
+    FROM public.migration_rollbacks
+    WHERE migration_name = p_migration_name;
+    
+    v_has_destructive_operations := v_rollback_sql ILIKE '%DROP%' 
+        OR v_rollback_sql ILIKE '%DELETE%' 
+        OR v_rollback_sql ILIKE '%TRUNCATE%';
+    
+    IF v_has_destructive_operations THEN
+        RETURN QUERY SELECT 
+            'destructive_operations'::TEXT,
+            'WARN'::TEXT,
+            'Rollback contains destructive operations'::TEXT;
+    ELSE
+        RETURN QUERY SELECT 
+            'destructive_operations'::TEXT,
+            'PASS'::TEXT,
+            'No destructive operations detected'::TEXT;
+    END IF;
+    
+    -- Check for data migration
+    v_has_data_migration := v_rollback_sql ILIKE '%INSERT%' 
+        OR v_rollback_sql ILIKE '%UPDATE%' 
+        OR v_rollback_sql ILIKE '%ALTER%';
+    
+    IF v_has_data_migration THEN
+        RETURN QUERY SELECT 
+            'data_migration'::TEXT,
+            'WARN'::TEXT,
+            'Rollback involves data migration - test carefully'::TEXT;
+    ELSE
+        RETURN QUERY SELECT 
+            'data_migration'::TEXT,
+            'PASS'::TEXT,
+            'No data migration detected'::TEXT;
+    END IF;
+END;
+$$;
+
+-- Create function to list available rollbacks
+CREATE OR REPLACE FUNCTION public.list_migration_rollbacks()
+RETURNS TABLE(
+    migration_name TEXT,
+    applied_at TIMESTAMPTZ,
+    rollback_verified BOOLEAN,
+    rollback_tested_at TIMESTAMPTZ,
+    has_rollback_sql BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        mr.migration_name,
+        mr.applied_at,
+        mr.rollback_verified,
+        mr.rollback_tested_at,
+        (mr.rollback_sql IS NOT NULL) as has_rollback_sql
+    FROM public.migration_rollbacks mr
+    ORDER BY mr.applied_at DESC;
+END;
+$$;
+
+-- Register rollbacks for existing critical migrations
+
+-- Rollback for auth standardization migration
+SELECT public.register_migration_rollback(
+    '1758200000_standardize_auth_schema',
+    $$
+    -- Rollback auth standardization
+    -- WARNING: This will remove the role column and restore user_type
+    
+    -- 1. Restore user_type column if it doesn't exist
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS user_type TEXT DEFAULT 'customer';
+    
+    -- 2. Migrate role data back to user_type
+    UPDATE public.user_profiles 
+    SET user_type = role
+    WHERE role IS NOT NULL;
+    
+    -- 3. Drop role column
+    ALTER TABLE public.user_profiles DROP COLUMN IF EXISTS role;
+    
+    -- 4. Drop auth functions
+    DROP FUNCTION IF EXISTS auth.get_user_role();
+    DROP FUNCTION IF EXISTS auth.is_admin();
+    
+    -- 5. Restore old RLS policies
+    DROP POLICY IF EXISTS "user_profiles_access" ON public.user_profiles;
+    
+    CREATE POLICY "service_role_access" ON public.user_profiles
+        FOR ALL USING (auth.role() = 'service_role');
+    
+    CREATE POLICY "users_own_profile" ON public.user_profiles
+        FOR ALL USING (auth.uid() = id);
+    
+    CREATE POLICY "authenticated_insert" ON public.user_profiles
+        FOR INSERT WITH CHECK (auth.uid() = id);
+    
+    -- 6. Drop trigger
+    DROP TRIGGER IF EXISTS update_user_jwt_metadata_trigger ON public.user_profiles;
+    DROP FUNCTION IF EXISTS public.update_user_jwt_metadata();
+    
+    -- 7. Drop rollback function
+    DROP FUNCTION IF EXISTS public.rollback_auth_standardization();
+    $$,
+    'Rollback for auth schema standardization - restores user_type column and old RLS policies'
+);
+
+-- Rollback for booking transaction procedure
+SELECT public.register_migration_rollback(
+    '1758100000_create_booking_transaction_procedure',
+    $$
+    -- Rollback booking transaction procedure
+    DROP FUNCTION IF EXISTS public.create_booking_atomic(UUID, INT, INT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, JSONB, TEXT, DECIMAL, TEXT, TEXT);
+    DROP FUNCTION IF EXISTS public.calculate_overlap_weight(TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, DECIMAL);
+    $$,
+    'Rollback for atomic booking procedure - removes stored procedures'
+);
+
+-- Rollback for idempotency constraint
+SELECT public.register_migration_rollback(
+    '1758100001_add_idempotency_constraint',
+    $$
+    -- Rollback idempotency constraint
+    ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS unique_idempotency_key;
+    $$,
+    'Rollback for idempotency constraint - removes unique constraint on idempotency_key'
+);
+
+-- Create migration safety check function
+CREATE OR REPLACE FUNCTION public.check_migration_safety()
+RETURNS TABLE(
+    migration_name TEXT,
+    safety_status TEXT,
+    warnings TEXT[]
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    rec RECORD;
+    warnings TEXT[];
+BEGIN
+    FOR rec IN 
+        SELECT migration_name FROM public.migration_rollbacks
+        ORDER BY applied_at DESC
+        LIMIT 10
+    LOOP
+        warnings := ARRAY[]::TEXT[];
+        
+        -- Check if rollback exists
+        IF NOT EXISTS (
+            SELECT 1 FROM public.migration_rollbacks 
+            WHERE migration_name = rec.migration_name 
+            AND rollback_sql IS NOT NULL
+        ) THEN
+            warnings := array_append(warnings, 'No rollback SQL available');
+        END IF;
+        
+        -- Check if rollback has been tested
+        IF NOT EXISTS (
+            SELECT 1 FROM public.migration_rollbacks 
+            WHERE migration_name = rec.migration_name 
+            AND rollback_verified = TRUE
+        ) THEN
+            warnings := array_append(warnings, 'Rollback not tested');
+        END IF;
+        
+        -- Determine overall safety status
+        DECLARE
+            safety_status TEXT;
+        BEGIN
+            IF array_length(warnings, 1) = 0 THEN
+                safety_status := 'SAFE';
+            ELSIF array_length(warnings, 1) <= 2 THEN
+                safety_status := 'WARNING';
+            ELSE
+                safety_status := 'UNSAFE';
+            END IF;
+            
+            RETURN QUERY SELECT rec.migration_name, safety_status, warnings;
+        END;
+    END LOOP;
+END;
+$$;
+
+-- Create backup function for critical data
+CREATE OR REPLACE FUNCTION public.backup_critical_data()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    backup_timestamp TEXT;
+    result TEXT;
+BEGIN
+    backup_timestamp := to_char(NOW(), 'YYYYMMDD_HH24MISS');
+    
+    -- Create backup tables
+    EXECUTE format('CREATE TABLE IF NOT EXISTS public.user_profiles_backup_%s AS SELECT * FROM public.user_profiles', backup_timestamp);
+    EXECUTE format('CREATE TABLE IF NOT EXISTS public.bookings_backup_%s AS SELECT * FROM public.bookings', backup_timestamp);
+    EXECUTE format('CREATE TABLE IF NOT EXISTS public.vehicles_backup_%s AS SELECT * FROM public.vehicles', backup_timestamp);
+    
+    result := 'Critical data backed up with timestamp: ' || backup_timestamp;
+    
+    -- Log backup creation
+    INSERT INTO public.migration_rollbacks (migration_name, notes, created_by)
+    VALUES ('backup_' || backup_timestamp, result, 'system');
+    
+    RETURN result;
+END;
+$$;
+
+-- Grant necessary permissions
+GRANT EXECUTE ON FUNCTION public.register_migration_rollback TO authenticated;
+GRANT EXECUTE ON FUNCTION public.execute_migration_rollback TO authenticated;
+GRANT EXECUTE ON FUNCTION public.validate_migration_safety TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_migration_rollbacks TO authenticated;
+GRANT EXECUTE ON FUNCTION public.check_migration_safety TO authenticated;
+GRANT EXECUTE ON FUNCTION public.backup_critical_data TO authenticated;
+
+-- Create RLS policies for migration rollbacks table
+ALTER TABLE public.migration_rollbacks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "migration_rollbacks_access" ON public.migration_rollbacks
+    FOR ALL USING (
+        auth.role() = 'service_role' OR 
+        auth.is_admin()
+    );
+
+-- Add index for performance
+CREATE INDEX IF NOT EXISTS idx_migration_rollbacks_name ON public.migration_rollbacks(migration_name);
+CREATE INDEX IF NOT EXISTS idx_migration_rollbacks_applied_at ON public.migration_rollbacks(applied_at);

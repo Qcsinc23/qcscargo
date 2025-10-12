@@ -184,79 +184,95 @@ export default function CustomerDashboard() {
     try {
       setLoading(true)
       setError('')
-      
-      // Load user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('first_name, last_name, company_name')
-        .eq('user_id', user?.id)
-        .maybeSingle()
 
+      // Load all data in parallel for better performance
+      const [
+        profileResult,
+        shipmentsResult,
+        bookingsResult,
+        quotesResult
+      ] = await Promise.all([
+        // Load user profile
+        supabase
+          .from('user_profiles')
+          .select('first_name, last_name, company_name')
+          .eq('user_id', user?.id)
+          .maybeSingle(),
+
+        // Load recent shipments using the edge function
+        supabase.functions.invoke('get-shipments', {
+          body: { limit: 5, offset: 0, sort_by: 'created_at', sort_order: 'desc' }
+        }),
+
+        // Load upcoming bookings
+        supabase
+          .from('bookings')
+          .select('*')
+          .eq('customer_id', user?.id)
+          .in('status', ['pending', 'confirmed'])
+          .gte('window_start', new Date().toISOString())
+          .order('window_start', { ascending: true })
+          .limit(5),
+
+        // Load quotes
+        supabase
+          .from('shipping_quotes')
+          .select('*')
+          .eq('customer_id', user?.id)
+          .order('created_at', { ascending: false })
+          .limit(5)
+      ])
+
+      // Handle profile data
+      const { data: profileData, error: profileError } = profileResult
       if (profileError && profileError.code !== 'PGRST116') {
         throw profileError
       }
       setProfile(profileData)
 
-      // Load recent shipments using the edge function
-      const { data: shipmentsResponse, error: shipmentsError } = await supabase.functions.invoke('get-shipments', {
-        body: { limit: 5, offset: 0, sort_by: 'created_at', sort_order: 'desc' }
-      })
-
+      // Handle shipments data
+      const { data: shipmentsResponse, error: shipmentsError } = shipmentsResult
       if (shipmentsError) {
         throw shipmentsError
       }
 
       const shipments = shipmentsResponse?.data?.shipments || []
-      
+
       // Format shipments for display
       const formattedShipments = shipments.map((shipment: any) => ({
         id: shipment.id,
         status: shipment.status,
         destination_country: shipment.destinations?.country_name || 'Unknown',
         total_weight: parseFloat(shipment.total_weight) || 0,
-        estimated_cost: parseFloat(shipment.total_declared_value) || 0, // Use total_declared_value since estimated_cost doesn't exist
+        estimated_cost: parseFloat(shipment.total_declared_value) || 0,
         created_at: shipment.created_at,
         latest_tracking: shipment.latest_tracking ? {
           location: shipment.latest_tracking.location,
           timestamp: shipment.latest_tracking.timestamp
         } : undefined
       }))
-      
+
       setRecentShipments(formattedShipments)
-      
-      // Load upcoming bookings
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('customer_id', user?.id)
-        .in('status', ['pending', 'confirmed'])
-        .gte('window_start', new Date().toISOString())
-        .order('window_start', { ascending: true })
-        .limit(5)
-      
+
+      // Handle bookings data
+      const { data: bookingsData, error: bookingsError } = bookingsResult
       if (!bookingsError) {
         setUpcomingBookings(bookingsData || [])
       }
-      
-      // Load quotes
-      const { data: quotesData, error: quotesError } = await supabase
-        .from('shipping_quotes')
-        .select('*')
-        .eq('customer_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-      
+
+      // Handle quotes data
+      const { data: quotesData, error: quotesError } = quotesResult
       if (!quotesError) {
         setQuotes(quotesData || [])
       }
-      
+
       // Calculate stats
       const activeQuotes = (quotesData || []).filter((q: Quote) => {
         const now = new Date()
         const expires = new Date(q.quote_expires_at)
         return q.status === 'pending' && expires > now
       }).length
-      
+
       const dashboardStats: DashboardStats = {
         total_shipments: shipments.length,
         pending_shipments: shipments.filter((s: any) => ['pending_pickup', 'picked_up', 'processing'].includes(s.status)).length,
@@ -267,7 +283,7 @@ export default function CustomerDashboard() {
         upcoming_bookings: (bookingsData || []).length,
         active_quotes: activeQuotes
       }
-      
+
       setStats(dashboardStats)
 
     } catch (err: any) {

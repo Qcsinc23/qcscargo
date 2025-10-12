@@ -29,50 +29,50 @@ Deno.serve(async (req) => {
     }
 
     try {
-        // Extract validated data
-        const { 
-            quote_id, 
-            shipment_id, 
-            window_start, 
-            window_end, 
-            address, 
-            pickup_or_drop, 
-            service_type,
-            estimated_weight,
-            notes,
-            idempotency_key 
-        } = validatedData;
-
-        console.log('Create booking request:', { 
-            quote_id, 
-            shipment_id, 
-            window_start, 
-            window_end, 
-            pickup_or_drop,
-            service_type,
-            estimated_weight,
-            idempotency_key 
-        });
+        // Parse and validate request body FIRST
+        const requestBody = await req.json();
+        const validation = validateAndSanitizeRequest(createBookingSchema, requestBody);
 
         // Rate limiting check
-        const userId = req.headers.get('x-user-id') || 'anonymous';
-        const rateLimit = checkRateLimit(userId, 'create-booking', 5, 60000); // 5 requests per minute
-        
+        const rateLimitUserId = req.headers.get('x-user-id') || 'anonymous';
+        const rateLimit = checkRateLimit(rateLimitUserId, 'create-booking', 5, 60000); // 5 requests per minute
+
         if (!rateLimit.allowed) {
             return createRateLimitResponse(rateLimit.resetTime);
         }
 
-        // Parse and validate request body
-        const requestBody = await req.json();
-        const validation = validateAndSanitizeRequest(createBookingSchema, requestBody);
-        
         if (!validation.success) {
-            logValidationError('create-booking', validation.errors!, userId);
+            logValidationError('create-booking', validation.errors!, rateLimitUserId);
             return createValidationErrorResponse(validation.errors!);
         }
 
         // Use validated data
         const validatedData = validation.data!;
+
+        // Extract validated data
+        const {
+            quote_id,
+            shipment_id,
+            window_start,
+            window_end,
+            address,
+            pickup_or_drop,
+            service_type,
+            estimated_weight,
+            notes,
+            idempotency_key
+        } = validatedData;
+
+        console.log('Create booking request:', {
+            quote_id,
+            shipment_id,
+            window_start,
+            window_end,
+            pickup_or_drop,
+            service_type,
+            estimated_weight,
+            idempotency_key
+        });
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL');
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');

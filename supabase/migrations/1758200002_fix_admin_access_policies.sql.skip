@@ -1,0 +1,73 @@
+-- Migration: 1758200002_fix_admin_access_policies.sql
+-- Purpose: Fix admin access policies for shipping_quotes and create missing system_health table
+
+-- Start transaction
+BEGIN;
+
+-- 1. Add admin policy for shipping_quotes table
+DROP POLICY IF EXISTS "Admins can view all quotes" ON public.shipping_quotes;
+CREATE POLICY "Admins can view all quotes"
+  ON public.shipping_quotes
+  FOR SELECT
+  USING (
+    -- Check user_profiles table for admin role
+    EXISTS (
+      SELECT 1
+      FROM public.user_profiles up
+      WHERE up.id = auth.uid()
+        AND up.role = 'admin'
+    )
+    OR
+    -- Fallback to JWT metadata for admin role
+    (
+      auth.jwt() IS NOT NULL 
+      AND (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
+      )
+    )
+  );
+
+-- 2. Create system_health table for monitoring
+CREATE TABLE IF NOT EXISTS public.system_health (
+  id SERIAL PRIMARY KEY,
+  component TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'unknown',
+  message TEXT,
+  checked_at TIMESTAMPTZ DEFAULT NOW(),
+  metadata JSONB DEFAULT '{}'::jsonb
+);
+
+-- 3. Enable RLS on system_health table
+ALTER TABLE public.system_health ENABLE ROW LEVEL SECURITY;
+
+-- 4. Create RLS policies for system_health
+CREATE POLICY "Admins can view system health"
+  ON public.system_health
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.user_profiles up
+      WHERE up.id = auth.uid()
+        AND up.role = 'admin'
+    )
+  );
+
+CREATE POLICY "Service role can manage system health"
+  ON public.system_health
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- 5. Create index for performance
+CREATE INDEX IF NOT EXISTS idx_system_health_component_checked_at 
+  ON public.system_health (component, checked_at DESC);
+
+-- 6. Grant necessary permissions
+GRANT SELECT ON public.system_health TO authenticated;
+GRANT ALL ON public.system_health TO service_role;
+
+-- Commit transaction
+COMMIT;

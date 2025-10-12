@@ -1,0 +1,138 @@
+-- Migration: Standardize Authentication Schema
+-- Created: 1758200000
+-- Purpose: Consolidate role/user_type columns and remove hardcoded fallbacks
+
+-- Step 1: Add role column if it doesn't exist (some migrations may have created it)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'user_profiles' 
+        AND column_name = 'role' 
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.user_profiles ADD COLUMN role TEXT DEFAULT 'customer';
+    END IF;
+END $$;
+
+-- Step 2: Migrate user_type data to role column
+UPDATE public.user_profiles 
+SET role = CASE 
+    WHEN user_type = 'admin' THEN 'admin'
+    WHEN user_type = 'customer' THEN 'customer'
+    WHEN user_type = 'staff' THEN 'staff'
+    ELSE COALESCE(role, 'customer')
+END
+WHERE user_type IS NOT NULL;
+
+-- Step 3: Add constraints and indexes
+ALTER TABLE public.user_profiles 
+ADD CONSTRAINT chk_role_valid CHECK (role IN ('admin', 'customer', 'staff'));
+
+CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON public.user_profiles(role);
+
+-- Step 4: Create function to get user role from JWT (moved to public schema)
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+DECLARE
+    user_role TEXT;
+BEGIN
+    -- Try to get role from JWT claims first
+    SELECT COALESCE(
+        (auth.jwt() ->> 'app_metadata')::jsonb ->> 'role',
+        (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role'
+    ) INTO user_role;
+    
+    -- Fallback to database lookup
+    IF user_role IS NULL THEN
+        SELECT up.role INTO user_role
+        FROM public.user_profiles up
+        WHERE up.id = auth.uid();
+    END IF;
+    
+    RETURN COALESCE(user_role, 'customer');
+END;
+$$;
+
+-- Step 5: Create optimized admin check function
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN public.get_user_role() = 'admin';
+END;
+$$;
+
+-- Step 6: Update RLS policies to use new functions
+DROP POLICY IF EXISTS "service_role_access" ON public.user_profiles;
+DROP POLICY IF EXISTS "users_own_profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "authenticated_insert" ON public.user_profiles;
+
+-- Create simplified, efficient policies
+CREATE POLICY "user_profiles_access" ON public.user_profiles
+    FOR ALL USING (
+        auth.role() = 'service_role' OR
+        auth.uid() = id OR
+        public.is_admin()
+    );
+
+-- Step 7: Create trigger to set role in JWT on profile update
+CREATE OR REPLACE FUNCTION public.update_user_jwt_metadata()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Update user metadata in auth.users
+    UPDATE auth.users 
+    SET raw_app_metadata = COALESCE(raw_app_metadata, '{}'::jsonb) || 
+        jsonb_build_object('role', NEW.role)
+    WHERE id = NEW.id;
+    
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER update_user_jwt_metadata_trigger
+    AFTER UPDATE OF role ON public.user_profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_user_jwt_metadata();
+
+-- Step 8: Backfill JWT metadata for existing users (skipped - requires admin access)
+-- This would need to be done manually or through Supabase dashboard
+
+-- Step 9: Create migration rollback function
+CREATE OR REPLACE FUNCTION public.rollback_auth_standardization()
+RETURNS TEXT
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- This function can be called to rollback if needed
+    -- Note: This is a placeholder - actual rollback would need to be more complex
+    -- due to data migration that occurred
+    RETURN 'Auth standardization rollback not implemented - manual intervention required';
+END;
+$$;
+
+-- Step 10: Add validation to ensure migration worked
+DO $$
+DECLARE
+    user_count INTEGER;
+    role_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO user_count FROM public.user_profiles;
+    SELECT COUNT(*) INTO role_count FROM public.user_profiles WHERE role IS NOT NULL;
+    
+    IF user_count != role_count THEN
+        RAISE EXCEPTION 'Migration failed: Not all users have roles assigned';
+    END IF;
+    
+    RAISE NOTICE 'Auth standardization completed successfully. Users: %, Roles assigned: %', user_count, role_count;
+END $$;

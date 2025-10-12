@@ -1,56 +1,64 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ScrollToTop from '@/components/ScrollToTop'
 import { Toaster } from 'sonner'
 import { VirtualAddressProvider } from '@/hooks/useVirtualAddress'
+import { RouteErrorBoundary, AdminErrorFallback, CustomerErrorFallback } from '@/components/RouteErrorBoundary'
 
-// Public Pages
+// Loading component for Suspense fallback
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+  </div>
+)
+
+// Eagerly load critical public pages (above the fold)
 import HomePage from '@/pages/HomePage'
-import ShippingCalculator from '@/pages/ShippingCalculator'
-import HowItWorks from '@/pages/HowItWorks'
-import ContactPage from '@/pages/ContactPage'
-import FAQPage from '@/pages/FAQPage'
-import ServiceAreas from '@/pages/ServiceAreas'
-import AboutPage from '@/pages/AboutPage'
-import BusinessServices from '@/pages/BusinessServices'
-import AirCargoShipping from '@/pages/AirCargoShipping'
-import TrackingPage from '@/pages/TrackingPage'
-import RatesPage from '@/pages/RatesPage'
-import SupportPage from '@/pages/SupportPage'
-import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage'
-import TermsOfServicePage from '@/pages/TermsOfServicePage'
-
-// Auth Pages
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import AuthCallback from '@/pages/auth/AuthCallback'
 
-// Customer Portal Pages
-import CustomerDashboard from '@/pages/dashboard/CustomerDashboard'
-import CreateShipmentPage from '@/pages/dashboard/CreateShipmentPage'
-import CustomerProfilePage from '@/pages/customer/CustomerProfilePage'
-import BookingPage from '@/pages/BookingPage'
+// Lazy load public pages
+const ShippingCalculator = lazy(() => import('@/pages/ShippingCalculator'))
+const HowItWorks = lazy(() => import('@/pages/HowItWorks'))
+const ContactPage = lazy(() => import('@/pages/ContactPage'))
+const FAQPage = lazy(() => import('@/pages/FAQPage'))
+const ServiceAreas = lazy(() => import('@/pages/ServiceAreas'))
+const AboutPage = lazy(() => import('@/pages/AboutPage'))
+const BusinessServices = lazy(() => import('@/pages/BusinessServices'))
+const AirCargoShipping = lazy(() => import('@/pages/AirCargoShipping'))
+const TrackingPage = lazy(() => import('@/pages/TrackingPage'))
+const RatesPage = lazy(() => import('@/pages/RatesPage'))
+const SupportPage = lazy(() => import('@/pages/SupportPage'))
+const PrivacyPolicyPage = lazy(() => import('@/pages/PrivacyPolicyPage'))
+const TermsOfServicePage = lazy(() => import('@/pages/TermsOfServicePage'))
 
-// Admin Pages
-import AdminRedirect from '@/components/AdminRedirect'
-import AdminRoute from '@/components/AdminRoute'
-import AdminLayout from '@/components/AdminLayout'
-import AdminDashboard from '@/pages/admin/AdminDashboard'
-import AdminBookingManagement from '@/pages/admin/AdminBookingManagement'
-import AdminShipmentManagement from '@/pages/admin/AdminShipmentManagement'
-import BookingDetailsPage from '@/pages/admin/BookingDetailsPage'
-import BookingEditPage from '@/pages/admin/BookingEditPage'
-import AdminVehicleManagement from '@/pages/admin/AdminVehicleManagement'
-import VehicleDetailsPage from '@/pages/admin/VehicleDetailsPage'
-import VehicleEditPage from '@/pages/admin/VehicleEditPage'
-import AdminCustomerInsights from '@/pages/admin/AdminCustomerInsights'
-import AdminBookingCalendar from '@/pages/admin/AdminBookingCalendar'
-import AdminSettings from '@/pages/admin/AdminSettings'
-import AdminMailboxes from '@/pages/admin/AdminMailboxes'
-import AdminQuoteManagement from '@/pages/admin/AdminQuoteManagement'
-import AdminMonitoring from '@/pages/admin/AdminMonitoring'
+// Lazy load Customer Portal Pages
+const CustomerDashboard = lazy(() => import('@/pages/dashboard/CustomerDashboard'))
+const CreateShipmentPage = lazy(() => import('@/pages/dashboard/CreateShipmentPage'))
+const CustomerProfilePage = lazy(() => import('@/pages/customer/CustomerProfilePage'))
+const BookingPage = lazy(() => import('@/pages/BookingPage'))
+
+// Lazy load Admin Pages
+const AdminRedirect = lazy(() => import('@/components/AdminRedirect'))
+const AdminRoute = lazy(() => import('@/components/AdminRoute'))
+const AdminLayout = lazy(() => import('@/components/AdminLayout'))
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
+const AdminBookingManagement = lazy(() => import('@/pages/admin/AdminBookingManagement'))
+const AdminShipmentManagement = lazy(() => import('@/pages/admin/AdminShipmentManagement'))
+const BookingDetailsPage = lazy(() => import('@/pages/admin/BookingDetailsPage'))
+const BookingEditPage = lazy(() => import('@/pages/admin/BookingEditPage'))
+const AdminVehicleManagement = lazy(() => import('@/pages/admin/AdminVehicleManagement'))
+const VehicleDetailsPage = lazy(() => import('@/pages/admin/VehicleDetailsPage'))
+const VehicleEditPage = lazy(() => import('@/pages/admin/VehicleEditPage'))
+const AdminCustomerInsights = lazy(() => import('@/pages/admin/AdminCustomerInsights'))
+const AdminBookingCalendar = lazy(() => import('@/pages/admin/AdminBookingCalendar'))
+const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'))
+const AdminMailboxes = lazy(() => import('@/pages/admin/AdminMailboxes'))
+const AdminQuoteManagement = lazy(() => import('@/pages/admin/AdminQuoteManagement'))
+const AdminMonitoring = lazy(() => import('@/pages/admin/AdminMonitoring'))
 
 function App() {
   return (
@@ -63,83 +71,97 @@ function App() {
           }}
         >
           <ScrollToTop />
-          <Routes>
-            {/* Public Routes with AppLayout */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/shipping-calculator" element={<ShippingCalculator />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/faq" element={<FAQPage />} />
-            <Route path="/service-areas" element={<ServiceAreas />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/business-services" element={<BusinessServices />} />
-            <Route path="/tracking" element={<TrackingPage />} />
-            <Route path="/rates" element={<RatesPage />} />
-            <Route path="/services" element={<AirCargoShipping />} />
-            <Route path="/air-cargo-shipping" element={<AirCargoShipping />} />
-            <Route path="/support" element={<SupportPage />} />
-            <Route path="/shipping" element={<RatesPage />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms" element={<TermsOfServicePage />} />
+          <RouteErrorBoundary>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                {/* Public Routes with AppLayout */}
+                <Route path="/" element={<HomePage />} />
+                <Route path="/shipping-calculator" element={<ShippingCalculator />} />
+                <Route path="/how-it-works" element={<HowItWorks />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/faq" element={<FAQPage />} />
+                <Route path="/service-areas" element={<ServiceAreas />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/business-services" element={<BusinessServices />} />
+                <Route path="/tracking" element={<TrackingPage />} />
+                <Route path="/rates" element={<RatesPage />} />
+                <Route path="/services" element={<AirCargoShipping />} />
+                <Route path="/air-cargo-shipping" element={<AirCargoShipping />} />
+                <Route path="/support" element={<SupportPage />} />
+                <Route path="/shipping" element={<RatesPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
 
             {/* Auth Routes (no layout) */}
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
-            {/* Customer Portal Routes (protected, no layout) */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <AdminRedirect>
-                  <CustomerDashboard />
-                </AdminRedirect>
-              </ProtectedRoute>
-            } />
-            <Route path="/dashboard/create-shipment" element={
-              <ProtectedRoute>
-                <AdminRedirect>
-                  <CreateShipmentPage />
-                </AdminRedirect>
-              </ProtectedRoute>
-            } />
-            <Route path="/customer/profile" element={
-              <ProtectedRoute>
-                <AdminRedirect>
-                  <CustomerProfilePage />
-                </AdminRedirect>
-              </ProtectedRoute>
-            } />
-            <Route path="/booking" element={
-              <ProtectedRoute>
-                <AdminRedirect>
-                  <BookingPage />
-                </AdminRedirect>
-              </ProtectedRoute>
-            } />
+                {/* Customer Portal Routes (protected, with error boundary) */}
+                <Route path="/dashboard" element={
+                  <RouteErrorBoundary fallback={CustomerErrorFallback}>
+                    <ProtectedRoute>
+                      <AdminRedirect>
+                        <CustomerDashboard />
+                      </AdminRedirect>
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                } />
+                <Route path="/dashboard/create-shipment" element={
+                  <RouteErrorBoundary fallback={CustomerErrorFallback}>
+                    <ProtectedRoute>
+                      <AdminRedirect>
+                        <CreateShipmentPage />
+                      </AdminRedirect>
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                } />
+                <Route path="/customer/profile" element={
+                  <RouteErrorBoundary fallback={CustomerErrorFallback}>
+                    <ProtectedRoute>
+                      <AdminRedirect>
+                        <CustomerProfilePage />
+                      </AdminRedirect>
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                } />
+                <Route path="/booking" element={
+                  <RouteErrorBoundary fallback={CustomerErrorFallback}>
+                    <ProtectedRoute>
+                      <AdminRedirect>
+                        <BookingPage />
+                      </AdminRedirect>
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                } />
 
-            {/* Admin Routes (protected, no main layout) */}
-            <Route path="/admin" element={
-              <AdminRoute>
-                <AdminLayout />
-              </AdminRoute>
-            }>
-              <Route index element={<AdminDashboard />} />
-              <Route path="shipments" element={<AdminShipmentManagement />} />
-              <Route path="bookings" element={<AdminBookingManagement />} />
-              <Route path="bookings/calendar" element={<AdminBookingCalendar />} />
-              <Route path="bookings/:id" element={<BookingDetailsPage />} />
-              <Route path="bookings/:id/edit" element={<BookingEditPage />} />
-              <Route path="quotes" element={<AdminQuoteManagement />} />
-              <Route path="vehicles" element={<AdminVehicleManagement />} />
-              <Route path="vehicles/:id" element={<VehicleDetailsPage />} />
-              <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />
-              <Route path="customers" element={<AdminCustomerInsights />} />
-              <Route path="mailboxes" element={<AdminMailboxes />} />
-              <Route path="monitoring" element={<AdminMonitoring />} />
-              <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
-          </Routes>
+                {/* Admin Routes (protected, with admin error boundary) */}
+                <Route path="/admin" element={
+                  <RouteErrorBoundary fallback={AdminErrorFallback}>
+                    <AdminRoute>
+                      <AdminLayout />
+                    </AdminRoute>
+                  </RouteErrorBoundary>
+                }>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="shipments" element={<AdminShipmentManagement />} />
+                  <Route path="bookings" element={<AdminBookingManagement />} />
+                  <Route path="bookings/calendar" element={<AdminBookingCalendar />} />
+                  <Route path="bookings/:id" element={<BookingDetailsPage />} />
+                  <Route path="bookings/:id/edit" element={<BookingEditPage />} />
+                  <Route path="quotes" element={<AdminQuoteManagement />} />
+                  <Route path="vehicles" element={<AdminVehicleManagement />} />
+                  <Route path="vehicles/:id" element={<VehicleDetailsPage />} />
+                  <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />
+                  <Route path="customers" element={<AdminCustomerInsights />} />
+                  <Route path="mailboxes" element={<AdminMailboxes />} />
+                  <Route path="monitoring" element={<AdminMonitoring />} />
+                  <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
+              </Routes>
+            </Suspense>
+          </RouteErrorBoundary>
           <Toaster
             position="top-right"
             toastOptions={{
