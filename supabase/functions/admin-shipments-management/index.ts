@@ -64,15 +64,32 @@ Deno.serve(async (req) => {
     } catch (error) {
         console.error('Admin shipments management error:', error);
 
+        // Determine appropriate status code based on error type
+        let statusCode = 500;
+        let errorCode = 'ADMIN_SHIPMENTS_FAILED';
+        
+        if (error.message.includes('Access denied') || error.message.includes('Admin role required')) {
+            statusCode = 403;
+            errorCode = 'ACCESS_DENIED';
+        } else if (error.message.includes('Invalid authentication') || error.message.includes('authorization')) {
+            statusCode = 401;
+            errorCode = 'AUTHENTICATION_FAILED';
+        } else if (error.message.includes('not found') || error.message.includes('does not exist')) {
+            statusCode = 404;
+            errorCode = 'RESOURCE_NOT_FOUND';
+        }
+
         const errorResponse = {
+            success: false,
             error: {
-                code: 'ADMIN_SHIPMENTS_FAILED',
-                message: error.message
+                code: errorCode,
+                message: error.message,
+                timestamp: new Date().toISOString()
             }
         };
 
         return new Response(JSON.stringify(errorResponse), {
-            status: 500,
+            status: statusCode,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }

@@ -1,21 +1,20 @@
 /**
- * Capacity calculation utilities for proper time window overlap handling
+ * Centralized capacity calculation utilities for accurate vehicle capacity management
  */
 
 export interface Booking {
   id: string;
+  estimated_weight: number;
   window_start: string;
   window_end: string;
-  estimated_weight: number;
-  vehicle_assignments?: Array<{
-    vehicle_id: string;
-  }>;
+  vehicle_assignments?: Array<{ vehicle_id: string }>;
 }
 
 export interface Vehicle {
   id: string;
-  capacity_lbs: number;
   name: string;
+  capacity_lbs: number;
+  active: boolean;
 }
 
 export interface TimeWindow {
@@ -32,83 +31,77 @@ export interface VehicleCapacity {
 }
 
 /**
- * Calculate the actual weight that should be counted for a booking
- * within a specific time window, accounting for partial overlaps
+ * Calculate the weight contribution of a booking to a specific time window
+ * Uses time-weighted overlap calculation for accurate capacity management
  */
-export function calculateOverlapWeight(
-  booking: Booking,
-  window: TimeWindow
-): number {
+export function calculateOverlapWeight(booking: Booking, window: TimeWindow): number {
   const bookingStart = new Date(booking.window_start);
   const bookingEnd = new Date(booking.window_end);
   const windowStart = new Date(window.start);
   const windowEnd = new Date(window.end);
 
-  // Calculate overlap duration
+  // Calculate overlap period
   const overlapStart = new Date(Math.max(bookingStart.getTime(), windowStart.getTime()));
   const overlapEnd = new Date(Math.min(bookingEnd.getTime(), windowEnd.getTime()));
-  
+
+  // No overlap
   if (overlapStart >= overlapEnd) {
-    return 0; // No overlap
+    return 0;
   }
 
-  const overlapDuration = overlapEnd.getTime() - overlapStart.getTime();
+  // Calculate overlap duration as percentage of booking duration
   const bookingDuration = bookingEnd.getTime() - bookingStart.getTime();
-  
-  // Calculate proportional weight based on overlap percentage
+  const overlapDuration = overlapEnd.getTime() - overlapStart.getTime();
   const overlapPercentage = overlapDuration / bookingDuration;
+
+  // Return weighted weight (percentage of booking weight that overlaps with window)
   return booking.estimated_weight * overlapPercentage;
 }
 
 /**
  * Calculate vehicle capacity for a specific time window
- * Properly handles overlapping bookings with time-weighted calculations
+ * Accounts for overlapping bookings with time-weighted calculations
  */
 export function calculateVehicleCapacityForWindow(
   vehicles: Vehicle[],
-  bookings: Booking[],
+  existingBookings: Booking[],
   window: TimeWindow
 ): Record<string, VehicleCapacity> {
-  const vehicleCapacity: Record<string, VehicleCapacity> = {};
-  
-  // Initialize vehicle capacities
+  const capacities: Record<string, VehicleCapacity> = {};
+
   vehicles.forEach(vehicle => {
-    vehicleCapacity[vehicle.id] = {
+    if (!vehicle.active) return;
+
+    let usedCapacity = 0;
+
+    // Calculate used capacity from overlapping bookings
+    existingBookings.forEach(booking => {
+      if (booking.vehicle_assignments?.some(va => va.vehicle_id === vehicle.id)) {
+        const overlapWeight = calculateOverlapWeight(booking, window);
+        usedCapacity += overlapWeight;
+      }
+    });
+
+    capacities[vehicle.id] = {
       total: vehicle.capacity_lbs,
-      used: 0,
-      remaining: vehicle.capacity_lbs,
+      used: usedCapacity,
+      remaining: vehicle.capacity_lbs - usedCapacity,
       name: vehicle.name
     };
   });
 
-  // Calculate used capacity with proper overlap handling
-  bookings.forEach(booking => {
-    if (booking.vehicle_assignments && booking.vehicle_assignments.length > 0) {
-      const assignment = booking.vehicle_assignments[0];
-      if (assignment.vehicle_id && vehicleCapacity[assignment.vehicle_id]) {
-        // Calculate the actual weight that overlaps with this window
-        const overlapWeight = calculateOverlapWeight(booking, window);
-        vehicleCapacity[assignment.vehicle_id].used += overlapWeight;
-        vehicleCapacity[assignment.vehicle_id].remaining -= overlapWeight;
-      }
-    }
-  });
-
-  return vehicleCapacity;
+  return capacities;
 }
 
 /**
- * Find the best vehicle for a booking based on multiple criteria
+ * Find the best vehicle for a booking based on capacity and efficiency
+ * Considers remaining capacity, utilization rate, and other factors
  */
 export function findBestVehicle(
-  vehicleCapacity: Record<string, VehicleCapacity>,
-  requiredWeight: number,
-  vehiclePreferences?: {
-    preferredVehicleIds?: string[];
-    avoidVehicleIds?: string[];
-  }
+  vehicleCapacities: Record<string, VehicleCapacity>,
+  requiredWeight: number
 ): { id: string; capacity: VehicleCapacity } | null {
-  const availableVehicles = Object.entries(vehicleCapacity)
+  const availableVehicles = Object.entries(vehicleCapacities)
     .filter(([_, capacity]) => capacity.remaining >= requiredWeight)
     .map(([id, capacity]) => ({ id, capacity }));
 
@@ -116,51 +109,31 @@ export function findBestVehicle(
     return null;
   }
 
-  // Apply preferences
-  let filteredVehicles = availableVehicles;
-  
-  if (vehiclePreferences?.preferredVehicleIds) {
-    const preferred = availableVehicles.filter(v => 
-      vehiclePreferences.preferredVehicleIds!.includes(v.id)
-    );
-    if (preferred.length > 0) {
-      filteredVehicles = preferred;
-    }
-  }
-
-  if (vehiclePreferences?.avoidVehicleIds) {
-    filteredVehicles = filteredVehicles.filter(v => 
-      !vehiclePreferences.avoidVehicleIds!.includes(v.id)
-    );
-  }
-
-  // Sort by efficiency (capacity utilization) rather than just remaining capacity
-  filteredVehicles.sort((a, b) => {
+  // Sort by utilization rate (higher utilization is better for efficiency)
+  // but ensure we have enough capacity
+  return availableVehicles.sort((a, b) => {
     const aUtilization = a.capacity.used / a.capacity.total;
     const bUtilization = b.capacity.used / b.capacity.total;
-    
-    // Prefer vehicles with better utilization (closer to optimal capacity)
-    // but still with enough remaining capacity
-    const aEfficiency = aUtilization + (a.capacity.remaining / a.capacity.total) * 0.5;
-    const bEfficiency = bUtilization + (b.capacity.remaining / b.capacity.total) * 0.5;
-    
-    return bEfficiency - aEfficiency;
-  });
-
-  return filteredVehicles[0] || null;
+    return bUtilization - aUtilization;
+  })[0];
 }
 
 /**
- * Validate that a booking can be accommodated in a time window
+ * Validate if a booking can be accommodated in the given time window
+ * Returns validation result with best vehicle recommendation
  */
 export function validateBookingCapacity(
   vehicles: Vehicle[],
   existingBookings: Booking[],
   window: TimeWindow,
   requiredWeight: number
-): { canAccommodate: boolean; bestVehicle?: { id: string; capacity: VehicleCapacity }; reason?: string } {
-  const vehicleCapacity = calculateVehicleCapacityForWindow(vehicles, existingBookings, window);
-  const bestVehicle = findBestVehicle(vehicleCapacity, requiredWeight);
+): {
+  canAccommodate: boolean;
+  bestVehicle?: { id: string; capacity: VehicleCapacity };
+  reason?: string;
+} {
+  const vehicleCapacities = calculateVehicleCapacityForWindow(vehicles, existingBookings, window);
+  const bestVehicle = findBestVehicle(vehicleCapacities, requiredWeight);
 
   if (!bestVehicle) {
     return {
