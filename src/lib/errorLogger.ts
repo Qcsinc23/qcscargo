@@ -2,6 +2,8 @@
  * Error logging utility for QCS Cargo application
  */
 
+import { monitoring, type ErrorContext } from './monitoring';
+
 export interface ErrorLogEntry {
   timestamp: string;
   level: 'error' | 'warn' | 'info';
@@ -31,6 +33,18 @@ class ErrorLogger {
       console.warn(`[${entry.timestamp}] WARN:`, message, context);
     } else {
       console.log(`[${entry.timestamp}] INFO:`, message, context);
+    }
+
+    // Send to monitoring service for errors and warnings
+    if (level === 'error' && error) {
+      const errorContext: ErrorContext = {
+        component: context?.component || 'unknown',
+        action: context?.action || 'error_logged',
+        metadata: context,
+        url: window.location.href,
+        userAgent: navigator.userAgent
+      };
+      monitoring.captureError(error, errorContext);
     }
 
     // Keep only last 100 logs to prevent memory issues

@@ -13,7 +13,8 @@ import {
   X,
   ChevronRight,
   Building2,
-  FileText
+  FileText,
+  Activity
 } from 'lucide-react'
 
 const AdminLayout: React.FC = () => {
@@ -29,6 +30,7 @@ const AdminLayout: React.FC = () => {
     { name: 'Vehicles', href: '/admin/vehicles', icon: Truck, current: location.pathname.startsWith('/admin/vehicles') },
     { name: 'Customers', href: '/admin/customers', icon: Users, current: location.pathname.startsWith('/admin/customers') },
     { name: 'Mailboxes', href: '/admin/mailboxes', icon: Building2, current: location.pathname.startsWith('/admin/mailboxes') },
+    { name: 'Monitoring', href: '/admin/monitoring', icon: Activity, current: location.pathname.startsWith('/admin/monitoring') },
     { name: 'Reports', href: '/admin/reports', icon: BarChart3, current: location.pathname.startsWith('/admin/reports') },
     { name: 'Settings', href: '/admin/settings', icon: Settings, current: location.pathname.startsWith('/admin/settings') },
   ]

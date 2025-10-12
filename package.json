@@ -10,7 +10,13 @@
     "lint": "yes | pnpm install && eslint .",
     "preview": "yes | pnpm install && vite preview",
     "prebuild": "node ./scripts/prebuild.mjs",
-    "generate:sitemap": "node ./scripts/prebuild.mjs"
+    "generate:sitemap": "node ./scripts/prebuild.mjs",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

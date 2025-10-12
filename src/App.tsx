@@ -50,6 +50,7 @@ import AdminBookingCalendar from '@/pages/admin/AdminBookingCalendar'
 import AdminSettings from '@/pages/admin/AdminSettings'
 import AdminMailboxes from '@/pages/admin/AdminMailboxes'
 import AdminQuoteManagement from '@/pages/admin/AdminQuoteManagement'
+import AdminMonitoring from '@/pages/admin/AdminMonitoring'
 
 function App() {
   return (
@@ -134,6 +135,7 @@ function App() {
               <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />
               <Route path="customers" element={<AdminCustomerInsights />} />
               <Route path="mailboxes" element={<AdminMailboxes />} />
+              <Route path="monitoring" element={<AdminMonitoring />} />
               <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>

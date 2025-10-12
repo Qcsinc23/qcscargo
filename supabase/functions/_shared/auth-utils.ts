@@ -53,29 +53,34 @@ export async function verifyAdminAccess(
       return { success: false, error: 'Invalid user data' };
     }
     
-    // Check if user has admin role - handle both 'role' and 'user_type' columns
-    const profileResponse = await fetch(
-      `${supabaseUrl}/rest/v1/user_profiles?select=role,user_type&id=eq.${user.id}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'apikey': serviceRoleKey,
-          'Content-Type': 'application/json'
+    // Check if user has admin role using JWT metadata first, then database
+    let isAdmin = false;
+    
+    // First check JWT metadata
+    const jwtRole = user.app_metadata?.role || user.user_metadata?.role;
+    if (jwtRole) {
+      isAdmin = jwtRole === 'admin';
+    } else {
+      // Fallback to database lookup
+      const profileResponse = await fetch(
+        `${supabaseUrl}/rest/v1/user_profiles?select=role&id=eq.${user.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'apikey': serviceRoleKey,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (profileResponse.ok) {
+        const profiles = await profileResponse.json();
+        if (profiles && profiles.length > 0) {
+          const profile = profiles[0];
+          isAdmin = profile.role === 'admin';
         }
       }
-    );
-
-    if (!profileResponse.ok) {
-      return { success: false, error: 'Failed to verify user profile' };
     }
-
-    const profiles = await profileResponse.json();
-    if (!profiles || !profiles.length) {
-      return { success: false, error: 'User profile not found' };
-    }
-
-    const profile = profiles[0];
-    const isAdmin = profile.role === 'admin' || profile.user_type === 'admin';
     
     if (!isAdmin) {
       return { 
@@ -95,8 +100,7 @@ export async function verifyAdminAccess(
       user: {
         id: user.id,
         email: user.email,
-        role: profile.role,
-        user_type: profile.user_type
+        role: jwtRole || 'customer'
       }
     };
   } catch (error) {

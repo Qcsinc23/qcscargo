@@ -1,5 +1,14 @@
  // @ts-nocheck
 
+import { 
+    calculateVehicleCapacityForWindow, 
+    findBestVehicle, 
+    validateBookingCapacity,
+    type Booking,
+    type Vehicle,
+    type TimeWindow
+} from "../_shared/capacity-utils.ts";
+
 Deno.serve(async (req) => {
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
@@ -256,7 +265,7 @@ Deno.serve(async (req) => {
 
         console.log('Generated windows:', windows.length);
 
-        // Check availability for each window
+        // Check availability for each window using proper capacity calculation
         const availableWindows = [];
         
         for (const window of windows) {
@@ -272,65 +281,37 @@ Deno.serve(async (req) => {
                 }
             });
 
-            let existingBookings = [];
+            let existingBookings: Booking[] = [];
             if (bookingsResponse.ok) {
                 existingBookings = await bookingsResponse.json();
             }
 
             console.log('Existing bookings in window:', existingBookings.length);
 
-            // Calculate capacity for each vehicle
-            const vehicleCapacity = {};
-            vehicles.forEach(v => {
-                vehicleCapacity[v.id] = {
-                    total: v.capacity_lbs,
-                    used: 0,
-                    remaining: v.capacity_lbs,
-                    name: v.name
-                };
-            });
+            // Use proper capacity calculation with time-weighted overlaps
+            const validation = validateBookingCapacity(
+                vehicles as Vehicle[],
+                existingBookings,
+                window as TimeWindow,
+                estimated_weight_lbs
+            );
 
-            // Sum up used capacity per vehicle
-            existingBookings.forEach(booking => {
-                if (booking.vehicle_assignments && booking.vehicle_assignments.length > 0) {
-                    const assignment = booking.vehicle_assignments[0];
-                    if (assignment.vehicle_id && vehicleCapacity[assignment.vehicle_id]) {
-                        const weight = parseFloat(booking.estimated_weight) || 0;
-                        vehicleCapacity[assignment.vehicle_id].used += weight;
-                        vehicleCapacity[assignment.vehicle_id].remaining -= weight;
-                    }
-                }
-            });
-
-            // Find vehicle with enough capacity
-            let bestVehicle = null;
-            let maxRemainingCapacity = 0;
-            
-            Object.keys(vehicleCapacity).forEach(vehicleId => {
-                const capacity = vehicleCapacity[vehicleId];
-                if (capacity.remaining >= estimated_weight_lbs && capacity.remaining > maxRemainingCapacity) {
-                    bestVehicle = {
-                        id: vehicleId,
-                        ...capacity
-                    };
-                    maxRemainingCapacity = capacity.remaining;
-                }
-            });
-
-            if (bestVehicle) {
+            if (validation.canAccommodate && validation.bestVehicle) {
                 availableWindows.push({
                     start: window.start,
                     end: window.end,
                     display: window.display,
-                    remaining_capacity_lbs: bestVehicle.remaining,
+                    remaining_capacity_lbs: Math.round(validation.bestVehicle.capacity.remaining),
                     assigned_vehicle: {
-                        id: bestVehicle.id,
-                        name: bestVehicle.name,
-                        capacity_lbs: bestVehicle.total
+                        id: validation.bestVehicle.id,
+                        name: validation.bestVehicle.capacity.name,
+                        capacity_lbs: validation.bestVehicle.capacity.total
                     },
                     estimated_travel_time_minutes: distance_miles ? Math.ceil(distance_miles * 2.5) : null, // 2.5 minutes per mile estimate
                     pickup_location: pickup_location_name
                 });
+            } else {
+                console.log(`Window ${window.display} unavailable: ${validation.reason}`);
             }
         }
 

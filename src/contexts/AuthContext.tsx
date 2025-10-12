@@ -16,10 +16,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const FALLBACK_ADMIN_EMAILS = new Set([
-  'admin@qcscargo.com',
-  'sherwyn.graham@quietcraftsolutions.com'
-])
+// Removed hardcoded admin emails - now using JWT-based role storage
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -89,9 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       }
       
-      // Special cases for admin access (fallback)
+      // Default to customer if no role found
       if (!role) {
-        role = user.email && FALLBACK_ADMIN_EMAILS.has(user.email) ? 'admin' : 'customer'
+        role = 'customer'
       }
       
       console.log('Final role determination:', {
@@ -106,16 +103,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsStaff(role === 'staff' || role === 'admin')
     } catch (error) {
       console.error('Error determining user role:', error)
-      // Fallback to metadata-based role detection
-      let fallbackRole = user.user_metadata?.role ||
-                        user.user_metadata?.user_type ||
-                        user.app_metadata?.role ||
-                        user.app_metadata?.user_type ||
-                        'customer'
-      
-      setUserRole(fallbackRole)
-      setIsAdmin(fallbackRole === 'admin')
-      setIsStaff(fallbackRole === 'staff' || fallbackRole === 'admin')
+      // Default fallback on any error
+      setUserRole('customer')
+      setIsAdmin(false)
+      setIsStaff(false)
     }
   }
 

@@ -217,11 +217,23 @@ Deno.serve(async (req) => {
           }
         : null
 
+    // Zero-tolerance policy: reject ANY discrepancy in rate calculations
     const tamperingDetected =
       discrepancy &&
-      ((discrepancy.totalCostDelta !== null && Math.abs(discrepancy.totalCostDelta) >= 0.01) ||
-        (discrepancy.baseShippingCostDelta !== null && Math.abs(discrepancy.baseShippingCostDelta) >= 0.01) ||
-        (discrepancy.expressSurchargeDelta !== null && Math.abs(discrepancy.expressSurchargeDelta) >= 0.01))
+      ((discrepancy.totalCostDelta !== null && Math.abs(discrepancy.totalCostDelta) > 0) ||
+        (discrepancy.baseShippingCostDelta !== null && Math.abs(discrepancy.baseShippingCostDelta) > 0) ||
+        (discrepancy.expressSurchargeDelta !== null && Math.abs(discrepancy.expressSurchargeDelta) > 0))
+
+    // If tampering is detected, reject the quote immediately
+    if (tamperingDetected) {
+      console.error('Quote rejected due to rate tampering:', {
+        discrepancy,
+        clientSnapshot: normalizedClientSnapshot,
+        serverCalculation: computedRateBreakdown
+      });
+      
+      throw new Error('Quote request rejected: Rate calculation discrepancy detected. Please recalculate your quote.');
+    }
 
     const minDays = serviceType === "express" ? Math.max(1, destination.transit_days_min - 1) : destination.transit_days_min
     const maxDays = serviceType === "express" ? Math.max(2, destination.transit_days_max - 1) : destination.transit_days_max
@@ -324,7 +336,7 @@ Deno.serve(async (req) => {
         rate_per_lb: computedRateBreakdown.ratePerLb
       },
       rate_breakdown: computedRateBreakdown,
-      calculation_flagged: Boolean(tamperingDetected),
+      calculation_flagged: false, // No tampering since we reject on any discrepancy
       calculation_validated_at: issuedAt
     }
 
@@ -332,12 +344,7 @@ Deno.serve(async (req) => {
       quoteMetadata["client_rate_snapshot"] = normalizedClientSnapshot
     }
 
-    if (discrepancy) {
-      quoteMetadata["calculation_discrepancies"] = {
-        ...discrepancy,
-        flagged: tamperingDetected
-      }
-    }
+    // Note: discrepancy tracking removed since we reject on any discrepancy
 
     const quoteData: Record<string, unknown> = {
       customer_id: customerId,
@@ -455,7 +462,7 @@ Deno.serve(async (req) => {
         emailError,
         quoteDocumentHtml,
         pdfAttachmentIncluded: Boolean(quoteDocumentPdfBase64),
-        calculationFlagged: Boolean(tamperingDetected),
+        calculationFlagged: false, // No tampering since we reject on any discrepancy
         billableWeight: roundToTwo(billableWeight),
         dimensionalWeight: dimensionalWeight ? roundToTwo(dimensionalWeight) : null,
         ratePerLb: computedRateBreakdown.ratePerLb
