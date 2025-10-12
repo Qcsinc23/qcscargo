@@ -797,7 +797,7 @@ const AdminCustomerInsights: React.FC = () => {
                         <div>
                           <h4 className="text-sm font-medium text-gray-900 mb-3">Geographic Distribution</h4>
                           <div className="space-y-2">
-                            {selectedCustomer.geographic_distribution?.top_zip_codes?.slice(0, 5).map((item, index) => (
+                            {selectedCustomer.geographic_distribution?.top_zip_codes?.slice(0, 5).map((item: any, index: number) => (
                               <div key={index} className="flex justify-between">
                                 <span className="text-sm text-gray-600">ZIP {item.zip_code}</span>
                                 <span className="text-sm font-medium">{item.booking_count} bookings</span>

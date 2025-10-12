@@ -11,7 +11,7 @@ interface PhoneNumberInputProps {
 }
 
 // Country codes mapping
-const COUNTRY_CODES = {
+const COUNTRY_CODES: Record<string, string> = {
   'United States': '+1',
   'Guyana': '+592',
   'Jamaica': '+1-876',

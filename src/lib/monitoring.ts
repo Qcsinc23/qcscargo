@@ -290,8 +290,8 @@ class MonitoringService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: errorData.error.message,
-          stack: errorData.error.stack,
+          message: errorData.error?.message || 'Unknown error',
+          stack: errorData.error?.stack || '',
           context: errorData.context
         })
       });

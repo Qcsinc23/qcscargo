@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.warn('Database profile lookup skipped due to RLS policy conflict:', {
             user_id: user.id,
             email: user.email,
-            error: dbError.message,
+            error: dbError instanceof Error ? dbError.message : String(dbError),
             using_jwt_metadata: true
           })
           // Continue with JWT metadata only

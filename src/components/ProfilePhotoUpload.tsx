@@ -124,7 +124,7 @@ const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
     setDragActive(false)
 
     const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
+    if (files.length > 0 && files[0]) {
       handleFileSelect(files[0])
     }
   }
@@ -228,7 +228,7 @@ const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({
             accept="image/jpeg,image/png,image/webp,image/jpg"
             onChange={(e) => {
               const files = e.target.files
-              if (files && files.length > 0) {
+              if (files && files.length > 0 && files[0]) {
                 handleFileSelect(files[0])
               }
             }}

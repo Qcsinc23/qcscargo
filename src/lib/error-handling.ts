@@ -212,9 +212,11 @@ export class ErrorHandler {
       
       // Use retry logic if operation is retryable
       if (options.retryable !== false) {
+        const maxRetries = options.maxRetries || 3;
+        const { maxRetries: _, ...apiConfig } = retryConfigs.api;
         const retryResult = await retryWithBackoff(operation, {
-          maxRetries: options.maxRetries || 3,
-          ...retryConfigs.api
+          maxRetries,
+          ...apiConfig
         });
         
         if (retryResult.success) {
@@ -269,9 +271,10 @@ export class ErrorHandler {
         }
         
         results.push({ name, success: false, error });
-        
+
         // Log error
-        monitoring.captureError(error, {
+        const errorToLog = error instanceof Error ? error : new Error(String(error));
+        monitoring.captureError(errorToLog, {
           ...context,
           operation: name,
           isCritical
