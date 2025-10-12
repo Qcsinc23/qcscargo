@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       status: overallStatus,
       checks: healthChecks,
       version: "1.0.0",
-      uptime: process.uptime ? process.uptime() : "unknown"
+      uptime: "unknown"
     }), {
       status: overallStatus === "healthy" ? 200 : 503,
       headers: { ...corsHeaders, "Content-Type": "application/json" }

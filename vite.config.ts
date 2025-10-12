@@ -42,6 +42,10 @@ export default defineConfig({
     cssCodeSplit: true,
     sourcemap: false,
     minify: 'terser',
+    // Reduce preload warnings by being more selective about what gets preloaded
+    modulePreload: {
+      polyfill: false
+    },
     terserOptions: {
       compress: {
         drop_console: isProd,
