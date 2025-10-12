@@ -30,7 +30,7 @@ export interface BusinessMetric {
 }
 
 class MonitoringService {
-  private errorQueue: Array<{ error: Error; context: ErrorContext }> = [];
+  private errorQueue: Array<{ error?: Error; context: ErrorContext; message?: string; level?: string; timestamp?: string }> = [];
   private performanceQueue: PerformanceMetric[] = [];
   private businessQueue: BusinessMetric[] = [];
   private sessionId: string;
@@ -116,6 +116,30 @@ class MonitoringService {
   }
 
   /**
+   * Capture warning events
+   */
+  captureWarning(message: string, context: ErrorContext = { component: 'unknown', action: 'warning' }): void {
+    const warningData = {
+      message,
+      context,
+      timestamp: new Date().toISOString(),
+      level: 'warning'
+    };
+
+    this.errorQueue.push(warningData);
+
+    // Log to console in development
+    if (import.meta.env.DEV) {
+      console.warn('Warning captured:', message, context);
+    }
+
+    // Send to backend if online
+    if (this.isOnline) {
+      this.sendErrorToBackend(warningData);
+    }
+  }
+
+  /**
    * Track performance metrics
    */
   trackPerformance(metric: PerformanceMetric): void {
@@ -173,6 +197,7 @@ class MonitoringService {
           name: 'api_call_duration',
           value: duration,
           unit: 'milliseconds',
+          timestamp: new Date().toISOString(),
           metadata: {
             endpoint: context.endpoint,
             method: context.method,
@@ -187,6 +212,7 @@ class MonitoringService {
           name: 'api_call_duration',
           value: duration,
           unit: 'milliseconds',
+          timestamp: new Date().toISOString(),
           metadata: {
             endpoint: context.endpoint,
             method: context.method,
@@ -216,7 +242,8 @@ class MonitoringService {
     this.trackBusiness({
       event: `user_action_${action}`,
       properties,
-      userId: this.getCurrentUserId()
+      userId: this.getCurrentUserId(),
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -227,7 +254,8 @@ class MonitoringService {
     this.trackBusiness({
       event: `booking_${event}`,
       properties,
-      userId: this.getCurrentUserId()
+      userId: this.getCurrentUserId(),
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -238,7 +266,8 @@ class MonitoringService {
     this.trackBusiness({
       event: `quote_${event}`,
       properties,
-      userId: this.getCurrentUserId()
+      userId: this.getCurrentUserId(),
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -253,7 +282,7 @@ class MonitoringService {
   /**
    * Send error to backend
    */
-  private async sendErrorToBackend(errorData: { error: Error; context: ErrorContext }): Promise<void> {
+  private async sendErrorToBackend(errorData: { error?: Error; context: ErrorContext; message?: string; level?: string }): Promise<void> {
     try {
       await fetch('/api/errors', {
         method: 'POST',

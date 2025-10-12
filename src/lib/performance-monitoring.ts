@@ -3,6 +3,7 @@
  */
 
 import { monitoring } from './monitoring';
+import type { ErrorContext } from './error-handling';
 
 export interface PerformanceMetric {
   name: string;
@@ -79,11 +80,13 @@ class PerformanceMonitor {
       });
       
       monitoring.captureWarning('Slow database query', {
+        component: 'database',
+        action: 'slow_query',
         query: metric.query,
         duration,
         rows,
-        context
-      });
+        context: context || 'unknown'
+      } as ErrorContext);
     }
   }
 
@@ -117,12 +120,14 @@ class PerformanceMonitor {
       });
       
       monitoring.captureWarning('Slow API call', {
+        component: 'api',
+        action: 'slow_call',
         endpoint,
         method,
         duration,
         statusCode,
         userId
-      });
+      } as ErrorContext);
     }
   }
 
@@ -402,7 +407,10 @@ export class WebVitalsMonitor {
     if ('PerformanceObserver' in window) {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          this.recordVital('first-input-delay', entry.processingStart - entry.startTime);
+          const fidEntry = entry as PerformanceEventTiming;
+          if (fidEntry.processingStart) {
+            this.recordVital('first-input-delay', fidEntry.processingStart - fidEntry.startTime);
+          }
         }
       });
       

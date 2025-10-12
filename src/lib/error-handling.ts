@@ -11,6 +11,12 @@ export interface ErrorContext {
   userId?: string;
   sessionId?: string;
   metadata?: Record<string, any>;
+  classification?: ErrorClassification;
+  operation?: string;
+  timestamp?: string;
+  query?: string;
+  endpoint?: string;
+  [key: string]: any; // Allow additional properties
 }
 
 export interface ErrorClassification {
@@ -170,7 +176,7 @@ export class ErrorHandler {
         ...context,
         classification,
         timestamp: new Date().toISOString()
-      });
+      } as ErrorContext);
       
       return {
         success: false,
@@ -269,7 +275,7 @@ export class ErrorHandler {
           ...context,
           operation: name,
           isCritical
-        });
+        } as ErrorContext);
       }
     }
     

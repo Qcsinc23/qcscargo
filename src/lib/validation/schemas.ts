@@ -57,7 +57,7 @@ export const createBookingSchema = z.object({
   window_start: z.string().datetime('Invalid start time format'),
   window_end: z.string().datetime('Invalid end time format'),
   address: addressSchema,
-  pickup_or_drop: z.enum(['pickup', 'dropoff'], 'Invalid pickup/dropoff type'),
+  pickup_or_drop: z.enum(['pickup', 'dropoff'], { message: 'Invalid pickup/dropoff type' }),
   service_type: z.enum(['standard', 'express', 'priority']).default('standard'),
   estimated_weight: positiveNumber,
   notes: z.string().max(1000, 'Notes too long').optional(),
@@ -104,7 +104,7 @@ export const quoteRequestSchema = z.object({
 // Shipment validation
 export const createShipmentSchema = z.object({
   destination_id: z.number().int().positive('Invalid destination ID'),
-  service_level: z.enum(['standard', 'express'], 'Invalid service level'),
+  service_level: z.enum(['standard', 'express'], { message: 'Invalid service level' }),
   pickup_date: z.string().datetime().optional(),
   special_instructions: z.string().max(1000, 'Special instructions too long').optional(),
   declared_value: nonNegativeNumber.optional(),
