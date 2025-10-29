@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Clock,
   Package,
-  AlertTriangle
+  AlertTriangle,
+  ScanBarcode
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -248,7 +249,7 @@ const AdminDashboard: React.FC = () => {
       {/* Quick Actions */}
       <div className="mt-8 bg-white rounded-lg shadow-sm border p-6">
         <h2 className="text-lg font-semibold text-rose-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <button
             onClick={() => navigate('/admin/shipments')}
             className="flex items-center p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
@@ -287,6 +288,16 @@ const AdminDashboard: React.FC = () => {
             <div>
               <h3 className="font-medium text-rose-900">Customer Insights</h3>
               <p className="text-sm text-gray-500">Analyze customer data</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate('/admin/package-receiving')}
+            className="flex items-center p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors hover:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2"
+          >
+            <ScanBarcode className="h-8 w-8 text-emerald-700 mr-4" />
+            <div>
+              <h3 className="font-medium text-rose-900">Package Receiving</h3>
+              <p className="text-sm text-gray-500">Scan and log arrivals</p>
             </div>
           </button>
         </div>
