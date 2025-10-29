@@ -17,7 +17,9 @@ import {
   CheckCircle,
   Truck,
   LogOut,
-  User
+  User,
+  Inbox,
+  Trash2
 } from 'lucide-react'
 import { BreadcrumbNavigation } from '@/components/BreadcrumbNavigation'
 import { useVirtualAddress } from '@/hooks/useVirtualAddress'
@@ -85,6 +87,22 @@ interface DashboardStats {
   active_quotes: number
 }
 
+type PackageStatus =
+  | 'received_at_warehouse'
+  | 'pending_pickup'
+  | 'picked_up'
+  | 'forwarded'
+  | 'disposed'
+
+interface ReceivedPackage {
+  id: string
+  tracking_number: string
+  status: PackageStatus
+  created_at: string
+  notes: string | null
+  carrier: string | null
+}
+
 const statusConfig = {
   pending_pickup: {
     label: 'Pending Pickup',
@@ -141,6 +159,7 @@ export default function CustomerDashboard() {
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([])
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [receivedPackages, setReceivedPackages] = useState<ReceivedPackage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [signingOut, setSigningOut] = useState(false)
@@ -190,7 +209,8 @@ export default function CustomerDashboard() {
         profileResult,
         shipmentsResult,
         bookingsResult,
-        quotesResult
+        quotesResult,
+        receivedPackagesResult
       ] = await Promise.all([
         // Load user profile
         supabase
@@ -220,7 +240,14 @@ export default function CustomerDashboard() {
           .select('*')
           .eq('customer_id', user?.id)
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(5),
+
+        // Load recently received packages
+        supabase
+          .from('received_packages')
+          .select('id, tracking_number, status, created_at, notes, carrier')
+          .order('created_at', { ascending: false })
+          .limit(10)
       ])
 
       // Handle profile data
@@ -264,6 +291,20 @@ export default function CustomerDashboard() {
       const { data: quotesData, error: quotesError } = quotesResult
       if (!quotesError) {
         setQuotes(quotesData || [])
+      }
+
+      const { data: receivedPackagesData, error: receivedPackagesError } = receivedPackagesResult
+      if (!receivedPackagesError) {
+        const sanitized = (receivedPackagesData || []).map((pkg: any) => ({
+          id: pkg.id,
+          tracking_number: pkg.tracking_number,
+          status: (pkg.status || 'received_at_warehouse') as PackageStatus,
+          created_at: pkg.created_at,
+          notes: pkg.notes,
+          carrier: pkg.carrier
+        })) as ReceivedPackage[]
+
+        setReceivedPackages(sanitized)
       }
 
       // Calculate stats
@@ -319,6 +360,50 @@ export default function CustomerDashboard() {
       day: 'numeric',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    })
+  }
+
+  const getPackageStatusBadge = (status: PackageStatus) => {
+    const badgeClassMap: Record<PackageStatus, string> = {
+      received_at_warehouse: 'text-blue-600 border-blue-200 bg-blue-50',
+      pending_pickup: 'text-amber-600 border-amber-200 bg-amber-50',
+      picked_up: 'text-green-600 border-green-200 bg-green-50',
+      forwarded: 'text-violet-600 border-violet-200 bg-violet-50',
+      disposed: 'text-red-600 border-red-200 bg-red-50'
+    }
+
+    const labelMap: Record<PackageStatus, string> = {
+      received_at_warehouse: 'At Warehouse',
+      pending_pickup: 'Ready for Pickup',
+      picked_up: 'Picked Up',
+      forwarded: 'Forwarded',
+      disposed: 'Disposed'
+    }
+
+    const IconMap: Record<PackageStatus, typeof Package> = {
+      received_at_warehouse: Package,
+      pending_pickup: Clock,
+      picked_up: CheckCircle,
+      forwarded: Truck,
+      disposed: Trash2
+    }
+
+    const Icon = IconMap[status]
+
+    return (
+      <Badge variant="outline" className={badgeClassMap[status]}>
+        <Icon className="h-3 w-3 mr-1" />
+        {labelMap[status]}
+      </Badge>
+    )
   }
 
   if (loading) {
@@ -402,6 +487,43 @@ export default function CustomerDashboard() {
             </div>
           )}
           <VirtualAddressCard address={address} loading={addressLoading} onRefresh={fetchAddress} />
+        </div>
+
+        {/* Received Packages */}
+        <div className="space-y-3 mb-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-slate-900">Recently Received Packages</h2>
+            {receivedPackages.length > 0 && (
+              <span className="text-xs text-slate-500">Showing the 10 most recent entries</span>
+            )}
+          </div>
+          {receivedPackages.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 p-6 text-center">
+              <Inbox className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+              <h3 className="font-medium text-slate-900 mb-1">No packages waiting</h3>
+              <p className="text-sm text-slate-600">
+                We'll let you know as soon as something arrives for your virtual mailbox.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {receivedPackages.map((pkg) => (
+                <div key={pkg.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-mono text-sm text-slate-900">{pkg.tracking_number}</p>
+                      <p className="text-xs text-slate-500">Logged {formatDateTime(pkg.created_at)}</p>
+                      {pkg.notes && <p className="text-xs text-amber-600 mt-1">Note: {pkg.notes}</p>}
+                    </div>
+                    <div className="text-right space-y-2">
+                      {getPackageStatusBadge(pkg.status)}
+                      <p className="text-xs text-slate-500">{pkg.carrier || 'Carrier TBD'}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Recent Quotes - compact cards */}

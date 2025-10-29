@@ -59,6 +59,7 @@ const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'))
 const AdminMailboxes = lazy(() => import('@/pages/admin/AdminMailboxes'))
 const AdminQuoteManagement = lazy(() => import('@/pages/admin/AdminQuoteManagement'))
 const AdminMonitoring = lazy(() => import('@/pages/admin/AdminMonitoring'))
+const AdminPackageReceiving = lazy(() => import('@/pages/admin/AdminPackageReceiving'))
 
 function App() {
   return (
@@ -155,6 +156,7 @@ function App() {
                   <Route path="vehicles/:id/edit" element={<VehicleEditPage />} />
                   <Route path="customers" element={<AdminCustomerInsights />} />
                   <Route path="mailboxes" element={<AdminMailboxes />} />
+                  <Route path="package-receiving" element={<AdminPackageReceiving />} />
                   <Route path="monitoring" element={<AdminMonitoring />} />
                   <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
                   <Route path="settings" element={<AdminSettings />} />
