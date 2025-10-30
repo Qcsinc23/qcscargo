@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BarcodeScannerComponent } from 'react-qr-barcode-scanner'
+import BarcodeScannerComponent from 'react-qr-barcode-scanner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Camera, CameraOff, X } from 'lucide-react'
@@ -126,7 +126,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose,
               <>
                 <BarcodeScannerComponent
                   onUpdate={handleScan}
-                  onError={(err) => {
+                  onError={(err: any) => {
                     if (err && err.name !== 'NotFoundException') {
                       console.error('Scanner error:', err)
                     }
