@@ -1,0 +1,308 @@
+-- Migration: 1758200003_auth_standardization_safe.sql
+-- Purpose: Safe authentication schema standardization with proper error handling
+-- Replaces: 1758200000_standardize_auth_schema.sql
+-- Created: 2025-10-12
+-- Status: PRODUCTION READY
+
+-- This migration standardizes user roles and authentication without requiring
+-- direct access to auth.users table, making it safe for all environments
+
+BEGIN;
+
+-- ============================================================================
+-- PHASE 1: Schema Preparation
+-- ============================================================================
+
+-- Add role column if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public'
+          AND table_name = 'user_profiles' 
+          AND column_name = 'role'
+    ) THEN
+        ALTER TABLE public.user_profiles 
+        ADD COLUMN role TEXT DEFAULT 'customer';
+        RAISE NOTICE 'Added role column to user_profiles';
+    ELSE
+        RAISE NOTICE 'Role column already exists in user_profiles';
+    END IF;
+END $$;
+
+-- ============================================================================
+-- PHASE 2: Data Migration
+-- ============================================================================
+
+-- Safely migrate user_type to role (if user_type exists)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public'
+          AND table_name = 'user_profiles' 
+          AND column_name = 'user_type'
+    ) THEN
+        UPDATE public.user_profiles 
+        SET role = CASE 
+            WHEN user_type = 'admin' THEN 'admin'
+            WHEN user_type = 'staff' THEN 'staff'
+            WHEN user_type = 'customer' THEN 'customer'
+            ELSE COALESCE(role, 'customer')
+        END
+        WHERE user_type IS NOT NULL 
+          AND (role IS NULL OR role = 'customer');
+        
+        RAISE NOTICE 'Migrated user_type data to role column';
+    END IF;
+END $$;
+
+-- Ensure all users have a role
+UPDATE public.user_profiles 
+SET role = 'customer' 
+WHERE role IS NULL;
+
+-- ============================================================================
+-- PHASE 3: Constraints and Indexes
+-- ============================================================================
+
+-- Add check constraint for valid roles
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.constraint_column_usage 
+        WHERE table_name = 'user_profiles' 
+          AND constraint_name = 'chk_role_valid'
+    ) THEN
+        ALTER TABLE public.user_profiles 
+        ADD CONSTRAINT chk_role_valid 
+        CHECK (role IN ('admin', 'customer', 'staff'));
+        RAISE NOTICE 'Added role validation constraint';
+    END IF;
+END $$;
+
+-- Add index for role-based queries
+CREATE INDEX IF NOT EXISTS idx_user_profiles_role 
+ON public.user_profiles(role) 
+WHERE role IS NOT NULL;
+
+-- Add comment to document the role column
+COMMENT ON COLUMN public.user_profiles.role IS 
+'User role: admin (full access), staff (limited admin), customer (standard user). Synced with JWT claims.';
+
+-- ============================================================================
+-- PHASE 4: Helper Functions (Public Schema Only)
+-- ============================================================================
+
+-- Function to get user role from database
+-- Note: This does NOT attempt to update auth.users
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    user_role TEXT;
+BEGIN
+    -- Get role from user_profiles table
+    SELECT up.role INTO user_role
+    FROM public.user_profiles up
+    WHERE up.id = auth.uid();
+    
+    -- Return role or default to customer
+    RETURN COALESCE(user_role, 'customer');
+EXCEPTION
+    WHEN OTHERS THEN
+        -- If any error, return customer as safe default
+        RETURN 'customer';
+END;
+$$;
+
+-- Optimized admin check function
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN public.get_user_role() = 'admin';
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN FALSE;
+END;
+$$;
+
+-- Optimized staff check function
+CREATE OR REPLACE FUNCTION public.is_staff()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN public.get_user_role() IN ('admin', 'staff');
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN FALSE;
+END;
+$$;
+
+-- Function to check if user has specific role
+CREATE OR REPLACE FUNCTION public.has_role(required_role TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN public.get_user_role() = required_role;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN FALSE;
+END;
+$$;
+
+-- ============================================================================
+-- PHASE 5: RLS Policies (Optimized and Safe)
+-- ============================================================================
+
+-- Drop old policies if they exist
+DROP POLICY IF EXISTS "service_role_access" ON public.user_profiles;
+DROP POLICY IF EXISTS "users_own_profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "authenticated_insert" ON public.user_profiles;
+DROP POLICY IF EXISTS "user_profiles_access" ON public.user_profiles;
+
+-- Create unified access policy
+CREATE POLICY "user_profiles_unified_access" ON public.user_profiles
+    FOR ALL 
+    USING (
+        -- Service role has full access
+        auth.role() = 'service_role'
+        OR
+        -- Users can access their own profile
+        auth.uid() = id
+        OR
+        -- Admins can access all profiles
+        public.is_admin()
+    )
+    WITH CHECK (
+        -- Service role can do anything
+        auth.role() = 'service_role'
+        OR
+        -- Users can update their own profile (but not change role)
+        (auth.uid() = id AND role = OLD.role)
+        OR
+        -- Admins can do anything
+        public.is_admin()
+    );
+
+-- ============================================================================
+-- PHASE 6: Grant Permissions
+-- ============================================================================
+
+-- Grant execute permissions on helper functions
+GRANT EXECUTE ON FUNCTION public.get_user_role() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_staff() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role(TEXT) TO authenticated;
+
+-- Grant select on user_profiles to authenticated users (controlled by RLS)
+GRANT SELECT ON public.user_profiles TO authenticated;
+GRANT UPDATE ON public.user_profiles TO authenticated;
+
+-- ============================================================================
+-- PHASE 7: Validation
+-- ============================================================================
+
+DO $$
+DECLARE
+    total_users INTEGER;
+    users_with_roles INTEGER;
+    admin_count INTEGER;
+    customer_count INTEGER;
+    staff_count INTEGER;
+BEGIN
+    -- Count users
+    SELECT COUNT(*) INTO total_users FROM public.user_profiles;
+    SELECT COUNT(*) INTO users_with_roles FROM public.user_profiles WHERE role IS NOT NULL;
+    SELECT COUNT(*) INTO admin_count FROM public.user_profiles WHERE role = 'admin';
+    SELECT COUNT(*) INTO customer_count FROM public.user_profiles WHERE role = 'customer';
+    SELECT COUNT(*) INTO staff_count FROM public.user_profiles WHERE role = 'staff';
+    
+    -- Validate all users have roles
+    IF total_users != users_with_roles THEN
+        RAISE EXCEPTION 'Migration failed: % users without roles', (total_users - users_with_roles);
+    END IF;
+    
+    -- Log success
+    RAISE NOTICE '✅ Auth standardization completed successfully';
+    RAISE NOTICE 'Total users: %', total_users;
+    RAISE NOTICE 'Admins: %', admin_count;
+    RAISE NOTICE 'Staff: %', staff_count;
+    RAISE NOTICE 'Customers: %', customer_count;
+END $$;
+
+-- ============================================================================
+-- PHASE 8: Migration Metadata
+-- ============================================================================
+
+-- Create migration log entry
+DO $$
+BEGIN
+    -- Only create if we have a migrations table
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+          AND table_name = 'migration_rollbacks'
+    ) THEN
+        INSERT INTO public.migration_rollbacks (
+            migration_name, 
+            rollback_sql,
+            notes
+        )
+        VALUES (
+            '1758200003_auth_standardization_safe',
+            -- Rollback SQL
+            $$
+            -- Rollback for 1758200003_auth_standardization_safe
+            BEGIN;
+            
+            -- Drop policies
+            DROP POLICY IF EXISTS "user_profiles_unified_access" ON public.user_profiles;
+            
+            -- Drop functions
+            DROP FUNCTION IF EXISTS public.get_user_role();
+            DROP FUNCTION IF EXISTS public.is_admin();
+            DROP FUNCTION IF EXISTS public.is_staff();
+            DROP FUNCTION IF EXISTS public.has_role(TEXT);
+            
+            -- Remove role column (optional - data will be preserved in user_type if it exists)
+            -- ALTER TABLE public.user_profiles DROP COLUMN IF EXISTS role;
+            
+            COMMIT;
+            $$,
+            'Safe auth standardization - no auth.users modifications'
+        )
+        ON CONFLICT (migration_name) DO NOTHING;
+    END IF;
+END $$;
+
+COMMIT;
+
+-- ============================================================================
+-- Post-Migration Instructions
+-- ============================================================================
+
+-- To sync role to JWT metadata (requires Supabase Dashboard or Admin API):
+-- 1. Go to Supabase Dashboard > Authentication > Users
+-- 2. For each admin user, update User Metadata:
+--    { "role": "admin" }
+-- 3. Or use the Supabase Admin API to update app_metadata programmatically
+--
+-- This migration works WITHOUT JWT sync, using database lookup as fallback

@@ -1,0 +1,374 @@
+-- Migration: 1758200004_simple_rollback_tracking.sql
+-- Purpose: Simple migration tracking and rollback documentation system
+-- Replaces: 1758200001_migration_rollback_system.sql (overly complex)
+-- Created: 2025-10-12
+-- Status: PRODUCTION READY
+
+-- This migration creates a simple, maintainable system for tracking migrations
+-- and documenting rollback procedures without complex stored procedures
+
+BEGIN;
+
+-- ============================================================================
+-- PHASE 1: Create Migration Tracking Table
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.migration_history (
+    id SERIAL PRIMARY KEY,
+    migration_name TEXT NOT NULL UNIQUE,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    applied_by TEXT DEFAULT CURRENT_USER,
+    description TEXT,
+    rollback_notes TEXT,
+    dependencies TEXT[], -- Array of migration names this depends on
+    status TEXT DEFAULT 'applied' CHECK (status IN ('applied', 'rolled_back', 'failed')),
+    execution_time_ms INTEGER, -- How long the migration took
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add comment to table
+COMMENT ON TABLE public.migration_history IS 
+'Tracks applied migrations with rollback documentation. Use rollback_notes for manual rollback instructions.';
+
+-- ============================================================================
+-- PHASE 2: Create Indexes
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_migration_history_name 
+ON public.migration_history(migration_name);
+
+CREATE INDEX IF NOT EXISTS idx_migration_history_status 
+ON public.migration_history(status);
+
+CREATE INDEX IF NOT EXISTS idx_migration_history_applied_at 
+ON public.migration_history(applied_at DESC);
+
+-- ============================================================================
+-- PHASE 3: Simple Helper Functions
+-- ============================================================================
+
+-- Function to register a migration (called at end of each migration)
+CREATE OR REPLACE FUNCTION public.register_migration(
+    p_migration_name TEXT,
+    p_description TEXT DEFAULT NULL,
+    p_rollback_notes TEXT DEFAULT NULL,
+    p_dependencies TEXT[] DEFAULT NULL
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    INSERT INTO public.migration_history (
+        migration_name,
+        description,
+        rollback_notes,
+        dependencies
+    )
+    VALUES (
+        p_migration_name,
+        p_description,
+        p_rollback_notes,
+        p_dependencies
+    )
+    ON CONFLICT (migration_name) 
+    DO UPDATE SET
+        description = COALESCE(EXCLUDED.description, migration_history.description),
+        rollback_notes = COALESCE(EXCLUDED.rollback_notes, migration_history.rollback_notes),
+        dependencies = COALESCE(EXCLUDED.dependencies, migration_history.dependencies),
+        updated_at = NOW();
+    
+    RAISE NOTICE 'Migration registered: %', p_migration_name;
+END;
+$$;
+
+-- Function to list applied migrations
+CREATE OR REPLACE FUNCTION public.list_migrations(
+    p_status TEXT DEFAULT NULL
+)
+RETURNS TABLE(
+    migration_name TEXT,
+    applied_at TIMESTAMPTZ,
+    status TEXT,
+    description TEXT,
+    has_rollback_notes BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        mh.migration_name,
+        mh.applied_at,
+        mh.status,
+        mh.description,
+        (mh.rollback_notes IS NOT NULL AND mh.rollback_notes != '') as has_rollback_notes
+    FROM public.migration_history mh
+    WHERE p_status IS NULL OR mh.status = p_status
+    ORDER BY mh.applied_at DESC;
+END;
+$$;
+
+-- Function to get rollback instructions for a migration
+CREATE OR REPLACE FUNCTION public.get_rollback_notes(
+    p_migration_name TEXT
+)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_rollback_notes TEXT;
+BEGIN
+    SELECT rollback_notes INTO v_rollback_notes
+    FROM public.migration_history
+    WHERE migration_name = p_migration_name;
+    
+    IF v_rollback_notes IS NULL OR v_rollback_notes = '' THEN
+        RETURN 'No rollback notes available for migration: ' || p_migration_name;
+    END IF;
+    
+    RETURN v_rollback_notes;
+END;
+$$;
+
+-- Function to check migration dependencies
+CREATE OR REPLACE FUNCTION public.check_migration_dependencies(
+    p_migration_name TEXT
+)
+RETURNS TABLE(
+    dependency TEXT,
+    is_applied BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_dependencies TEXT[];
+    v_dep TEXT;
+BEGIN
+    SELECT dependencies INTO v_dependencies
+    FROM public.migration_history
+    WHERE migration_name = p_migration_name;
+    
+    IF v_dependencies IS NULL OR array_length(v_dependencies, 1) IS NULL THEN
+        RAISE NOTICE 'No dependencies for migration: %', p_migration_name;
+        RETURN;
+    END IF;
+    
+    FOREACH v_dep IN ARRAY v_dependencies
+    LOOP
+        RETURN QUERY
+        SELECT 
+            v_dep,
+            EXISTS(
+                SELECT 1 FROM public.migration_history 
+                WHERE migration_name = v_dep 
+                  AND status = 'applied'
+            ) as is_applied;
+    END LOOP;
+END;
+$$;
+
+-- ============================================================================
+-- PHASE 4: Enable RLS
+-- ============================================================================
+
+ALTER TABLE public.migration_history ENABLE ROW LEVEL SECURITY;
+
+-- Only admins and service role can view migration history
+CREATE POLICY "migration_history_admin_access" ON public.migration_history
+    FOR SELECT
+    USING (
+        auth.role() = 'service_role' 
+        OR public.is_admin()
+    );
+
+-- Only service role can modify migration history
+CREATE POLICY "migration_history_service_access" ON public.migration_history
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- ============================================================================
+-- PHASE 5: Grant Permissions
+-- ============================================================================
+
+GRANT EXECUTE ON FUNCTION public.register_migration(TEXT, TEXT, TEXT, TEXT[]) TO service_role;
+GRANT EXECUTE ON FUNCTION public.list_migrations(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_rollback_notes(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.check_migration_dependencies(TEXT) TO authenticated;
+
+GRANT SELECT ON public.migration_history TO authenticated;
+GRANT ALL ON public.migration_history TO service_role;
+
+-- ============================================================================
+-- PHASE 6: Register Existing Migrations with Rollback Notes
+-- ============================================================================
+
+-- Register this migration
+SELECT public.register_migration(
+    '1758200004_simple_rollback_tracking',
+    'Simple migration tracking system with rollback documentation',
+    $$
+    -- Rollback for 1758200004_simple_rollback_tracking
+    DROP TABLE IF EXISTS public.migration_history CASCADE;
+    DROP FUNCTION IF EXISTS public.register_migration(TEXT, TEXT, TEXT, TEXT[]);
+    DROP FUNCTION IF EXISTS public.list_migrations(TEXT);
+    DROP FUNCTION IF EXISTS public.get_rollback_notes(TEXT);
+    DROP FUNCTION IF EXISTS public.check_migration_dependencies(TEXT);
+    $$,
+    NULL
+);
+
+-- Register the safe auth standardization migration
+SELECT public.register_migration(
+    '1758200003_auth_standardization_safe',
+    'Safe authentication schema standardization without auth.users modifications',
+    $$
+    -- Rollback for 1758200003_auth_standardization_safe
+    BEGIN;
+    
+    -- Drop policies
+    DROP POLICY IF EXISTS "user_profiles_unified_access" ON public.user_profiles;
+    
+    -- Drop functions
+    DROP FUNCTION IF EXISTS public.get_user_role();
+    DROP FUNCTION IF EXISTS public.is_admin();
+    DROP FUNCTION IF EXISTS public.is_staff();
+    DROP FUNCTION IF EXISTS public.has_role(TEXT);
+    
+    -- Optionally drop role column (uncomment if needed)
+    -- ALTER TABLE public.user_profiles DROP COLUMN IF EXISTS role;
+    
+    COMMIT;
+    $$,
+    NULL
+);
+
+-- Register the admin access policies migration
+SELECT public.register_migration(
+    '1758200002_fix_admin_access_policies',
+    'Fix admin access to shipping_quotes and create system_health table',
+    $$
+    -- Rollback for 1758200002_fix_admin_access_policies
+    BEGIN;
+    
+    -- Drop policies
+    DROP POLICY IF EXISTS "Admins can view all quotes" ON public.shipping_quotes;
+    DROP POLICY IF EXISTS "Admins can view system health" ON public.system_health;
+    DROP POLICY IF EXISTS "Service role can manage system health" ON public.system_health;
+    
+    -- Drop table
+    DROP TABLE IF EXISTS public.system_health CASCADE;
+    
+    COMMIT;
+    $$,
+    ARRAY['1758200003_auth_standardization_safe'] -- Depends on role functions
+);
+
+-- Register the idempotency constraint migration
+SELECT public.register_migration(
+    '1758100001_add_idempotency_constraint',
+    'Add unique constraint on bookings.idempotency_key to prevent duplicates',
+    $$
+    -- Rollback for 1758100001_add_idempotency_constraint
+    BEGIN;
+    
+    DROP INDEX IF EXISTS idx_bookings_idempotency_key;
+    ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS unique_idempotency_key;
+    
+    COMMIT;
+    $$,
+    NULL -- No dependencies
+);
+
+-- ============================================================================
+-- PHASE 7: Create View for Easy Migration Overview
+-- ============================================================================
+
+CREATE OR REPLACE VIEW public.migration_overview AS
+SELECT 
+    mh.migration_name,
+    mh.applied_at,
+    mh.status,
+    mh.description,
+    CASE 
+        WHEN mh.rollback_notes IS NOT NULL AND mh.rollback_notes != '' 
+        THEN '✅ Available' 
+        ELSE '⚠️ Missing' 
+    END as rollback_documentation,
+    CASE 
+        WHEN mh.dependencies IS NULL OR array_length(mh.dependencies, 1) IS NULL 
+        THEN '✅ None' 
+        ELSE array_length(mh.dependencies, 1)::text || ' dependencies' 
+    END as dependency_info,
+    mh.execution_time_ms,
+    mh.applied_by
+FROM public.migration_history mh
+ORDER BY mh.applied_at DESC;
+
+-- Grant view access
+GRANT SELECT ON public.migration_overview TO authenticated;
+
+COMMENT ON VIEW public.migration_overview IS 
+'Easy-to-read overview of all migrations with rollback and dependency status';
+
+-- ============================================================================
+-- PHASE 8: Validation
+-- ============================================================================
+
+DO $$
+DECLARE
+    v_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_count FROM public.migration_history;
+    
+    IF v_count < 4 THEN
+        RAISE WARNING 'Expected at least 4 registered migrations, found %', v_count;
+    ELSE
+        RAISE NOTICE '✅ Migration tracking system initialized successfully';
+        RAISE NOTICE 'Total migrations registered: %', v_count;
+    END IF;
+END $$;
+
+COMMIT;
+
+-- ============================================================================
+-- Usage Instructions
+-- ============================================================================
+
+-- To view all migrations:
+--   SELECT * FROM public.migration_overview;
+
+-- To get rollback notes for a specific migration:
+--   SELECT public.get_rollback_notes('migration_name');
+
+-- To check dependencies:
+--   SELECT * FROM public.check_migration_dependencies('migration_name');
+
+-- To register a new migration (add to end of migration file):
+--   SELECT public.register_migration(
+--       'migration_name',
+--       'Description',
+--       'Rollback SQL here',
+--       ARRAY['dependency1', 'dependency2']
+--   );
+
+-- ============================================================================
+-- Best Practices
+-- ============================================================================
+
+-- 1. Always document rollback procedures in the rollback_notes
+-- 2. Test rollback procedures before applying to production
+-- 3. Document dependencies clearly
+-- 4. Keep rollback SQL simple and idempotent
+-- 5. Create backups before applying risky migrations
