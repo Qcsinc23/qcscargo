@@ -39,6 +39,12 @@ const AdminQuoteManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [processingIds, setProcessingIds] = useState<number[]>([])
 
+  // Stateful fallback tracking: Remember if RLS has failed before
+  const [hasRlsFailed, setHasRlsFailed] = useState(() => {
+    const stored = localStorage.getItem('admin_quotes_rls_failed')
+    return stored === 'true'
+  })
+
   useEffect(() => {
     loadQuotes()
   }, [])
@@ -47,10 +53,40 @@ const AdminQuoteManagement: React.FC = () => {
     try {
       setLoading(true)
       setError(null)
+
+      // If RLS has failed before, skip direct query and use service-role function immediately
+      if (hasRlsFailed) {
+        console.log('Previous RLS failure detected, using service-role function')
+        await loadQuotesViaFunction()
+        return
+      }
+
+      // Try direct query first
       const { data, error } = await supabase
         .from('shipping_quotes')
         .select('*')
         .order('created_at', { ascending: false })
+
+      // Detect RLS denial or permission errors
+      const isRlsDenial = error && (
+        error.message?.toLowerCase().includes('permission denied') ||
+        error.message?.toLowerCase().includes('rls') ||
+        error.message?.toLowerCase().includes('policy') ||
+        error.code === 'PGRST301' || // PostgREST permission denied
+        error.code === '42501' // PostgreSQL insufficient privilege
+      )
+
+      if (isRlsDenial) {
+        console.warn('RLS denial detected, falling back to service-role function:', error)
+
+        // Mark RLS as failed and persist to localStorage
+        setHasRlsFailed(true)
+        localStorage.setItem('admin_quotes_rls_failed', 'true')
+
+        // Retry with service-role function
+        await loadQuotesViaFunction()
+        return
+      }
 
       if (error) {
         throw error
@@ -63,6 +99,28 @@ const AdminQuoteManagement: React.FC = () => {
       toast.error(message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadQuotesViaFunction = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-quotes-list', {
+        method: 'POST'
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch quotes via service-role')
+      }
+
+      if (!data || !data.success) {
+        throw new Error('Invalid response from quotes service')
+      }
+
+      setQuotes((data.data as ShippingQuote[]) || [])
+      console.log(`Successfully loaded ${data.count || 0} quotes via service-role function`)
+    } catch (err) {
+      // If service-role function fails, this is a real error
+      throw err
     }
   }
 
