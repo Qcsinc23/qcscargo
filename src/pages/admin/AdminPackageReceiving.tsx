@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { CheckCircle, ScanBarcode, Search, UserCheck, UserX, X } from 'lucide-react'
+import { CheckCircle, ScanBarcode, Search, UserCheck, UserX, X, Camera } from 'lucide-react'
+import { BarcodeScanner } from '@/components/BarcodeScanner'
 
 type PackageDraft = {
   trackingNumber: string
@@ -27,6 +28,7 @@ const AdminPackageReceiving: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false)
   const [verificationError, setVerificationError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isScannerOpen, setIsScannerOpen] = useState(false)
 
   const scannerInputRef = useRef<HTMLInputElement | null>(null)
   const debounceTimer = useRef<number | undefined>(undefined)
@@ -84,6 +86,22 @@ const AdminPackageReceiving: React.FC = () => {
 
     event.preventDefault()
     attemptAddTracking()
+  }
+
+  const handleCameraScan = (barcode: string) => {
+    const normalized = barcode.trim().toUpperCase()
+    if (!normalized) {
+      return
+    }
+
+    if (packages.some((pkg) => pkg.trackingNumber === normalized)) {
+      toast.error('This tracking number is already in this batch.')
+      return
+    }
+
+    setPackages((prev) => [...prev, { trackingNumber: normalized, notes: '' }])
+    toast.success(`Added: ${normalized}`)
+    setIsScannerOpen(false)
   }
 
   const attemptAddTracking = () => {
@@ -251,19 +269,34 @@ const AdminPackageReceiving: React.FC = () => {
               <div className="space-y-5 border-t border-slate-200 pt-5">
                 <div className="space-y-2">
                   <Label htmlFor="trackingInput">Scan Tracking Number</Label>
-                  <div className="relative">
-                    <Input
-                      id="trackingInput"
-                      ref={scannerInputRef}
-                      value={scannedTracking}
-                      onChange={(event) => setScannedTracking(event.target.value)}
-                      onKeyDown={handleScanKeyDown}
-                      placeholder="Scan barcode and press Enter"
-                      autoComplete="off"
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        id="trackingInput"
+                        ref={scannerInputRef}
+                        value={scannedTracking}
+                        onChange={(event) => setScannedTracking(event.target.value)}
+                        onKeyDown={handleScanKeyDown}
+                        placeholder="Type or scan barcode and press Enter"
+                        autoComplete="off"
+                        disabled={isSubmitting}
+                      />
+                      <ScanBarcode className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => setIsScannerOpen(true)}
                       disabled={isSubmitting}
-                    />
-                    <ScanBarcode className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                      className="gap-2"
+                      variant="outline"
+                    >
+                      <Camera className="h-4 w-4" />
+                      <span className="hidden sm:inline">Camera</span>
+                    </Button>
                   </div>
+                  <p className="text-xs text-slate-500">
+                    Use camera scanner for mobile devices, or connect a barcode scanner and scan directly into the input
+                  </p>
                 </div>
 
                 <div className="space-y-3">
@@ -334,6 +367,13 @@ const AdminPackageReceiving: React.FC = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* Barcode Scanner Modal */}
+      <BarcodeScanner
+        isOpen={isScannerOpen}
+        onScan={handleCameraScan}
+        onClose={() => setIsScannerOpen(false)}
+      />
     </div>
   )
 }
