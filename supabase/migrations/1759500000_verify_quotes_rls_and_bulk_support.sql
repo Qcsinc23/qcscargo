@@ -95,8 +95,11 @@ CREATE POLICY "shipping_quotes_select_policy" ON public.shipping_quotes
     USING (
         auth.role() = 'service_role'
         OR
-        -- User's own quotes by customer_id
-        auth.uid()::text = customer_id
+        -- User's own quotes by customer_id (handle both UUID and text types)
+        (customer_id IS NOT NULL AND (
+            customer_id::text = auth.uid()::text
+            OR customer_id = auth.uid()
+        ))
         OR
         -- Admins and staff can see all quotes (JWT-based, no DB query)
         public.is_admin()
@@ -118,7 +121,10 @@ CREATE POLICY "shipping_quotes_update_policy" ON public.shipping_quotes
     USING (
         auth.role() = 'service_role'
         OR
-        auth.uid()::text = customer_id
+        (customer_id IS NOT NULL AND (
+            customer_id::text = auth.uid()::text
+            OR customer_id = auth.uid()
+        ))
         OR
         public.is_admin()
         OR
@@ -127,7 +133,10 @@ CREATE POLICY "shipping_quotes_update_policy" ON public.shipping_quotes
     WITH CHECK (
         auth.role() = 'service_role'
         OR
-        auth.uid()::text = customer_id
+        (customer_id IS NOT NULL AND (
+            customer_id::text = auth.uid()::text
+            OR customer_id = auth.uid()
+        ))
         OR
         public.is_admin()
         OR
@@ -195,7 +204,10 @@ BEGIN
                 EXISTS (
                     SELECT 1 FROM public.shipments s
                     WHERE s.id = shipment_documents.shipment_id
-                    AND s.customer_id = auth.uid()::text
+                    AND (
+                        s.customer_id::text = auth.uid()::text
+                        OR s.customer_id = auth.uid()
+                    )
                 )
                 OR
                 public.is_admin()
@@ -212,7 +224,10 @@ BEGIN
                 EXISTS (
                     SELECT 1 FROM public.shipments s
                     WHERE s.id = shipment_documents.shipment_id
-                    AND s.customer_id = auth.uid()::text
+                    AND (
+                        s.customer_id::text = auth.uid()::text
+                        OR s.customer_id = auth.uid()
+                    )
                 )
                 OR
                 public.is_admin()
