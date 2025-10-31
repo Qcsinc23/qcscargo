@@ -238,7 +238,7 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
             has_more: offset + limit < parseInt(total as string)
         }
     }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 }
 
@@ -315,7 +315,7 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
             }
         }
     }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 }
 
@@ -376,7 +376,7 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
     };
 
     return new Response(JSON.stringify({ data: result }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 }
 
@@ -462,7 +462,7 @@ async function handleBulkUpdateStatus(supabaseUrl: string, serviceRoleKey: strin
             errors: errors.length > 0 ? errors : undefined
         }
     }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 }
 
@@ -505,7 +505,7 @@ async function handleAddTracking(supabaseUrl: string, serviceRoleKey: string, re
     const tracking = await trackingResponse.json();
 
     return new Response(JSON.stringify({ data: tracking }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 }
 
@@ -551,6 +551,6 @@ async function handleGetStats(supabaseUrl: string, serviceRoleKey: string) {
             total_shipments: shipments.length
         }
     }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 }
