@@ -1,5 +1,6 @@
 import { corsHeaders } from "../_shared/cors-utils.ts";
 import { verifyAdminAccess } from "../_shared/auth-utils.ts";
+import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
 
 Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -413,6 +414,86 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
         }
     );
 
+    // Send email notification to customer for important status changes
+    const statusLabels: Record<string, string> = {
+        'picked_up': 'Picked Up',
+        'processing': 'Processing',
+        'in_transit': 'In Transit',
+        'customs_clearance': 'Customs Clearance',
+        'out_for_delivery': 'Out for Delivery',
+        'delivered': 'Delivered',
+        'exception': 'Exception',
+        'cancelled': 'Cancelled'
+    };
+
+    const importantStatuses = ['delivered', 'out_for_delivery', 'in_transit', 'exception', 'cancelled'];
+    
+    if (importantStatuses.includes(status)) {
+        try {
+            // Get shipment details with customer info
+            const shipmentResponse = await fetch(
+                `${supabaseUrl}/rest/v1/shipments?id=eq.${shipment_id}&select=*,customer_id`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                }
+            );
+            
+            if (shipmentResponse.ok) {
+                const shipments = await shipmentResponse.json();
+                if (shipments.length > 0 && shipments[0].customer_id) {
+                    // Get customer email from user_profiles
+                    const profileResponse = await fetch(
+                        `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${shipments[0].customer_id}&select=email`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${serviceRoleKey}`,
+                                'apikey': serviceRoleKey
+                            }
+                        }
+                    );
+                    
+                    if (profileResponse.ok) {
+                        const profiles = await profileResponse.json();
+                        if (profiles.length > 0 && profiles[0].email) {
+                            const resendApiKey = Deno.env.get('RESEND_API_KEY');
+                            const statusLabel = statusLabels[status] || status;
+                            
+                            const emailHtml = generateNotificationEmail({
+                                title: `Shipment Status Update: ${statusLabel}`,
+                                message: `Your shipment ${shipments[0].tracking_number || shipment_id} status has been updated to ${statusLabel}.${notes ? ` ${notes}` : ''}`,
+                                actionText: 'View Shipment Details',
+                                actionUrl: `https://www.qcs-cargo.com/dashboard/shipments/${shipment_id}`,
+                                details: [
+                                    { label: 'Tracking Number', value: shipments[0].tracking_number || shipment_id },
+                                    { label: 'Status', value: statusLabel },
+                                    { label: 'Updated', value: new Date().toLocaleString('en-US') }
+                                ],
+                                footerNote: status === 'delivered' ? 'Thank you for choosing QCS Cargo!' : undefined
+                            });
+
+                            await sendEmail(resendApiKey, {
+                                to: profiles[0].email,
+                                subject: `Shipment ${shipments[0].tracking_number || shipment_id} - ${statusLabel}`,
+                                html: emailHtml,
+                                tags: [
+                                    { name: 'notification_type', value: 'shipment_status_update' },
+                                    { name: 'shipment_id', value: String(shipment_id) },
+                                    { name: 'status', value: status }
+                                ]
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (emailError) {
+            console.warn('Failed to send shipment status email:', emailError);
+            // Don't fail the status update if email fails
+        }
+    }
+
     const result = {
         success: true,
         message: 'Shipment status updated successfully'
@@ -421,6 +502,80 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
     return new Response(JSON.stringify({ data: result }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
+}
+
+// Helper function to send shipment status email
+async function sendShipmentStatusEmail(
+    supabaseUrl: string,
+    serviceRoleKey: string,
+    resendApiKey: string | undefined,
+    shipmentId: string,
+    status: string,
+    statusLabel: string,
+    trackingNumber: string,
+    notes?: string
+) {
+    if (!resendApiKey) return;
+    
+    try {
+        // Get shipment and customer info
+        const shipmentResponse = await fetch(
+            `${supabaseUrl}/rest/v1/shipments?id=eq.${shipmentId}&select=*,customer_id`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serviceRoleKey}`,
+                    'apikey': serviceRoleKey
+                }
+            }
+        );
+        
+        if (!shipmentResponse.ok) return;
+        
+        const shipments = await shipmentResponse.json();
+        if (!shipments.length || !shipments[0].customer_id) return;
+        
+        // Get customer email
+        const profileResponse = await fetch(
+            `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${shipments[0].customer_id}&select=email`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serviceRoleKey}`,
+                    'apikey': serviceRoleKey
+                }
+            }
+        );
+        
+        if (!profileResponse.ok) return;
+        
+        const profiles = await profileResponse.json();
+        if (!profiles.length || !profiles[0].email) return;
+        
+        const emailHtml = generateNotificationEmail({
+            title: `Shipment Status Update: ${statusLabel}`,
+            message: `Your shipment ${trackingNumber || shipmentId} status has been updated to ${statusLabel}.${notes ? ` ${notes}` : ''}`,
+            actionText: 'View Shipment Details',
+            actionUrl: `https://www.qcs-cargo.com/dashboard/shipments/${shipmentId}`,
+            details: [
+                { label: 'Tracking Number', value: trackingNumber || shipmentId },
+                { label: 'Status', value: statusLabel },
+                { label: 'Updated', value: new Date().toLocaleString('en-US') }
+            ],
+            footerNote: status === 'delivered' ? 'Thank you for choosing QCS Cargo!' : undefined
+        });
+
+        await sendEmail(resendApiKey, {
+            to: profiles[0].email,
+            subject: `Shipment ${trackingNumber || shipmentId} - ${statusLabel}`,
+            html: emailHtml,
+            tags: [
+                { name: 'notification_type', value: 'shipment_status_update' },
+                { name: 'shipment_id', value: String(shipmentId) },
+                { name: 'status', value: status }
+            ]
+        });
+    } catch (error) {
+        console.warn(`Failed to send email for shipment ${shipmentId}:`, error);
+    }
 }
 
 // Handle bulk status updates
@@ -488,6 +643,49 @@ async function handleBulkUpdateStatus(supabaseUrl: string, serviceRoleKey: strin
             );
 
             updatedShipments.push(shipmentId);
+
+            // Send email notification for important status changes
+            const importantStatuses = ['delivered', 'out_for_delivery', 'in_transit', 'exception', 'cancelled'];
+            if (importantStatuses.includes(status)) {
+                const statusLabels: Record<string, string> = {
+                    'delivered': 'Delivered',
+                    'out_for_delivery': 'Out for Delivery',
+                    'in_transit': 'In Transit',
+                    'exception': 'Exception',
+                    'cancelled': 'Cancelled'
+                };
+                
+                // Get shipment tracking number
+                const shipmentInfoResponse = await fetch(
+                    `${supabaseUrl}/rest/v1/shipments?id=eq.${shipmentId}&select=tracking_number`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey
+                        }
+                    }
+                );
+                
+                let trackingNumber = shipmentId;
+                if (shipmentInfoResponse.ok) {
+                    const shipmentInfo = await shipmentInfoResponse.json();
+                    if (shipmentInfo.length > 0 && shipmentInfo[0].tracking_number) {
+                        trackingNumber = shipmentInfo[0].tracking_number;
+                    }
+                }
+                
+                const resendApiKey = Deno.env.get('RESEND_API_KEY');
+                await sendShipmentStatusEmail(
+                    supabaseUrl,
+                    serviceRoleKey,
+                    resendApiKey,
+                    shipmentId,
+                    status,
+                    statusLabels[status] || status,
+                    trackingNumber,
+                    notes
+                );
+            }
         } catch (error) {
             errors.push({ 
                 shipment_id: shipmentId, 

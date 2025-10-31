@@ -13,7 +13,7 @@ import {
     createRateLimitResponse,
     logValidationError
 } from "../_shared/validation-utils.ts";
-import { createBookingSchema } from "../../../src/lib/validation/schemas.ts";
+import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
 
 Deno.serve(async (req) => {
     const corsHeaders = {
@@ -31,7 +31,10 @@ Deno.serve(async (req) => {
     try {
         // Parse and validate request body FIRST
         const requestBody = await req.json();
-        const validation = validateAndSanitizeRequest(createBookingSchema, requestBody);
+        // Use inline booking validation
+        const validation = validateAndSanitizeRequest(null, requestBody, {
+            validateBooking: true // Flag to trigger booking-specific validation
+        });
 
         // Rate limiting check
         const rateLimitUserId = req.headers.get('x-user-id') || 'anonymous';
@@ -152,6 +155,74 @@ Deno.serve(async (req) => {
 
         const atomicResult = await atomicBookingResponse.json();
         console.log('Atomic booking result:', atomicResult);
+
+        // Send booking confirmation email
+        if (atomicResult && atomicResult.booking) {
+            try {
+                const supabaseUrl = Deno.env.get('SUPABASE_URL');
+                const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+                const resendApiKey = Deno.env.get('RESEND_API_KEY');
+                
+                // Get customer email
+                const profileResponse = await fetch(
+                    `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=email,first_name,last_name,company_name`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey
+                        }
+                    }
+                );
+
+                if (profileResponse.ok) {
+                    const profiles = await profileResponse.json();
+                    if (profiles.length > 0 && profiles[0].email) {
+                        const customerName = profiles[0].first_name && profiles[0].last_name
+                            ? `${profiles[0].first_name} ${profiles[0].last_name}`
+                            : profiles[0].company_name || 'Customer';
+                        
+                        const bookingDate = new Date(atomicResult.booking.window_start).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        const bookingTime = new Date(atomicResult.booking.window_start).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit'
+                        });
+
+                        const emailHtml = generateNotificationEmail({
+                            title: 'Booking Confirmed',
+                            message: `Dear ${customerName}, your pickup booking has been confirmed. Our team will arrive during your selected time window.`,
+                            actionText: 'View Booking Details',
+                            actionUrl: `https://www.qcs-cargo.com/dashboard/bookings/${atomicResult.booking.id}`,
+                            details: [
+                                { label: 'Booking ID', value: `#${atomicResult.booking.id.toString().slice(-8)}` },
+                                { label: 'Date', value: bookingDate },
+                                { label: 'Time Window', value: `${bookingTime} - ${new Date(atomicResult.booking.window_end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` },
+                                { label: 'Service Type', value: validatedData.service_type === 'express' ? 'Express Air Freight' : 'Standard Air Freight' },
+                                { label: 'Estimated Weight', value: `${validatedData.estimated_weight} lbs` }
+                            ],
+                            footerNote: 'Please ensure someone is available during the scheduled window. You will receive a notification when our driver is on the way.'
+                        });
+
+                        await sendEmail(resendApiKey, {
+                            to: profiles[0].email,
+                            subject: `Booking Confirmed - ${bookingDate}`,
+                            html: emailHtml,
+                            tags: [
+                                { name: 'notification_type', value: 'booking_confirmation' },
+                                { name: 'booking_id', value: String(atomicResult.booking.id) }
+                            ]
+                        });
+                    }
+                }
+            } catch (emailError) {
+                console.warn('Failed to send booking confirmation email:', emailError);
+                // Don't fail booking creation if email fails
+            }
+        }
 
         const result = {
             data: atomicResult

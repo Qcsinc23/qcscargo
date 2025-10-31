@@ -1,3 +1,5 @@
+import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
+
 Deno.serve(async (req) => {
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
@@ -276,6 +278,41 @@ Deno.serve(async (req) => {
 
         if (!notificationResponse.ok) {
             console.error('Failed to create customer notification');
+        }
+
+        // Send email notification to customer
+        try {
+            const resendApiKey = Deno.env.get('RESEND_API_KEY');
+            if (customer.email && resendApiKey) {
+                const invoiceTypeLabel = invoice_type === 'quote' ? 'Quote' : 'Invoice';
+                const emailHtml = generateNotificationEmail({
+                    title: `New ${invoiceTypeLabel} Available`,
+                    message: `Dear ${customer.first_name || 'Customer'}, a new ${invoiceTypeLabel.toLowerCase()} has been generated for your shipment. Please review the details below.`,
+                    actionText: 'View Invoice',
+                    actionUrl: `https://www.qcs-cargo.com/dashboard/invoices/${invoice.id}`,
+                    details: [
+                        { label: `${invoiceTypeLabel} Number`, value: invoiceNumber },
+                        { label: 'Amount', value: `$${totalAmount.toFixed(2)}` },
+                        { label: 'Shipment', value: shipment.tracking_number || `Shipment #${shipment_id}` },
+                        { label: 'Due Date', value: invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US') : 'N/A' }
+                    ],
+                    footerNote: invoice_type === 'invoice' ? 'Please make payment by the due date to avoid delays.' : undefined
+                });
+
+                await sendEmail(resendApiKey, {
+                    to: customer.email,
+                    subject: `${invoiceTypeLabel} ${invoiceNumber} - QCS Cargo`,
+                    html: emailHtml,
+                    tags: [
+                        { name: 'notification_type', value: 'invoice_created' },
+                        { name: 'invoice_id', value: String(invoice.id) },
+                        { name: 'invoice_type', value: invoice_type }
+                    ]
+                });
+            }
+        } catch (emailError) {
+            console.warn('Failed to send invoice email:', emailError);
+            // Don't fail invoice creation if email fails
         }
 
         // Return success response

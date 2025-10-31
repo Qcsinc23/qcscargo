@@ -3,7 +3,7 @@
  * Provides middleware for input validation and sanitization
  */
 
-import { z } from 'zod';
+import { z } from 'npm:zod@^3.23.8';
 
 export interface ValidationError {
   field: string;
@@ -126,11 +126,37 @@ export function sanitizeObject(obj: any): any {
  * Validate and sanitize request body
  */
 export function validateAndSanitizeRequest<T>(
-  schema: z.ZodSchema<T>,
-  requestBody: unknown
+  schema: z.ZodSchema<T> | null,
+  requestBody: unknown,
+  options?: { validateBooking?: boolean }
 ): ValidationResult<T> {
   // First sanitize the input
   const sanitizedBody = sanitizeObject(requestBody);
+  
+  // If no schema provided but booking validation requested, create inline schema
+  if (!schema && options?.validateBooking) {
+    const bookingSchema = z.object({
+      quote_id: z.string().uuid().optional().nullable(),
+      shipment_id: z.string().optional().nullable(),
+      window_start: z.string().datetime(),
+      window_end: z.string().datetime(),
+      address: z.any(),
+      pickup_or_drop: z.enum(['pickup', 'drop']),
+      service_type: z.enum(['standard', 'express']),
+      estimated_weight: z.number().positive(),
+      notes: z.string().optional().nullable(),
+      idempotency_key: z.string().optional()
+    });
+    return validateRequestData(bookingSchema as z.ZodSchema<T>, sanitizedBody);
+  }
+  
+  if (!schema) {
+    // If no schema, just return sanitized data
+    return {
+      success: true,
+      data: sanitizedBody as T
+    };
+  }
   
   // Then validate against schema
   return validateRequestData(schema, sanitizedBody);

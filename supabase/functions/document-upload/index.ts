@@ -1,3 +1,5 @@
+import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
+
 Deno.serve(async (req) => {
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
@@ -12,7 +14,7 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const { fileData, fileName, documentType, shipmentId, description } = await req.json();
+        const { fileData, fileName, documentType, shipmentId, description, documentName } = await req.json();
 
         if (!fileData || !fileName || !documentType) {
             throw new Error('File data, filename, and document type are required');
@@ -128,6 +130,66 @@ Deno.serve(async (req) => {
                 },
                 body: JSON.stringify(notificationData)
             });
+        }
+
+        // Send confirmation email to customer
+        try {
+            const resendApiKey = Deno.env.get('RESEND_API_KEY');
+            if (userId && resendApiKey) {
+                // Get customer email
+                const profileResponse = await fetch(
+                    `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=email,first_name,last_name`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${serviceRoleKey}`,
+                            'apikey': serviceRoleKey
+                        }
+                    }
+                );
+
+                if (profileResponse.ok) {
+                    const profiles = await profileResponse.json();
+                    if (profiles.length > 0 && profiles[0].email) {
+                        const customerName = profiles[0].first_name && profiles[0].last_name
+                            ? `${profiles[0].first_name} ${profiles[0].last_name}`
+                            : 'Customer';
+                        
+                        const documentTypeLabel = documentType.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+                        
+                        const emailHtml = generateNotificationEmail({
+                            title: 'Document Upload Confirmed',
+                            message: `Dear ${customerName}, your ${documentTypeLabel} has been successfully uploaded and is being processed.${['customs_form', 'invoice', 'identity_document'].includes(documentType) ? ' Our team will review it shortly.' : ''}`,
+                            actionText: shipmentId ? 'View Shipment' : 'View Documents',
+                            actionUrl: shipmentId 
+                                ? `https://www.qcs-cargo.com/dashboard/shipments/${shipmentId}`
+                                : 'https://www.qcs-cargo.com/dashboard',
+                            details: [
+                                { label: 'Document Type', value: documentTypeLabel },
+                                { label: 'Document Name', value: documentName || fileName || 'Document' },
+                                { label: 'Uploaded', value: new Date().toLocaleString('en-US') },
+                                ...(shipmentId ? [{ label: 'Shipment ID', value: String(shipmentId) }] : [])
+                            ],
+                            footerNote: ['customs_form', 'invoice', 'identity_document'].includes(documentType) 
+                                ? 'You will receive another email once the document has been reviewed and approved.'
+                                : undefined
+                        });
+
+                        await sendEmail(resendApiKey, {
+                            to: profiles[0].email,
+                            subject: `Document Upload Confirmed - ${documentTypeLabel}`,
+                            html: emailHtml,
+                            tags: [
+                                { name: 'notification_type', value: 'document_upload' },
+                                { name: 'document_type', value: documentType },
+                                ...(shipmentId ? [{ name: 'shipment_id', value: String(shipmentId) }] : [])
+                            ]
+                        });
+                    }
+                }
+            }
+        } catch (emailError) {
+            console.warn('Failed to send document upload email:', emailError);
+            // Don't fail document upload if email fails
         }
 
         const result = {
