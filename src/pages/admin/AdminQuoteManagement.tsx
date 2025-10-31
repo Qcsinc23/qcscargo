@@ -182,14 +182,25 @@ const AdminQuoteManagement: React.FC = () => {
         }
       })
 
-      if (error) throw new Error(error.message)
-      if (!data || !data.success) {
-        throw new Error(data?.error?.message || 'Failed to update quote status')
+      if (error) {
+        console.error('Edge Function error:', error)
+        throw new Error(error.message || 'Failed to update quote status')
+      }
+
+      // Check response structure - Edge Function returns { success, data, error }
+      if (data) {
+        if (data.error) {
+          throw new Error(data.error.message || data.error || 'Failed to update quote status')
+        }
+        if (data.success === false) {
+          throw new Error(data.message || 'Failed to update quote status')
+        }
       }
 
       toast.success(`Quote ${quote.quote_reference || quote.id} updated to ${status}.`)
       await loadQuotes()
     } catch (err) {
+      console.error('Update status error:', err)
       const message = err instanceof Error ? err.message : 'Unable to update status'
       toast.error(message)
     } finally {
