@@ -314,6 +314,9 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
 
     // Extract destination data (destinations join)
     const destination = shipment.destinations ? (Array.isArray(shipment.destinations) ? shipment.destinations[0] : shipment.destinations) : null;
+    
+    // Remove raw destinations from shipment
+    const { destinations: _, user_profiles: __, ...shipmentData } = shipment;
 
     // Fetch related data
     const [items, tracking, documents] = await Promise.all([
