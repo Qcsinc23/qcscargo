@@ -381,8 +381,8 @@ export default function ShipmentDetailsPage() {
                     <div>
                       <div className="text-sm text-slate-600 mb-1">Destination</div>
                       <div className="font-semibold text-slate-900">
-                        {shipment.destinations ? 
-                          `${shipment.destinations.city_name}, ${shipment.destinations.country_name}` : 
+                        {shipment?.destinations ? 
+                          `${shipment.destinations.city_name || ''}, ${shipment.destinations.country_name || ''}`.replace(/^,\s*|,\s*$/g, '').trim() || 'Unknown' : 
                           'Unknown'}
                       </div>
                     </div>
