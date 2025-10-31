@@ -599,10 +599,10 @@ export default function ShipmentDetailsPage() {
                   <div>
                     <div className="text-xs text-slate-500 mb-1">Created</div>
                     <div className="text-sm font-medium text-slate-900">
-                      {formatDateTime(shipment.created_at)}
+                      {formatDateTime(shipment?.created_at)}
                     </div>
                   </div>
-                  {shipment.pickup_scheduled_at && (
+                  {shipment?.pickup_scheduled_at && (
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Pickup Scheduled</div>
                       <div className="text-sm font-medium text-slate-900">
@@ -610,7 +610,7 @@ export default function ShipmentDetailsPage() {
                       </div>
                     </div>
                   )}
-                  {shipment.processed_at && (
+                  {shipment?.processed_at && (
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Processed</div>
                       <div className="text-sm font-medium text-slate-900">
@@ -618,7 +618,7 @@ export default function ShipmentDetailsPage() {
                       </div>
                     </div>
                   )}
-                  {shipment.shipped_at && (
+                  {shipment?.shipped_at && (
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Shipped</div>
                       <div className="text-sm font-medium text-slate-900">
@@ -626,7 +626,7 @@ export default function ShipmentDetailsPage() {
                       </div>
                     </div>
                   )}
-                  {shipment.customs_cleared_at && (
+                  {shipment?.customs_cleared_at && (
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Customs Cleared</div>
                       <div className="text-sm font-medium text-slate-900">
@@ -634,7 +634,7 @@ export default function ShipmentDetailsPage() {
                       </div>
                     </div>
                   )}
-                  {shipment.delivered_at && (
+                  {shipment?.delivered_at && (
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Delivered</div>
                       <div className="text-sm font-medium text-green-700">
@@ -646,13 +646,13 @@ export default function ShipmentDetailsPage() {
               </Card>
 
               {/* Delivery Info */}
-              {shipment.delivery_notes && (
+              {shipment?.delivery_notes && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Delivery Notes</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-slate-700">{shipment.delivery_notes}</p>
+                    <p className="text-sm text-slate-700">{shipment?.delivery_notes}</p>
                   </CardContent>
                 </Card>
               )}
