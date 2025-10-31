@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
         console.log(`Admin ${authResult.user!.email} updating quote ${quoteId} to status: ${status}`);
 
         // Update quote status using service role (bypasses RLS)
+        // Only update status field (don't include updated_at if it doesn't exist)
         const updateResponse = await fetch(
             `${supabaseUrl}/rest/v1/shipping_quotes?id=eq.${quoteId}`,
             {
@@ -70,8 +71,7 @@ Deno.serve(async (req) => {
                     'Prefer': 'return=representation'
                 },
                 body: JSON.stringify({ 
-                    status,
-                    updated_at: new Date().toISOString()
+                    status
                 })
             }
         );
