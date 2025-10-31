@@ -334,7 +334,7 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
     return new Response(JSON.stringify({
         data: {
             shipment: {
-                ...shipment,
+                ...shipmentData,
                 items,
                 tracking,
                 documents,
@@ -342,16 +342,15 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
                 customer: customerProfile ? {
                     first_name: customerProfile.first_name || customerProfile.contact_person?.split(' ')[0] || '',
                     last_name: customerProfile.last_name || customerProfile.contact_person?.split(' ').slice(1).join(' ') || '',
-                    company_name: customerProfile.company_name,
-                    email: customerProfile.email || ''
+                    company_name: customerProfile.company_name || '',
+                    email: customerProfile.email || '',
+                    phone: customerProfile.phone || ''
                 } : null,
-                // Map destinations to destination for frontend compatibility
+                // Map destinations to destination (singular) for frontend compatibility
                 destination: destination ? {
-                    city_name: destination.city_name || '',
-                    country_name: destination.country_name || ''
-                } : null,
-                // Keep user_profiles for backward compatibility
-                user_profiles: customerProfile
+                    country_name: destination.country_name || '',
+                    city_name: destination.city_name || ''
+                } : null
             }
         }
     }), {
