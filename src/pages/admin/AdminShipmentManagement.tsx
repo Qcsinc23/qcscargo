@@ -583,7 +583,42 @@ export default function AdminShipmentManagement() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/admin/shipments/${shipment.id}`)}
+                          onClick={async () => {
+                            try {
+                              setLoading(true)
+                              const { data, error } = await supabase.functions.invoke(
+                                'admin-shipments-management',
+                                {
+                                  body: {
+                                    action: 'get',
+                                    shipment_id: shipment.id
+                                  }
+                                }
+                              )
+                              
+                              if (error) {
+                                throw error
+                              }
+                              
+                              if (data?.data?.shipment) {
+                                // Open a modal or navigate to details
+                                // For now, navigate to customer shipment details page with admin context
+                                navigate(`/dashboard/shipments/${shipment.id}`)
+                              } else {
+                                throw new Error('Shipment not found')
+                              }
+                            } catch (err: unknown) {
+                              const error = err instanceof Error ? err : new Error(String(err))
+                              logger.error('Error loading shipment details', error, {
+                                component: 'AdminShipmentManagement',
+                                action: 'viewShipment',
+                                shipmentId: shipment.id
+                              })
+                              toast.error('Failed to load shipment details')
+                            } finally {
+                              setLoading(false)
+                            }
+                          }}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           View

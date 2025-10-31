@@ -182,12 +182,28 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
         // Get customer profile info
         const customerProfile = shipment.customer_id ? customerProfiles[shipment.customer_id] : null;
         
+        // Extract destination data (destinations join)
+        const destination = shipment.destinations ? (Array.isArray(shipment.destinations) ? shipment.destinations[0] : shipment.destinations) : null;
+        
         return {
             ...shipment,
             items_count: items.length,
             total_weight: shipment.total_weight || 0,
             total_declared_value: shipment.total_declared_value || 0,
             latest_tracking: trackingEntries[0] || null,
+            // Map user_profiles to customer for frontend compatibility
+            customer: customerProfile ? {
+                first_name: customerProfile.first_name || customerProfile.contact_person?.split(' ')[0] || '',
+                last_name: customerProfile.last_name || customerProfile.contact_person?.split(' ').slice(1).join(' ') || '',
+                company_name: customerProfile.company_name,
+                email: customerProfile.email || ''
+            } : null,
+            // Map destinations to destination for frontend compatibility
+            destination: destination ? {
+                city_name: destination.city_name || '',
+                country_name: destination.country_name || ''
+            } : null,
+            // Keep user_profiles for backward compatibility
             user_profiles: customerProfile ? {
                 contact_person: customerProfile.contact_person,
                 company_name: customerProfile.company_name,
@@ -206,12 +222,12 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
         filteredShipments = enrichedShipments.filter((shipment: any) => {
             const trackingMatch = shipment.tracking_number?.toLowerCase().includes(searchLower);
             const customerMatch = 
-                shipment.user_profiles?.contact_person?.toLowerCase().includes(searchLower) ||
-                shipment.user_profiles?.first_name?.toLowerCase().includes(searchLower) ||
-                shipment.user_profiles?.last_name?.toLowerCase().includes(searchLower) ||
-                shipment.user_profiles?.company_name?.toLowerCase().includes(searchLower) ||
-                shipment.user_profiles?.phone?.toLowerCase().includes(searchLower) ||
-                shipment.user_profiles?.email?.toLowerCase().includes(searchLower);
+                shipment.customer?.contact_person?.toLowerCase().includes(searchLower) ||
+                shipment.customer?.first_name?.toLowerCase().includes(searchLower) ||
+                shipment.customer?.last_name?.toLowerCase().includes(searchLower) ||
+                shipment.customer?.company_name?.toLowerCase().includes(searchLower) ||
+                shipment.customer?.phone?.toLowerCase().includes(searchLower) ||
+                shipment.customer?.email?.toLowerCase().includes(searchLower);
             return trackingMatch || customerMatch;
         });
     }
@@ -287,11 +303,17 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
             if (profileResponse.ok) {
                 const profiles = await profileResponse.json();
                 customerProfile = profiles[0] || null;
+            } else {
+                const errorText = await profileResponse.text();
+                console.warn('Failed to fetch customer profile:', errorText);
             }
         } catch (error) {
             console.warn('Failed to fetch customer profile:', error);
         }
     }
+
+    // Extract destination data (destinations join)
+    const destination = shipment.destinations ? (Array.isArray(shipment.destinations) ? shipment.destinations[0] : shipment.destinations) : null;
 
     // Fetch related data
     const [items, tracking, documents] = await Promise.all([
@@ -313,6 +335,19 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
                 items,
                 tracking,
                 documents,
+                // Map user_profiles to customer for frontend compatibility
+                customer: customerProfile ? {
+                    first_name: customerProfile.first_name || customerProfile.contact_person?.split(' ')[0] || '',
+                    last_name: customerProfile.last_name || customerProfile.contact_person?.split(' ').slice(1).join(' ') || '',
+                    company_name: customerProfile.company_name,
+                    email: customerProfile.email || ''
+                } : null,
+                // Map destinations to destination for frontend compatibility
+                destination: destination ? {
+                    city_name: destination.city_name || '',
+                    country_name: destination.country_name || ''
+                } : null,
+                // Keep user_profiles for backward compatibility
                 user_profiles: customerProfile
             }
         }
