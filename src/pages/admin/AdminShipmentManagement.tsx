@@ -236,14 +236,11 @@ export default function AdminShipmentManagement() {
     }
   }
 
-  const handleBulkStatusUpdate = async (newStatus: string) => {
+  const handleBulkStatusUpdate = (newStatus: string) => {
     if (selectedShipments.size === 0) {
       toast.error('Please select at least one shipment')
       return
     }
-
-    const shipmentCount = selectedShipments.size
-    const statusLabel = statusConfig[newStatus as keyof typeof statusConfig]?.label || newStatus
 
     setConfirmDialog({
       open: true,
@@ -601,16 +598,46 @@ export default function AdminShipmentManagement() {
         cancelLabel="Cancel"
         variant="default"
         loading={updateLoading}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (confirmDialog.shipmentId === 'bulk') {
-            // Handle bulk update
-            const updates = Array.from(selectedShipments).map(id => 
-              handleUpdateStatus(id, confirmDialog.newStatus)
-            )
-            Promise.all(updates).then(() => {
+            // Handle bulk update using new API endpoint
+            try {
+              setUpdateLoading(true)
+              const { data, error } = await supabase.functions.invoke(
+                'admin-shipments-management',
+                {
+                  body: {
+                    action: 'bulk_update_status',
+                    shipment_ids: Array.from(selectedShipments),
+                    status: confirmDialog.newStatus,
+                    notes: `Bulk status update to ${statusConfig[confirmDialog.newStatus as keyof typeof statusConfig]?.label}`
+                  }
+                }
+              )
+
+              if (error) throw error
+
+              const statusLabel = statusConfig[confirmDialog.newStatus as keyof typeof statusConfig]?.label || confirmDialog.newStatus
+              toast.success('Bulk Update Complete', {
+                description: `Updated ${data?.data?.updated_count || selectedShipments.size} shipment(s) to "${statusLabel}"`
+              })
+              
+              setConfirmDialog({ open: false, shipmentId: '', currentStatus: '', newStatus: '' })
               setSelectedShipments(new Set())
-              loadData()
-            })
+              await loadData()
+            } catch (err: unknown) {
+              const error = err instanceof Error ? err : new Error(String(err))
+              logger.error('Error with bulk status update', error, {
+                component: 'AdminShipmentManagement',
+                action: 'handleBulkStatusUpdate'
+              })
+              const errorMessage = handleAdminError(err, 'bulk update status')
+              toast.error('Bulk update failed', {
+                description: errorMessage
+              })
+            } finally {
+              setUpdateLoading(false)
+            }
           } else {
             handleUpdateStatus(confirmDialog.shipmentId, confirmDialog.newStatus)
           }

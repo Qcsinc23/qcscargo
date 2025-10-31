@@ -2,7 +2,6 @@ import { corsHeaders } from "../_shared/cors-utils.ts";
 import { verifyAdminAccess } from "../_shared/auth-utils.ts";
 
 Deno.serve(async (req) => {
-
     if (req.method === 'OPTIONS') {
         return new Response(null, { status: 200, headers: corsHeaders });
     }
@@ -37,7 +36,7 @@ Deno.serve(async (req) => {
         const requestData = requestMethod === 'POST' || requestMethod === 'PUT' ? await req.json() : {};
 
         // Handle different actions
-        const action = url.searchParams.get('action') || requestData.action || 'list';
+        const action = requestData.action || url.searchParams.get('action') || 'list';
 
         console.log('Admin shipments management action:', action);
 
@@ -51,6 +50,9 @@ Deno.serve(async (req) => {
             case 'update_status':
                 return await handleUpdateStatus(supabaseUrl, serviceRoleKey, requestData, userId);
             
+            case 'bulk_update_status':
+                return await handleBulkUpdateStatus(supabaseUrl, serviceRoleKey, requestData, userId);
+            
             case 'add_tracking':
                 return await handleAddTracking(supabaseUrl, serviceRoleKey, requestData, userId);
             
@@ -62,34 +64,14 @@ Deno.serve(async (req) => {
         }
 
     } catch (error) {
-        console.error('Admin shipments management error:', error);
-
-        // Determine appropriate status code based on error type
-        let statusCode = 500;
-        let errorCode = 'ADMIN_SHIPMENTS_FAILED';
-        
-        if (error.message.includes('Access denied') || error.message.includes('Admin role required')) {
-            statusCode = 403;
-            errorCode = 'ACCESS_DENIED';
-        } else if (error.message.includes('Invalid authentication') || error.message.includes('authorization')) {
-            statusCode = 401;
-            errorCode = 'AUTHENTICATION_FAILED';
-        } else if (error.message.includes('not found') || error.message.includes('does not exist')) {
-            statusCode = 404;
-            errorCode = 'RESOURCE_NOT_FOUND';
-        }
-
-        const errorResponse = {
-            success: false,
-            error: {
-                code: errorCode,
-                message: error.message,
-                timestamp: new Date().toISOString()
-            }
-        };
-
-        return new Response(JSON.stringify(errorResponse), {
-            status: statusCode,
+        console.error('Error in admin shipments management:', error);
+        return new Response(JSON.stringify({ 
+            error: { 
+                message: error instanceof Error ? error.message : 'An error occurred',
+                code: 'ADMIN_SHIPMENTS_ERROR'
+            } 
+        }), { 
+            status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
@@ -107,7 +89,7 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
 
     // Build query filters
     let filters = [];
-    if (status) filters.push(`status=eq.${status}`);
+    if (status && status !== 'all') filters.push(`status=eq.${status}`);
     if (customerId) filters.push(`customer_id=eq.${customerId}`);
     
     const filterQuery = filters.length > 0 ? `&${filters.join('&')}` : '';
@@ -133,78 +115,57 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
 
     // Enrich each shipment with items count and latest tracking
     const enrichedShipments = await Promise.all(shipments.map(async (shipment: any) => {
-        try {
-            // Get items count
-            let itemsCount = 0;
-            try {
-                const itemsCountResponse = await fetch(
-                    `${supabaseUrl}/rest/v1/shipment_items?shipment_id=eq.${shipment.id}&select=count`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${serviceRoleKey}`,
-                            'apikey': serviceRoleKey,
-                            'Prefer': 'count=exact'
-                        }
-                    }
-                );
-
-                if (itemsCountResponse.ok) {
-                    const countHeader = itemsCountResponse.headers.get('content-range');
-                    if (countHeader && countHeader.includes('/')) {
-                        const countStr = countHeader.split('/')[1];
-                        itemsCount = countStr ? parseInt(countStr) || 0 : 0;
-                    }
+        // Get items count
+        const itemsResponse = await fetch(
+            `${supabaseUrl}/rest/v1/shipment_items?shipment_id=eq.${shipment.id}&select=id`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serviceRoleKey}`,
+                    'apikey': serviceRoleKey
                 }
-            } catch (error) {
-                console.error(`Error fetching items count for shipment ${shipment.id}:`, error);
-                itemsCount = 0;
             }
-
-            // Get latest tracking
-            let latestTracking = null;
-            try {
-                const trackingResponse = await fetch(
-                    `${supabaseUrl}/rest/v1/shipment_tracking?shipment_id=eq.${shipment.id}&order=timestamp.desc&limit=1`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${serviceRoleKey}`,
-                            'apikey': serviceRoleKey
-                        }
-                    }
-                );
-
-                if (trackingResponse.ok) {
-                    const tracking = await trackingResponse.json();
-                    latestTracking = Array.isArray(tracking) && tracking.length > 0 ? tracking[0] : null;
+        );
+        const items = itemsResponse.ok ? await itemsResponse.json() : [];
+        
+        // Get latest tracking entry
+        const trackingResponse = await fetch(
+            `${supabaseUrl}/rest/v1/shipment_tracking?shipment_id=eq.${shipment.id}&order=timestamp.desc&limit=1`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serviceRoleKey}`,
+                    'apikey': serviceRoleKey
                 }
-            } catch (error) {
-                console.error(`Error fetching tracking for shipment ${shipment.id}:`, error);
-                latestTracking = null;
             }
-
-            return {
-                ...shipment,
-                items_count: itemsCount,
-                latest_tracking: latestTracking,
-                customer: shipment.user_profiles || null,
-                destination: shipment.destinations || null
-            };
-        } catch (error) {
-            console.error(`Error processing shipment ${shipment.id}:`, error);
-            // Return shipment with minimal data on error
-            return {
-                ...shipment,
-                items_count: 0,
-                latest_tracking: null,
-                customer: shipment.user_profiles || null,
-                destination: shipment.destinations || null
-            };
-        }
+        );
+        const trackingEntries = trackingResponse.ok ? await trackingResponse.json() : [];
+        
+        return {
+            ...shipment,
+            items_count: items.length,
+            total_weight: shipment.total_weight || 0,
+            total_declared_value: shipment.total_declared_value || 0,
+            latest_tracking: trackingEntries[0] || null
+        };
     }));
+
+    // Apply search filter if provided
+    let filteredShipments = enrichedShipments;
+    if (search) {
+        const searchLower = search.toLowerCase();
+        filteredShipments = enrichedShipments.filter((shipment: any) => {
+            const trackingMatch = shipment.tracking_number?.toLowerCase().includes(searchLower);
+            const customerMatch = 
+                shipment.user_profiles?.first_name?.toLowerCase().includes(searchLower) ||
+                shipment.user_profiles?.last_name?.toLowerCase().includes(searchLower) ||
+                shipment.user_profiles?.company_name?.toLowerCase().includes(searchLower) ||
+                shipment.user_profiles?.email?.toLowerCase().includes(searchLower);
+            return trackingMatch || customerMatch;
+        });
+    }
 
     // Get total count for pagination
     const countResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipments?select=count${filterQuery}`,
+        `${supabaseUrl}/rest/v1/shipments?select=id${filterQuery}`,
         {
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
@@ -213,47 +174,29 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
             }
         }
     );
+    const total = countResponse.headers.get('content-range')?.split('/')[1] || filteredShipments.length;
 
-    let totalCount = enrichedShipments.length;
-    try {
-        if (countResponse.ok) {
-            const countHeader = countResponse.headers.get('content-range');
-            if (countHeader && countHeader.includes('/')) {
-                const countStr = countHeader.split('/')[1];
-                totalCount = countStr ? parseInt(countStr) || enrichedShipments.length : enrichedShipments.length;
-            }
-        }
-    } catch (error) {
-        console.error('Error parsing total count:', error);
-        totalCount = enrichedShipments.length;
-    }
-
-    const result = {
-        success: true,
-        shipments: enrichedShipments,
+    return new Response(JSON.stringify({
+        data: filteredShipments,
         pagination: {
-            total: totalCount,
+            total: parseInt(total as string),
             limit,
             offset,
-            has_more: offset + limit < totalCount
-        },
-        filters: { status, customer_id: customerId }
-    };
-
-    return new Response(JSON.stringify({ data: result }), {
+            has_more: offset + limit < parseInt(total as string)
+        }
+    }), {
         headers: { 'Content-Type': 'application/json' }
     });
 }
 
-// Handle getting a specific shipment with full details
+// Handle getting a single shipment with full details
 async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, shipmentId: string) {
     if (!shipmentId) {
         throw new Error('Shipment ID is required');
     }
 
-    // Get shipment with all related data
     const shipmentResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipments?id=eq.${shipmentId}&select=*,user_profiles!customer_id(*),destinations!destination_id(*)`,
+        `${supabaseUrl}/rest/v1/shipments?id=eq.${shipmentId}&select=*,destinations!destination_id(*),user_profiles!customer_id(*)`,
         {
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
@@ -266,57 +209,36 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
         throw new Error('Failed to fetch shipment');
     }
 
-    const shipmentData = await shipmentResponse.json();
-    if (shipmentData.length === 0) {
+    const shipments = await shipmentResponse.json();
+    if (shipments.length === 0) {
         throw new Error('Shipment not found');
     }
 
-    const shipment = shipmentData[0];
+    const shipment = shipments[0];
 
-    // Get items
-    const itemsResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipment_items?shipment_id=eq.${shipmentId}`,
-        {
-            headers: {
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'apikey': serviceRoleKey
+    // Fetch related data
+    const [items, tracking, documents] = await Promise.all([
+        fetch(`${supabaseUrl}/rest/v1/shipment_items?shipment_id=eq.${shipmentId}`, {
+            headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+        }).then(r => r.ok ? r.json() : []),
+        fetch(`${supabaseUrl}/rest/v1/shipment_tracking?shipment_id=eq.${shipmentId}&order=timestamp.desc`, {
+            headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+        }).then(r => r.ok ? r.json() : []),
+        fetch(`${supabaseUrl}/rest/v1/shipment_documents?shipment_id=eq.${shipmentId}`, {
+            headers: { 'Authorization': `Bearer ${serviceRoleKey}`, 'apikey': serviceRoleKey }
+        }).then(r => r.ok ? r.json() : [])
+    ]);
+
+    return new Response(JSON.stringify({
+        data: {
+            shipment: {
+                ...shipment,
+                items,
+                tracking,
+                documents
             }
         }
-    );
-
-    let items = [];
-    if (itemsResponse.ok) {
-        items = await itemsResponse.json();
-    }
-
-    // Get tracking history
-    const trackingResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipment_tracking?shipment_id=eq.${shipmentId}&order=timestamp.desc`,
-        {
-            headers: {
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'apikey': serviceRoleKey
-            }
-        }
-    );
-
-    let tracking = [];
-    if (trackingResponse.ok) {
-        tracking = await trackingResponse.json();
-    }
-
-    const result = {
-        success: true,
-        shipment: {
-            ...shipment,
-            items,
-            tracking,
-            customer: shipment.user_profiles,
-            destination: shipment.destinations
-        }
-    };
-
-    return new Response(JSON.stringify({ data: result }), {
+    }), {
         headers: { 'Content-Type': 'application/json' }
     });
 }
@@ -382,6 +304,92 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
     });
 }
 
+// Handle bulk status updates
+async function handleBulkUpdateStatus(supabaseUrl: string, serviceRoleKey: string, requestData: any, userId: string) {
+    const { shipment_ids, status, notes } = requestData;
+
+    if (!shipment_ids || !Array.isArray(shipment_ids) || shipment_ids.length === 0) {
+        throw new Error('Shipment IDs array is required');
+    }
+
+    if (!status) {
+        throw new Error('Status is required');
+    }
+
+    const updatedShipments = [];
+    const errors = [];
+
+    // Update each shipment
+    for (const shipmentId of shipment_ids) {
+        try {
+            // Update shipment status
+            const updateResponse = await fetch(
+                `${supabaseUrl}/rest/v1/shipments?id=eq.${shipmentId}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        status, 
+                        updated_at: new Date().toISOString() 
+                    })
+                }
+            );
+
+            if (!updateResponse.ok) {
+                const errorText = await updateResponse.text();
+                errors.push({ shipment_id: shipmentId, error: errorText });
+                continue;
+            }
+
+            // Add tracking entry
+            const trackingData = {
+                shipment_id: parseInt(shipmentId),
+                status,
+                location: 'QCS Cargo Facility',
+                notes: notes || `Bulk status update to ${status}`,
+                timestamp: new Date().toISOString(),
+                created_by: userId
+            };
+
+            await fetch(
+                `${supabaseUrl}/rest/v1/shipment_tracking`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(trackingData)
+                }
+            );
+
+            updatedShipments.push(shipmentId);
+        } catch (error) {
+            errors.push({ 
+                shipment_id: shipmentId, 
+                error: error instanceof Error ? error.message : 'Unknown error' 
+            });
+        }
+    }
+
+    return new Response(JSON.stringify({
+        data: {
+            success: true,
+            updated_count: updatedShipments.length,
+            total_count: shipment_ids.length,
+            updated_shipments: updatedShipments,
+            errors: errors.length > 0 ? errors : undefined
+        }
+    }), {
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
 // Handle adding tracking entry
 async function handleAddTracking(supabaseUrl: string, serviceRoleKey: string, requestData: any, userId: string) {
     const { shipment_id, status, location, notes } = requestData;
@@ -418,21 +426,18 @@ async function handleAddTracking(supabaseUrl: string, serviceRoleKey: string, re
         throw new Error(`Failed to add tracking: ${errorText}`);
     }
 
-    const result = {
-        success: true,
-        message: 'Tracking entry added successfully'
-    };
+    const tracking = await trackingResponse.json();
 
-    return new Response(JSON.stringify({ data: result }), {
+    return new Response(JSON.stringify({ data: tracking }), {
         headers: { 'Content-Type': 'application/json' }
     });
 }
 
 // Handle getting shipment statistics
 async function handleGetStats(supabaseUrl: string, serviceRoleKey: string) {
-    // Get overall shipment counts by status
-    const statusStatsResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipments?select=status&order=status`,
+    // Get all shipments for status breakdown
+    const shipmentsResponse = await fetch(
+        `${supabaseUrl}/rest/v1/shipments?select=status,created_at`,
         {
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
@@ -441,57 +446,35 @@ async function handleGetStats(supabaseUrl: string, serviceRoleKey: string) {
         }
     );
 
-    let statusStats = {};
-    if (statusStatsResponse.ok) {
-        const shipments = await statusStatsResponse.json();
-        statusStats = shipments.reduce((acc: any, shipment: any) => {
-            acc[shipment.status] = (acc[shipment.status] || 0) + 1;
-            return acc;
-        }, {});
+    if (!shipmentsResponse.ok) {
+        throw new Error('Failed to fetch shipment stats');
     }
 
-    // Get recent shipments count (last 7 days)
+    const shipments = await shipmentsResponse.json();
+
+    // Calculate stats
+    const statusBreakdown: Record<string, number> = {};
+    let recentShipments7Days = 0;
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const recentResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipments?created_at=gte.${sevenDaysAgo.toISOString()}&select=count`,
-        {
-            headers: {
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'apikey': serviceRoleKey,
-                'Prefer': 'count=exact'
-            }
+
+    shipments.forEach((shipment: any) => {
+        const status = shipment.status || 'pending_pickup';
+        statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
+
+        const createdAt = new Date(shipment.created_at);
+        if (createdAt >= sevenDaysAgo) {
+            recentShipments7Days++;
         }
-    );
+    });
 
-    let recentCount = 0;
-    if (recentResponse.ok) {
-        const countHeader = recentResponse.headers.get('content-range');
-        if (countHeader) {
-            recentCount = parseInt(countHeader.split('/')[1]);
+    return new Response(JSON.stringify({
+        data: {
+            status_breakdown: statusBreakdown,
+            recent_shipments_7_days: recentShipments7Days,
+            total_shipments: shipments.length
         }
-    }
-
-    // Safely calculate total shipments
-    let totalShipments = 0;
-    try {
-        totalShipments = Object.values(statusStats).reduce((a: any, b: any) => (a || 0) + (b || 0), 0);
-    } catch (error) {
-        console.error('Error calculating total shipments:', error);
-        totalShipments = 0;
-    }
-
-    const result = {
-        success: true,
-        stats: {
-            status_breakdown: statusStats || {},
-            recent_shipments_7_days: recentCount || 0,
-            total_shipments: totalShipments
-        }
-    };
-
-    return new Response(JSON.stringify({ data: result }), {
+    }), {
         headers: { 'Content-Type': 'application/json' }
     });
 }
