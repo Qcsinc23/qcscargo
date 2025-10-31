@@ -573,7 +573,7 @@ export default function ShipmentDetailsPage() {
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Link to={`/tracking?number=${shipment.tracking_number}`}>
+                  <Link to={`/tracking?number=${shipment?.tracking_number || ''}`}>
                     <Button variant="outline" className="w-full justify-start">
                       <Search className="h-4 w-4 mr-2" />
                       Track Shipment
