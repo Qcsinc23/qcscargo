@@ -230,12 +230,14 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
     const total = countResponse.headers.get('content-range')?.split('/')[1] || filteredShipments.length;
 
     return new Response(JSON.stringify({
-        data: filteredShipments,
-        pagination: {
-            total: parseInt(total as string),
-            limit,
-            offset,
-            has_more: offset + limit < parseInt(total as string)
+        data: {
+            shipments: filteredShipments,
+            pagination: {
+                total: parseInt(total as string),
+                limit,
+                offset,
+                has_more: offset + limit < parseInt(total as string)
+            }
         }
     }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -546,9 +548,11 @@ async function handleGetStats(supabaseUrl: string, serviceRoleKey: string) {
 
     return new Response(JSON.stringify({
         data: {
-            status_breakdown: statusBreakdown,
-            recent_shipments_7_days: recentShipments7Days,
-            total_shipments: shipments.length
+            stats: {
+                status_breakdown: statusBreakdown,
+                recent_shipments_7_days: recentShipments7Days,
+                total_shipments: shipments.length
+            }
         }
     }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

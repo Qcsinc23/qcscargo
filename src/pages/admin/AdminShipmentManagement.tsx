@@ -104,6 +104,54 @@ export default function AdminShipmentManagement() {
     loadData()
   }, [statusFilter, pagination.offset])
 
+  // Real-time subscription for shipment updates
+  useEffect(() => {
+    logger.debug('Setting up real-time subscription for shipments', {
+      component: 'AdminShipmentManagement',
+      action: 'setupRealtimeSubscription'
+    })
+
+    const subscription = supabase
+      .channel('admin-shipment-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'shipments'
+        },
+        (payload) => {
+          logger.debug('Real-time shipment update received', {
+            component: 'AdminShipmentManagement',
+            action: 'realtimeShipmentUpdate',
+            eventType: payload.eventType,
+            shipmentId: (payload.new || payload.old)?.id
+          })
+
+          // Refresh data when shipments change
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+            logger.info('Shipment change detected, refreshing data', {
+              component: 'AdminShipmentManagement',
+              action: 'refreshAfterRealtimeUpdate'
+            })
+            // Debounce refresh to avoid too many calls
+            setTimeout(() => {
+              loadData()
+            }, 500)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      logger.debug('Cleaning up real-time subscription', {
+        component: 'AdminShipmentManagement',
+        action: 'cleanupRealtimeSubscription'
+      })
+      subscription.unsubscribe()
+    }
+  }, [statusFilter]) // Re-subscribe if filter changes
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -434,6 +482,18 @@ export default function AdminShipmentManagement() {
               <CardDescription>
                 Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total}
               </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadData()}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
             {selectedShipments.size > 0 && (
               <div className="flex items-center gap-2">
