@@ -71,7 +71,7 @@ export default function LoginPage() {
           component: 'LoginPage',
           action: 'handleSubmit'
         })
-        await logAuthError(error, 'login', email)
+        await logAuthError(error.message || 'Sign in failed', { action: 'login', email })
         
         // Provide user-friendly error messages with comprehensive rate limiting handling
         let errorMessage = error.message
@@ -85,7 +85,7 @@ export default function LoginPage() {
           errorMessage = 'Please wait a moment before trying again. This helps us keep your account secure.'
         } else if (error.message.includes('User not found')) {
           errorMessage = 'No account found with this email address. Please check your email or create a new account.'
-        } else if (error.status === 429) {
+        } else if ((error as { status?: number }).status === 429) {
           errorMessage = 'Login temporarily limited. Please wait a moment and try again.'
         } else if (error.message.includes('signup disabled')) {
           errorMessage = 'Account registration is currently disabled. Please contact support.'
@@ -106,8 +106,9 @@ export default function LoginPage() {
         component: 'LoginPage',
         action: 'handleSubmit'
       })
-      await logAuthError(error.message, 'login', email)
-      setError(error.message || 'An unexpected error occurred during sign in')
+      const errorMessage = error.message || 'An unexpected error occurred'
+      await logAuthError(errorMessage, { action: 'login', email }, { error: errorMessage })
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

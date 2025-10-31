@@ -90,29 +90,30 @@ export default function RegisterPage() {
           component: 'RegisterPage',
           action: 'handleSubmit'
         })
-        await logAuthError(signUpError, 'register', formData.email)
+        const errorMessage = signUpError.message || 'Registration failed'
+        await logAuthError(errorMessage, { action: 'register', email: formData.email })
         
         // Provide user-friendly error messages with rate limiting handling
-        let errorMessage = signUpError.message
-        if (signUpError.message.includes('User already registered')) {
-          errorMessage = 'An account with this email already exists. Please try signing in instead.'
-        } else if (signUpError.message.includes('Password should be at least')) {
-          errorMessage = 'Password must be at least 6 characters long.'
-        } else if (signUpError.message.includes('Invalid email')) {
-          errorMessage = 'Please enter a valid email address.'
-        } else if (signUpError.message.includes('For security purposes, you can only request this after')) {
-          errorMessage = 'Please wait a moment before trying again. This helps us keep your account secure.'
-        } else if (signUpError.message.includes('Too many requests')) {
-          errorMessage = 'Too many registration attempts. Please wait a few minutes before trying again.'
-        } else if (signUpError.status === 429) {
-          errorMessage = 'Registration temporarily limited. Please wait a moment and try again.'
+        let userMessage = errorMessage
+        if (errorMessage.includes('User already registered')) {
+          userMessage = 'An account with this email already exists. Please try signing in instead.'
+        } else if (errorMessage.includes('Password should be at least')) {
+          userMessage = 'Password must be at least 6 characters long.'
+        } else if (errorMessage.includes('Invalid email')) {
+          userMessage = 'Please enter a valid email address.'
+        } else if (errorMessage.includes('For security purposes, you can only request this after')) {
+          userMessage = 'Please wait a moment before trying again. This helps us keep your account secure.'
+        } else if (errorMessage.includes('Too many requests')) {
+          userMessage = 'Too many registration attempts. Please wait a few minutes before trying again.'
+        } else if ((signUpError as { status?: number }).status === 429) {
+          userMessage = 'Registration temporarily limited. Please wait a moment and try again.'
         }
         
-        setError(errorMessage)
+        setError(userMessage)
         return
       }
 
-      if (data.user) {
+      if (data && typeof data === 'object' && 'user' in data && data.user) {
         // The user profile should be automatically created by the database trigger
         // We'll add the additional profile information via an update
         const profileUpdateData = {
@@ -124,10 +125,11 @@ export default function RegisterPage() {
           country: 'United States'
         }
 
+        const userId = (data as { user?: { id?: string } }).user?.id
         logger.debug('Updating user profile with additional data', {
           component: 'RegisterPage',
           action: 'updateProfile',
-          user_id: data.user.id
+          user_id: userId || 'unknown'
         })
 
         // Wait a moment for the trigger to create the basic profile
@@ -136,7 +138,7 @@ export default function RegisterPage() {
         const { error: profileError } = await supabase
           .from('user_profiles')
           .update(profileUpdateData)
-          .eq('id', data.user.id)
+          .eq('id', userId || '')
 
         if (profileError) {
           logger.error('Profile update error', profileError, {
@@ -158,7 +160,7 @@ export default function RegisterPage() {
         }
       }
 
-      if (data.session) {
+      if (data && typeof data === 'object' && 'session' in data && data.session) {
         try {
           await fetchAddress()
         } catch (addressFetchError) {
@@ -178,8 +180,9 @@ export default function RegisterPage() {
         component: 'RegisterPage',
         action: 'handleSubmit'
       })
-      await logAuthError(error.message, 'register', formData.email)
-      setError(error.message || 'An unexpected error occurred during registration')
+      const errorMessage = error.message || 'An unexpected error occurred during registration'
+      await logAuthError(errorMessage, { action: 'register', email: formData.email })
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

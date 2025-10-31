@@ -39,8 +39,8 @@ class ErrorLogger {
     // Send to monitoring service for errors and warnings
     if (level === 'error' && error) {
       const errorContext: ErrorContext = {
-        component: context?.component || 'unknown',
-        action: context?.action || 'error_logged',
+        component: (context && typeof context === 'object' && 'component' in context && typeof context.component === 'string') ? context.component : 'unknown',
+        action: (context && typeof context === 'object' && 'action' in context && typeof context.action === 'string') ? context.action : 'error_logged',
         metadata: context,
         url: window.location.href,
         userAgent: navigator.userAgent

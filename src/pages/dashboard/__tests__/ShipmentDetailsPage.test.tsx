@@ -62,8 +62,9 @@ describe('ShipmentDetailsPage', () => {
 
   it('displays error when shipment not found', async () => {
     vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue({
+      data: null,
       error: { message: 'Shipment not found' }
-    })
+    } as never)
 
     renderWithProviders(<ShipmentDetailsPage />)
 
@@ -111,7 +112,10 @@ describe('ShipmentDetailsPage', () => {
       }
     }
 
-    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue(mockShipmentData)
+    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue({
+      data: mockShipmentData.data,
+      error: null
+    } as any)
 
     renderWithProviders(<ShipmentDetailsPage />)
 
@@ -147,7 +151,10 @@ describe('ShipmentDetailsPage', () => {
       }
     }
 
-    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue(mockShipmentData)
+    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue({
+      data: mockShipmentData.data,
+      error: null
+    } as any)
 
     renderWithProviders(<ShipmentDetailsPage />)
 
@@ -174,7 +181,10 @@ describe('ShipmentDetailsPage', () => {
       }
     }
 
-    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue(mockShipmentData)
+    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue({
+      data: mockShipmentData.data,
+      error: null
+    } as any)
 
     renderWithProviders(<ShipmentDetailsPage />)
 
@@ -209,7 +219,10 @@ describe('ShipmentDetailsPage', () => {
       }
     }
 
-    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue(mockShipmentData)
+    vi.mocked(supabaseModule.supabase.functions.invoke).mockResolvedValue({
+      data: mockShipmentData.data,
+      error: null
+    } as any)
 
     renderWithProviders(<ShipmentDetailsPage />)
 

@@ -163,22 +163,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Auth methods
-  async function signIn(email: string, password: string) {
-    return await supabase.auth.signInWithPassword({ email, password })
+  async function signIn(email: string, password: string): Promise<{ data?: unknown; error?: Error }> {
+    const result = await supabase.auth.signInWithPassword({ email, password })
+    return {
+      data: result.data,
+      error: result.error ? new Error(result.error.message) : undefined
+    }
   }
 
-  async function signUp(email: string, password: string) {
-    return await supabase.auth.signUp({
+  async function signUp(email: string, password: string): Promise<{ data?: unknown; error?: Error }> {
+    const result = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.protocol}//${window.location.host}/auth/callback`
       }
     })
+    return {
+      data: result.data,
+      error: result.error ? new Error(result.error.message) : undefined
+    }
   }
 
-  async function signOut() {
-    return await supabase.auth.signOut()
+  async function signOut(): Promise<{ error?: Error }> {
+    const result = await supabase.auth.signOut()
+    return {
+      error: result.error ? new Error(result.error.message) : undefined
+    }
   }
 
   return (

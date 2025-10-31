@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import TrackingPage from '../TrackingPage'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -73,10 +73,10 @@ describe('TrackingPage', () => {
 
     renderWithProviders(<TrackingPage />)
     
-    const input = screen.getByPlaceholderText(/enter tracking number/i)
+    const input = screen.getByPlaceholderText(/enter tracking number/i) as HTMLInputElement
     const trackButton = screen.getByRole('button', { name: /track/i })
     
-    input.value = 'QCS123456'
+    fireEvent.change(input, { target: { value: 'QCS123456' } })
     trackButton.click()
 
     await waitFor(() => {

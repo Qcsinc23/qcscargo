@@ -461,8 +461,9 @@ export default function BookingPage() {
           duration: 5000
         })
       } else {
+        const errMessage = err instanceof Error ? err.message : String(err)
         toast.error('Failed to Load Slots', {
-          description: err.message || 'Please try again or contact support.',
+          description: errMessage || 'Please try again or contact support.',
           duration: 5000
         })
       }
@@ -551,29 +552,35 @@ export default function BookingPage() {
         setTimeout(() => reject(new Error('Request timeout - please try again')), 30000) // 30 second timeout
       })
       
-      const { data, error } = await Promise.race([bookingPromise, timeoutPromise]) as {
+      const result = await Promise.race([bookingPromise, timeoutPromise]) as {
         data?: unknown;
-        error?: Error;
+        error?: { message?: string; code?: string } | Error;
       }
       
       // Dismiss loading toast
       toast.dismiss(loadingToast)
       
-      if (error) {
+      if (result.error) {
+        const error = result.error instanceof Error ? result.error : new Error(result.error.message || 'Booking creation failed')
         throw error
       }
       
-      if (data?.error) {
-        throw new Error(data.error.message || data.error.code || 'Booking creation failed')
+      if (result.data && typeof result.data === 'object') {
+        const dataObj = result.data as { error?: { message?: string; code?: string }; data?: unknown }
+        if (dataObj.error) {
+          throw new Error(dataObj.error.message || dataObj.error.code || 'Booking creation failed')
+        }
       }
       
-      const bookingResult = data?.data
-      if (!bookingResult?.booking) {
+      const bookingResult = result.data && typeof result.data === 'object' && 'data' in result.data 
+        ? (result.data as { data?: { booking?: unknown } }).data 
+        : null
+      if (!bookingResult || !bookingResult.booking) {
         throw new Error('Invalid response format - please try again')
       }
       
       // Success handling
-      setCreatedBooking(bookingResult.booking)
+      setCreatedBooking(bookingResult.booking as any)
       setSuccess(true)
       
       // Show success toast
@@ -597,7 +604,8 @@ export default function BookingPage() {
       setError(userFriendlyError)
       
       // Refresh available windows if it might be a timing/capacity issue
-      if (err.message?.toLowerCase().includes('conflict') || err.message?.toLowerCase().includes('capacity')) {
+      const errMessage = err instanceof Error ? err.message : String(err)
+      if (errMessage.toLowerCase().includes('conflict') || errMessage.toLowerCase().includes('capacity')) {
         logger.debug('Refreshing available windows due to booking conflict', {
           component: 'BookingPage',
           action: 'refreshAfterConflict'
