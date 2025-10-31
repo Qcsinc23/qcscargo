@@ -21,6 +21,10 @@ import {
   AlertCircle,
   Calculator
 } from 'lucide-react'
+import { logger } from '@/lib/logger'
+import { handleShipmentError } from '@/lib/errorHandlers'
+import { draftStorage } from '@/lib/draftStorage'
+import { StepIndicator } from '@/components/StepIndicator'
 
 interface ShipmentItem {
   description: string
@@ -84,16 +88,52 @@ export default function CreateShipmentPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [createdShipmentId, setCreatedShipmentId] = useState<string>('')
+  const [currentStep, setCurrentStep] = useState(0)
+
+  const steps = [
+    { id: 'destination', label: 'Destination & Service', description: 'Select destination and service level' },
+    { id: 'items', label: 'Shipment Items', description: 'Add items to ship' },
+    { id: 'details', label: 'Additional Details', description: 'Special instructions and dates' },
+    { id: 'review', label: 'Review & Confirm', description: 'Review and submit' }
+  ]
 
   useEffect(() => {
     loadDestinations()
+    // Load draft on mount
+    const draft = draftStorage.load<ShipmentFormData>('create_shipment')
+    if (draft) {
+      setFormData(draft)
+      logger.debug('Loaded draft shipment', { component: 'CreateShipmentPage' })
+    }
   }, [])
+
+  // Auto-save draft
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.destination_id || formData.items.some(item => item.description || item.weight > 0)) {
+        draftStorage.save('create_shipment', formData)
+      }
+    }, 1000) // Debounce 1 second
+
+    return () => clearTimeout(timer)
+  }, [formData])
 
   useEffect(() => {
     if (formData.destination_id && formData.items.length > 0) {
       calculateEstimatedCost()
     }
-  }, [formData.destination_id, formData.items, formData.service_level])
+    
+    // Update current step based on form completion
+    if (!formData.destination_id) {
+      setCurrentStep(0)
+    } else if (formData.items.some(item => !item.description || item.weight <= 0)) {
+      setCurrentStep(1)
+    } else if (!formData.special_instructions && !formData.pickup_date) {
+      setCurrentStep(2)
+    } else {
+      setCurrentStep(3)
+    }
+  }, [formData.destination_id, formData.items, formData.service_level, formData.special_instructions, formData.pickup_date])
 
   // Handle URL parameters for pre-populating form data from shipping calculator
   useEffect(() => {
@@ -160,8 +200,12 @@ export default function CreateShipmentPage() {
       
       if (error) throw error
       setDestinations(data || [])
-    } catch (err: any) {
-      console.error('Error loading destinations:', err)
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error loading destinations', error, {
+        component: 'CreateShipmentPage',
+        action: 'loadDestinations'
+      })
       setError('Failed to load destination options')
     } finally {
       setDestinationsLoading(false)
@@ -204,7 +248,10 @@ export default function CreateShipmentPage() {
       
       setEstimatedCost(cost)
     } catch (err) {
-      console.error('Error calculating cost:', err)
+      logger.error('Error calculating cost', err instanceof Error ? err : new Error(String(err)), {
+        component: 'CreateShipmentPage',
+        action: 'calculateEstimatedCost'
+      })
     }
   }
 
@@ -224,7 +271,7 @@ export default function CreateShipmentPage() {
     }))
   }
 
-  const updateItem = (index: number, field: keyof ShipmentItem, value: any) => {
+  const updateItem = (index: number, field: keyof ShipmentItem, value: string | number | undefined) => {
     setFormData(prev => ({
       ...prev,
       items: prev.items.map((item, i) => 
@@ -263,13 +310,12 @@ export default function CreateShipmentPage() {
         throw new Error('Invalid destination selected')
       }
 
-      console.log('Submitting shipment with data:', {
+      logger.debug('Submitting shipment', {
+        component: 'CreateShipmentPage',
+        action: 'handleSubmit',
         destination_id: destinationId,
         service_level: formData.service_level,
-        pickup_date: formData.pickup_date || null,
-        special_instructions: formData.special_instructions,
-        declared_value: formData.declared_value || null,
-        items: formData.items
+        items_count: formData.items.length
       })
 
       // Create shipment using edge function with enhanced error handling
@@ -284,11 +330,12 @@ export default function CreateShipmentPage() {
         }
       })
 
-      console.log('Edge function response:', { data, error })
-
       // Enhanced error handling for different error types
       if (error) {
-        console.error('Supabase function error:', error)
+        logger.error('Supabase function error', error, {
+          component: 'CreateShipmentPage',
+          action: 'createShipment'
+        })
         
         // Handle different types of errors
         if (error.message?.includes('FunctionsHttpError')) {
@@ -304,7 +351,10 @@ export default function CreateShipmentPage() {
 
       // Handle server-side errors returned in data
       if (data?.error) {
-        console.error('Server-side error:', data.error)
+        logger.error('Server-side error', new Error(String(data.error)), {
+          component: 'CreateShipmentPage',
+          action: 'createShipment'
+        })
         
         const serverError = data.error
         if (serverError.code === 'SHIPMENT_CREATION_FAILED') {
@@ -326,9 +376,16 @@ export default function CreateShipmentPage() {
       // Validate successful response
       const shipmentResult = data?.data
       if (shipmentResult?.success && shipmentResult?.shipment) {
-        console.log('Shipment created successfully:', shipmentResult)
+      logger.info('Shipment created successfully', {
+        component: 'CreateShipmentPage',
+        action: 'createShipment',
+        shipment_id: shipmentResult.id
+      })
         setSuccess(true)
         setCreatedShipmentId(shipmentResult.shipment.id || '')
+        
+        // Clear draft on success
+        draftStorage.clear('create_shipment')
         
         // Clear form data on success
         setFormData({
@@ -345,21 +402,25 @@ export default function CreateShipmentPage() {
           }]
         })
       } else {
-        console.error('Unexpected response format:', data)
+        logger.error('Unexpected response format', new Error('Invalid response structure'), {
+          component: 'CreateShipmentPage',
+          action: 'createShipment'
+        })
         throw new Error('Unexpected server response. Please try again.')
       }
 
-    } catch (err: any) {
-      console.error('Shipment creation error:', err)
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Shipment creation error', error, {
+        component: 'CreateShipmentPage',
+        action: 'handleSubmit'
+      })
       
-      // User-friendly error messages
-      let userMessage = err.message || 'Failed to create shipment'
-      
-      // Handle network errors
-      if (err.name === 'TypeError' && err.message?.includes('fetch')) {
-        userMessage = 'Network error. Please check your internet connection and try again.'
-      }
-      
+      // Use enhanced error handler
+      const userMessage = handleShipmentError(err, {
+        destination_id: formData.destination_id,
+        items_count: formData.items.length
+      })
       setError(userMessage)
     } finally {
       setLoading(false)
@@ -442,10 +503,30 @@ export default function CreateShipmentPage() {
         <p className="mt-1 text-slate-600 text-[clamp(13px,3.6vw,16px)]">
           Fill in the details below to create your shipment to the Caribbean
         </p>
+
+        {/* Step Indicator */}
+        <div className="mt-6 mb-6">
+          <StepIndicator 
+            steps={steps}
+            currentStep={currentStep}
+            completedSteps={[]}
+          />
+        </div>
+
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Draft Notice */}
+        {draftStorage.exists('create_shipment') && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              We've saved a draft of your shipment. Your progress is automatically saved.
+            </AlertDescription>
           </Alert>
         )}
 

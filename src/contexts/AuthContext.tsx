@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 
 interface AuthContextType {
   user: User | null
@@ -8,9 +9,9 @@ interface AuthContextType {
   isAdmin: boolean
   isStaff: boolean
   userRole: string | null
-  signIn: (email: string, password: string) => Promise<any>
-  signUp: (email: string, password: string) => Promise<any>
-  signOut: () => Promise<any>
+  signIn: (email: string, password: string) => Promise<{ data?: unknown; error?: Error }>
+  signUp: (email: string, password: string) => Promise<{ data?: unknown; error?: Error }>
+  signOut: () => Promise<{ error?: Error }>
   refreshUserProfile: () => Promise<void>
 }
 
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!error && profile) {
             // Use database role as authoritative source (handles both columns)
             role = profile.role || profile.user_type
-            console.log('Database role verification (fallback):', {
+            logger.debug('Database role verification (fallback)', {
               user_id: user.id,
               email: user.email,
               profile_role: profile.role,
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               final_role: role
             })
           } else {
-            console.log('Profile lookup failed, using metadata role:', {
+            logger.debug('Profile lookup failed, using metadata role', {
               user_id: user.id,
               email: user.email,
               error: error?.message,
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             })
           }
         } catch (dbError) {
-          console.warn('Database profile lookup skipped due to RLS policy conflict:', {
+          logger.warn('Database profile lookup skipped due to RLS policy conflict', {
             user_id: user.id,
             email: user.email,
             error: dbError instanceof Error ? dbError.message : String(dbError),
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Continue with JWT metadata only
         }
       } else {
-        console.log('Using JWT metadata role (preferred method):', {
+        logger.debug('Using JWT metadata role (preferred method)', {
           user_id: user.id,
           email: user.email,
           jwt_role: role
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role = 'customer'
       }
       
-      console.log('Final role determination:', {
+      logger.debug('Final role determination', {
         email: user.email,
         user_metadata: user.user_metadata,
         app_metadata: user.app_metadata,
@@ -102,7 +103,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAdmin(role === 'admin')
       setIsStaff(role === 'staff' || role === 'admin')
     } catch (error) {
-      console.error('Error determining user role:', error)
+      logger.error('Error determining user role', error, {
+        component: 'AuthContext',
+        action: 'determineUserRole'
+      })
       // Default fallback on any error
       setUserRole('customer')
       setIsAdmin(false)
@@ -141,7 +145,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (user) {
           // Don't block the auth state change, but update role in background
           determineUserRole(user).catch(error => {
-            console.error('Error updating user role after auth change:', error)
+            logger.error('Error updating user role after auth change', error, {
+              component: 'AuthContext',
+              action: 'onAuthStateChange'
+            })
           })
         } else {
           // Clear role immediately for sign out

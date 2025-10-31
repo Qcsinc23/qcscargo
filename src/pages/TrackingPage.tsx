@@ -2,15 +2,20 @@ import React, { useState } from 'react'
 import { Search, Package, Plane, MapPin, Clock, AlertCircle, CheckCircle, Truck } from 'lucide-react'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
 import { featureFlags } from '@/lib/featureFlags'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
+import { logger } from '@/lib/logger'
+import { Link } from 'react-router-dom'
 
 export default function TrackingPage() {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [trackingResult, setTrackingResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
 
-  // Mock tracking data for demonstration
-  const mockTrackingData = {
+  // Legacy mock data - kept for reference but no longer used
+  const _mockTrackingData = {
     'QCS123456': {
       trackingNumber: 'QCS123456',
       carrierTrackingNumber: 'CX789012345',
@@ -144,17 +149,133 @@ export default function TrackingPage() {
     setLoading(true)
     setError(null)
 
-    // Simulate API call
-    setTimeout(() => {
-      const result = mockTrackingData[trackingNumber as keyof typeof mockTrackingData]
-      if (result) {
-        setTrackingResult(result)
-      } else {
+    try {
+      // Query shipment by tracking number
+      const { data: shipments, error: queryError } = await supabase
+        .from('shipments')
+        .select('*')
+        .eq('tracking_number', trackingNumber.toUpperCase().trim())
+        .maybeSingle()
+
+      if (queryError) {
+        throw queryError
+      }
+
+      if (!shipments) {
         setError('Tracking number not found. Please check the number and try again.')
         setTrackingResult(null)
+        setLoading(false)
+        return
       }
+
+      // If user is logged in and it's their shipment, get full details
+      if (user && shipments.customer_id === user.id) {
+        try {
+          const { data: shipmentData, error: shipmentError } = await supabase.functions.invoke('shipment-management', {
+            body: {
+              action: 'get',
+              shipment_id: shipments.id.toString()
+            }
+          })
+
+          if (!shipmentError && shipmentData?.data) {
+            const fullShipment = shipmentData.data.shipment
+            const trackingHistory = shipmentData.data.tracking || []
+            const items = shipmentData.data.items || []
+
+            // Format for display
+            setTrackingResult({
+              trackingNumber: fullShipment.tracking_number,
+              carrierTrackingNumber: fullShipment.carrier_tracking_number || 'Pending',
+              status: fullShipment.status.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+              destination: fullShipment.destinations ? 
+                `${fullShipment.destinations.city_name}, ${fullShipment.destinations.country_name}` : 
+                'Unknown',
+              estimatedDelivery: fullShipment.delivered_at || 
+                (fullShipment.shipped_at ? 
+                  new Date(new Date(fullShipment.shipped_at).getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : 
+                  'TBD'),
+              weight: `${fullShipment.total_weight || 0} lbs`,
+              service: fullShipment.service_type === 'express' ? 'Express Air Freight' : 'Standard Air Freight',
+              timeline: trackingHistory.map((track: any) => ({
+                status: track.status || track.location,
+                date: new Date(track.timestamp).toLocaleDateString(),
+                time: new Date(track.timestamp).toLocaleTimeString(),
+                location: track.location || 'QCS Cargo Facility',
+                description: track.notes || track.status,
+                completed: new Date(track.timestamp) < new Date()
+              })),
+              shipment: fullShipment,
+              items
+            })
+            setLoading(false)
+            return
+          }
+        } catch (err) {
+          logger.error('Error fetching full shipment details', err instanceof Error ? err : new Error(String(err)), {
+            component: 'TrackingPage',
+            action: 'handleTracking'
+          })
+        }
+      }
+
+      // For non-logged-in users or if fetch fails, show basic info
+      const { data: trackingData } = await supabase
+        .from('shipment_tracking')
+        .select('*')
+        .eq('shipment_id', shipments.id)
+        .eq('is_customer_visible', true)
+        .order('timestamp', { ascending: false })
+        .limit(10)
+
+      const trackingHistory = trackingData || []
+
+      // Get destination info
+      let destinationName = 'Unknown'
+      if (shipments.destination_id) {
+        const { data: dest } = await supabase
+          .from('destinations')
+          .select('city_name, country_name')
+          .eq('id', shipments.destination_id)
+          .maybeSingle()
+        
+        if (dest) {
+          destinationName = `${dest.city_name}, ${dest.country_name}`
+        }
+      }
+
+      setTrackingResult({
+        trackingNumber: shipments.tracking_number,
+        carrierTrackingNumber: shipments.carrier_tracking_number || 'Pending',
+        status: shipments.status.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        destination: destinationName,
+        estimatedDelivery: shipments.delivered_at || 
+          (shipments.shipped_at ? 
+            new Date(new Date(shipments.shipped_at).getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : 
+            'TBD'),
+        weight: `${shipments.total_weight || 0} lbs`,
+        service: shipments.service_type === 'express' ? 'Express Air Freight' : 'Standard Air Freight',
+        timeline: trackingHistory.map((track: any) => ({
+          status: track.status || track.location,
+          date: new Date(track.timestamp).toLocaleDateString(),
+          time: new Date(track.timestamp).toLocaleTimeString(),
+          location: track.location || 'QCS Cargo Facility',
+          description: track.notes || track.status,
+          completed: new Date(track.timestamp) < new Date()
+        })),
+        shipment: shipments
+      })
+
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error tracking shipment', error, {
+        component: 'TrackingPage',
+        action: 'handleTracking'
+      })
+      setError('Failed to track shipment. Please try again or contact support.')
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   const getStatusIcon = (status: string, completed: boolean) => {
@@ -300,10 +421,25 @@ export default function TrackingPage() {
                   </div>
                 </div>
 
-                {featureFlags.virtualMailboxUi && (
-                  <div className="mt-4 text-sm text-slate-600">
-                    Linked to mailbox <strong>{trackingResult.mailboxNumber || 'QCS#####'}</strong>
-                    {trackingResult.consolidated ? ' • Consolidated shipment' : ''}
+                {featureFlags.virtualMailboxUi && trackingResult.shipment?.customer_id && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      {user && trackingResult.shipment.customer_id === user.id ? (
+                        <>
+                          View full shipment details in your{' '}
+                          <Link to={`/dashboard/shipments/${trackingResult.shipment.id}`} className="font-semibold underline">
+                            dashboard
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link to="/auth/login" className="font-semibold underline">
+                            Sign in
+                          </Link>
+                          {' '}to view full shipment details and manage documents
+                        </>
+                      )}
+                    </p>
                   </div>
                 )}
               </div>

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 
 export default function AuthCallback() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -27,7 +28,11 @@ export default function AuthCallback() {
           hasError: urlParams.has('error')
         }
         setDebugInfo(JSON.stringify(debugDetails, null, 2))
-        console.log('Auth callback debug info:', debugDetails)
+        logger.debug('Auth callback debug info', {
+          component: 'AuthCallback',
+          action: 'handleAuthCallback',
+          ...debugDetails
+        })
         
         // Handle error in URL parameters first
         if (urlParams.has('error')) {
@@ -40,20 +45,29 @@ export default function AuthCallback() {
         
         // Handle PKCE flow with code parameter
         if (urlParams.has('code')) {
-          console.log('Processing PKCE flow with code parameter')
+          logger.debug('Processing PKCE flow with code parameter', {
+            component: 'AuthCallback',
+            action: 'handleAuthCallback'
+          })
           
           // For PKCE flow, we need to use the full URL search string
           const { data, error } = await supabase.auth.exchangeCodeForSession(url.search)
           
           if (error) {
-            console.error('PKCE flow error:', error)
+            logger.error('PKCE flow error', error, {
+              component: 'AuthCallback',
+              action: 'exchangeCodeForSession'
+            })
             setStatus('error')
             setMessage(`PKCE Authentication failed: ${error.message}`)
             return
           }
           
           if (data?.session) {
-            console.log('PKCE flow successful, session created')
+            logger.debug('PKCE flow successful, session created', {
+              component: 'AuthCallback',
+              action: 'handleAuthCallback'
+            })
             setStatus('success')
             setMessage('Successfully signed in! Redirecting to your dashboard...')
             
@@ -66,19 +80,28 @@ export default function AuthCallback() {
         
         // Handle legacy hash-based flow (fallback)
         if (hashFragment && hashFragment.length > 1) {
-          console.log('Processing legacy hash-based flow')
+          logger.debug('Processing legacy hash-based flow', {
+            component: 'AuthCallback',
+            action: 'handleAuthCallback'
+          })
           
           const { data, error } = await supabase.auth.exchangeCodeForSession(hashFragment)
 
           if (error) {
-            console.error('Hash flow error:', error)
+            logger.error('Hash flow error', error, {
+              component: 'AuthCallback',
+              action: 'exchangeCodeForSession'
+            })
             setStatus('error')
             setMessage(`Hash Authentication failed: ${error.message}`)
             return
           }
 
           if (data?.session) {
-            console.log('Hash flow successful, session created')
+            logger.debug('Hash flow successful, session created', {
+              component: 'AuthCallback',
+              action: 'handleAuthCallback'
+            })
             setStatus('success')
             setMessage('Successfully signed in! Redirecting to your dashboard...')
             
@@ -92,7 +115,10 @@ export default function AuthCallback() {
         // Try to get existing session as last resort
         const { data: sessionData } = await supabase.auth.getSession()
         if (sessionData?.session) {
-          console.log('Found existing session')
+          logger.debug('Found existing session', {
+            component: 'AuthCallback',
+            action: 'handleAuthCallback'
+          })
           setStatus('success')
           setMessage('Session found! Redirecting to your dashboard...')
           
@@ -103,14 +129,21 @@ export default function AuthCallback() {
         }
 
         // If we get here, no valid authentication was found
-        console.log('No valid authentication found')
+        logger.warn('No valid authentication found', {
+          component: 'AuthCallback',
+          action: 'handleAuthCallback'
+        })
         setStatus('error')
         setMessage('No valid authentication code or session found. Please try signing in again.')
         
-      } catch (error: any) {
-        console.error('Auth callback error:', error)
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error))
+        logger.error('Auth callback error', err, {
+          component: 'AuthCallback',
+          action: 'handleAuthCallback'
+        })
         setStatus('error')
-        setMessage(`Unexpected error during authentication: ${error.message}`)
+        setMessage(`Unexpected error during authentication: ${err.message}`)
       }
     }
 

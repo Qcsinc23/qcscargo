@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { logger } from './logger'
 
 // Get Supabase credentials from environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -30,7 +31,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export async function getCurrentUser() {
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error) {
-    console.error('Error getting user:', error)
+    logger.error('Error getting user', error, {
+      component: 'supabase',
+      action: 'getCurrentUser'
+    })
     return null
   }
   return user

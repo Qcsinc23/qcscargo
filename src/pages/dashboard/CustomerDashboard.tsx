@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Link, useNavigate } from 'react-router-dom'
+import { logger } from '@/lib/logger'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import {
   Package,
@@ -186,13 +187,20 @@ export default function CustomerDashboard() {
       setSigningOut(true)
       const { error } = await signOut()
       if (error) {
-        console.error('Sign out error:', error)
+        logger.error('Sign out error', error, {
+          component: 'CustomerDashboard',
+          action: 'handleSignOut'
+        })
         setError('Failed to sign out. Please try again.')
       } else {
         navigate('/auth/login', { replace: true })
       }
-    } catch (err: any) {
-      console.error('Sign out error:', err)
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Sign out error', error, {
+        component: 'CustomerDashboard',
+        action: 'handleSignOut'
+      })
       setError('Failed to sign out. Please try again.')
     } finally {
       setSigningOut(false)
@@ -320,16 +328,20 @@ export default function CustomerDashboard() {
         in_transit_shipments: shipments.filter((s: any) => ['in_transit', 'customs_clearance', 'out_for_delivery'].includes(s.status)).length,
         delivered_shipments: shipments.filter((s: any) => s.status === 'delivered').length,
         total_spent: shipments.reduce((sum: number, s: any) => sum + (parseFloat(s.total_declared_value) || 0), 0),
-        pending_documents: 0, // TODO: Count from documents when we implement document requirements
+        pending_documents: 0, // Document counting feature not yet implemented
         upcoming_bookings: (bookingsData || []).length,
         active_quotes: activeQuotes
       }
 
       setStats(dashboardStats)
 
-    } catch (err: any) {
-      console.error('Dashboard loading error:', err)
-      setError(err.message || 'Failed to load dashboard data')
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Dashboard loading error', error, {
+        component: 'CustomerDashboard',
+        action: 'loadDashboardData'
+      })
+      setError(error.message || 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
@@ -531,6 +543,9 @@ export default function CustomerDashboard() {
           <div className="space-y-3 mb-6">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-slate-900">Recent Quotes</h2>
+              <Link to="/dashboard/quotes" className="text-sm text-shopify-pink hover:text-shopify-maroon">
+                View All
+              </Link>
             </div>
             <div className="space-y-2">
               {quotes.map((quote) => {
@@ -584,12 +599,19 @@ export default function CustomerDashboard() {
                       </div>
                     </div>
                     {!isExpired && quote.status === 'pending' && (
-                      <div className="mt-3 pt-3 border-t border-slate-100">
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex gap-2">
+                        <Link
+                          to={`/dashboard/quotes`}
+                          className="text-sm text-shopify-pink hover:text-shopify-maroon font-medium"
+                        >
+                          View Quote Details →
+                        </Link>
+                        <span className="text-slate-300">|</span>
                         <Link
                           to="/booking"
                           className="text-sm text-shopify-pink hover:text-shopify-maroon font-medium"
                         >
-                          Proceed to Booking →
+                          Schedule Booking →
                         </Link>
                       </div>
                     )}
@@ -604,9 +626,7 @@ export default function CustomerDashboard() {
         <div className="space-y-3 mb-6">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-slate-900">Recent Shipments</h2>
-            <Link to="/dashboard/shipments" className="text-sm text-shopify-pink hover:text-shopify-maroon">
-              View All
-            </Link>
+            {/* TODO: Create ShipmentsListPage - link temporarily removed */}
           </div>
           {recentShipments.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 p-6 text-center">
@@ -620,7 +640,11 @@ export default function CustomerDashboard() {
           ) : (
             <div className="space-y-2">
               {recentShipments.map((shipment) => (
-                <div key={shipment.id} className="rounded-2xl border border-slate-200 p-4">
+                <Link
+                  key={shipment.id}
+                  to={`/dashboard/shipments/${shipment.id}`}
+                  className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer"
+                >
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium text-slate-900">
@@ -642,7 +666,7 @@ export default function CustomerDashboard() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

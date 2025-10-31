@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react'
 import { logAuthError, logValidationError } from '../../lib/errorLogger'
+import { logger } from '@/lib/logger'
 
 interface LocationState {
   from?: {
@@ -66,7 +67,10 @@ export default function LoginPage() {
     try {
       const { error } = await signIn(email, password)
       if (error) {
-        console.error('Sign in error:', error)
+        logger.error('Sign in error', error, {
+          component: 'LoginPage',
+          action: 'handleSubmit'
+        })
         await logAuthError(error, 'login', email)
         
         // Provide user-friendly error messages with comprehensive rate limiting handling
@@ -89,13 +93,21 @@ export default function LoginPage() {
         
         setError(errorMessage)
       } else {
-        console.log('Sign in successful, redirecting to:', from)
+        logger.debug('Sign in successful, redirecting', {
+          component: 'LoginPage',
+          action: 'handleSubmit',
+          redirectTo: from
+        })
         navigate(from, { replace: true })
       }
-    } catch (err: any) {
-      console.error('Login error:', err)
-      await logAuthError(err, 'login', email)
-      setError(err.message || 'An unexpected error occurred during sign in')
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Login error', error, {
+        component: 'LoginPage',
+        action: 'handleSubmit'
+      })
+      await logAuthError(error.message, 'login', email)
+      setError(error.message || 'An unexpected error occurred during sign in')
     } finally {
       setLoading(false)
     }

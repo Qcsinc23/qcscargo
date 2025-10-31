@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 interface DashboardStats {
   kpis: {
@@ -51,14 +52,24 @@ const AdminDashboard: React.FC = () => {
       })
 
       if (error) {
-        console.error('Supabase function error:', error)
+        logger.error('Supabase function error', error, {
+          component: 'AdminDashboard',
+          action: 'loadDashboardData'
+        })
         throw new Error(error.message || 'Failed to load dashboard data')
       }
 
-      console.log('Dashboard data received:', data)
+      logger.debug('Dashboard data received', {
+        component: 'AdminDashboard',
+        action: 'loadDashboardData'
+      })
       setStats(data?.data || null)
-    } catch (err) {
-      console.error('Error loading dashboard data:', err)
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error loading dashboard data', error, {
+        component: 'AdminDashboard',
+        action: 'loadDashboardData'
+      })
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
       setError(errorMessage)
       toast.error(errorMessage)

@@ -3,19 +3,20 @@
  */
 
 import { monitoring, type ErrorContext } from './monitoring';
+import { logger } from './logger';
 
 export interface ErrorLogEntry {
   timestamp: string;
   level: 'error' | 'warn' | 'info';
   message: string;
-  context?: any;
+  context?: Record<string, unknown>;
   stack?: string;
 }
 
 class ErrorLogger {
   private logs: ErrorLogEntry[] = [];
 
-  log(level: 'error' | 'warn' | 'info', message: string, context?: any, error?: Error) {
+  log(level: 'error' | 'warn' | 'info', message: string, context?: Record<string, unknown>, error?: Error) {
     const entry: ErrorLogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -26,13 +27,13 @@ class ErrorLogger {
 
     this.logs.push(entry);
     
-    // Console logging for development
+    // Use logger utility for consistent logging
     if (level === 'error') {
-      console.error(`[${entry.timestamp}] ERROR:`, message, context, error);
+      logger.error(message, error instanceof Error ? error : undefined, context);
     } else if (level === 'warn') {
-      console.warn(`[${entry.timestamp}] WARN:`, message, context);
+      logger.warn(message, context);
     } else {
-      console.log(`[${entry.timestamp}] INFO:`, message, context);
+      logger.info(message, context);
     }
 
     // Send to monitoring service for errors and warnings
@@ -53,15 +54,15 @@ class ErrorLogger {
     }
   }
 
-  error(message: string, context?: any, error?: Error) {
+  error(message: string, context?: Record<string, unknown>, error?: Error) {
     this.log('error', message, context, error);
   }
 
-  warn(message: string, context?: any) {
+  warn(message: string, context?: Record<string, unknown>) {
     this.log('warn', message, context);
   }
 
-  info(message: string, context?: any) {
+  info(message: string, context?: Record<string, unknown>) {
     this.log('info', message, context);
   }
 
@@ -77,19 +78,19 @@ class ErrorLogger {
 export const errorLogger = new ErrorLogger();
 
 // Export specific logging functions for backward compatibility
-export const logError = (message: string, context?: any, error?: Error) => {
+export const logError = (message: string, context?: Record<string, unknown>, error?: Error) => {
   errorLogger.error(message, context, error);
 };
 
-export const logAuthError = (message: string, context?: any, additionalContext?: any) => {
-  errorLogger.error(`[AUTH] ${message}`, { context, additionalContext });
+export const logAuthError = (message: string, context?: Record<string, unknown>, additionalContext?: Record<string, unknown>) => {
+  errorLogger.error(`[AUTH] ${message}`, { ...context, ...additionalContext });
 };
 
-export const logValidationError = (message: string, field?: string, value?: any) => {
+export const logValidationError = (message: string, field?: string, value?: unknown) => {
   errorLogger.error(`[VALIDATION] ${message}`, { field, value });
 };
 
-export const logDatabaseError = (error: Error | string, table?: string, operation?: string, data?: any) => {
+export const logDatabaseError = (error: Error | string, table?: string, operation?: string, data?: unknown) => {
   const message = typeof error === 'string' ? error : error.message;
   const errorObj = typeof error === 'string' ? undefined : error;
   errorLogger.error(`[DATABASE] ${message}`, { table, operation, data }, errorObj);

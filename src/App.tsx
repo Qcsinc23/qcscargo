@@ -38,6 +38,8 @@ const TermsOfServicePage = lazy(() => import('@/pages/TermsOfServicePage'))
 // Lazy load Customer Portal Pages
 const CustomerDashboard = lazy(() => import('@/pages/dashboard/CustomerDashboard'))
 const CreateShipmentPage = lazy(() => import('@/pages/dashboard/CreateShipmentPage'))
+const ShipmentDetailsPage = lazy(() => import('@/pages/dashboard/ShipmentDetailsPage'))
+const QuotesManagementPage = lazy(() => import('@/pages/dashboard/QuotesManagementPage'))
 const CustomerProfilePage = lazy(() => import('@/pages/customer/CustomerProfilePage'))
 const BookingPage = lazy(() => import('@/pages/BookingPage'))
 
@@ -113,6 +115,24 @@ function App() {
                     <ProtectedRoute>
                       <AdminRedirect>
                         <CreateShipmentPage />
+                      </AdminRedirect>
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                } />
+                <Route path="/dashboard/shipments/:id" element={
+                  <RouteErrorBoundary fallback={CustomerErrorFallback}>
+                    <ProtectedRoute>
+                      <AdminRedirect>
+                        <ShipmentDetailsPage />
+                      </AdminRedirect>
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                } />
+                <Route path="/dashboard/quotes" element={
+                  <RouteErrorBoundary fallback={CustomerErrorFallback}>
+                    <ProtectedRoute>
+                      <AdminRedirect>
+                        <QuotesManagementPage />
                       </AdminRedirect>
                     </ProtectedRoute>
                   </RouteErrorBoundary>

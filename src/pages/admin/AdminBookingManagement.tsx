@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 interface Booking {
   id: string
@@ -107,17 +108,28 @@ const AdminBookingManagement: React.FC = () => {
       })
 
       if (error) {
-        console.error('Supabase function error:', error)
+        logger.error('Supabase function error', error, {
+          component: 'AdminBookingManagement',
+          action: 'loadBookings'
+        })
         throw new Error(error.message || 'Failed to load bookings')
       }
 
-      console.log('Bookings data received:', data)
+      logger.debug('Bookings data received', {
+        component: 'AdminBookingManagement',
+        action: 'loadBookings',
+        count: data?.data?.bookings?.length || 0
+      })
       setBookings(data?.data?.bookings || [])
       setTotalPages(data?.data?.pagination?.totalPages || 1)
       setTotalBookings(data?.data?.pagination?.total || 0)
-    } catch (err) {
-      console.error('Error loading bookings:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load bookings'
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error loading bookings', error, {
+        component: 'AdminBookingManagement',
+        action: 'loadBookings'
+      })
+      const errorMessage = error.message
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {
@@ -141,10 +153,18 @@ const AdminBookingManagement: React.FC = () => {
       }
 
       const vehicles = data?.data?.vehicles || []
-      console.log('Loaded', vehicles.length, 'available vehicles via edge function')
+      logger.debug('Loaded vehicles via edge function', {
+        component: 'AdminBookingManagement',
+        action: 'loadVehicles',
+        count: vehicles.length
+      })
       setAvailableVehicles(vehicles)
-    } catch (err) {
-      console.error('Error loading vehicles:', err)
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error loading vehicles', error, {
+        component: 'AdminBookingManagement',
+        action: 'loadVehicles'
+      })
     }
   }
 
@@ -218,7 +238,11 @@ const AdminBookingManagement: React.FC = () => {
       setSelectedBookings(new Set())
       await loadBookings()
     } catch (err) {
-      console.error('Error with bulk action:', err)
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error with bulk action', error, {
+        component: 'AdminBookingManagement',
+        action: 'handleBulkAction'
+      })
       toast.error(`Failed to ${action} ${bookingCount} ${bookingText}`, { id: 'bulk-action', duration: 4000 })
     }
   }
@@ -247,7 +271,11 @@ const AdminBookingManagement: React.FC = () => {
       toast.success(`Booking ${action}ed successfully!`, { id: `action-${bookingId}`, duration: 3000 })
       await loadBookings()
     } catch (err) {
-      console.error('Error with individual action:', err)
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error with individual action', error, {
+        component: 'AdminBookingManagement',
+        action: 'handleAction'
+      })
       toast.error(`Failed to ${action} booking`, { id: `action-${bookingId}`, duration: 3000 })
     } finally {
       setActionLoading(prev => {
@@ -293,7 +321,11 @@ const AdminBookingManagement: React.FC = () => {
       setShowVehicleModal(null)
       await loadBookings()
     } catch (err) {
-      console.error('Error assigning vehicle:', err)
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error assigning vehicle', error, {
+        component: 'AdminBookingManagement',
+        action: 'assignVehicle'
+      })
       toast.error('Failed to assign vehicle')
     } finally {
       setActionLoading(prev => {

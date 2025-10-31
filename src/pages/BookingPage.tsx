@@ -26,6 +26,7 @@ import {
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 interface AvailableWindow {
   start: string
@@ -211,7 +212,10 @@ export default function BookingPage() {
         }))
       }
     } catch (err) {
-      console.error('Error loading user profile:', err)
+      logger.error('Error loading user profile', err instanceof Error ? err : new Error(String(err)), {
+        component: 'BookingPage',
+        action: 'loadUserProfile'
+      })
     }
   }
   
@@ -226,7 +230,10 @@ export default function BookingPage() {
   useEffect(() => {
     if (!selectedDate) return
     
-    console.log('Setting up real-time subscription for bookings...')
+    logger.debug('Setting up real-time subscription for bookings', {
+      component: 'BookingPage',
+      action: 'setupRealtimeSubscription'
+    })
     
     // Subscribe to bookings table changes
     const subscription = supabase
@@ -239,21 +246,28 @@ export default function BookingPage() {
           table: 'bookings'
         },
         (payload) => {
-          console.log('Real-time booking update received:', payload)
+          logger.debug('Real-time booking update received', {
+            component: 'BookingPage',
+            action: 'realtimeBookingUpdate',
+            eventType: payload.eventType
+          })
           
           // Only refresh if the booking affects the currently selected date
           const bookingData = payload.new || payload.old
           if (!bookingData) return
           
           // Type-safe access to window_start
-          const windowStart = (bookingData as any)?.window_start
-          if (!windowStart) return
+          const windowStart = (bookingData as Record<string, unknown>)?.window_start
+          if (!windowStart || typeof windowStart !== 'string') return
           
           const bookingDate = new Date(windowStart)
           const currentDate = selectedDate
           
           if (bookingDate.toDateString() === currentDate.toDateString()) {
-            console.log('Booking update affects current date, refreshing available windows...')
+            logger.debug('Booking update affects current date, refreshing available windows', {
+              component: 'BookingPage',
+              action: 'refreshAvailableWindows'
+            })
             
             // Show toast notification about real-time update
             if (payload.eventType === 'INSERT') {
@@ -271,17 +285,31 @@ export default function BookingPage() {
         }
       )
       .subscribe((status) => {
-        console.log('Real-time subscription status:', status)
+        logger.debug('Real-time subscription status', {
+          component: 'BookingPage',
+          action: 'subscribe',
+          status
+        })
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to booking updates')
+          logger.debug('Successfully subscribed to booking updates', {
+            component: 'BookingPage',
+            action: 'subscribe'
+          })
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.error('Error with booking subscription:', status)
+          logger.error('Error with booking subscription', new Error(`Subscription status: ${status}`), {
+            component: 'BookingPage',
+            action: 'subscribe',
+            status
+          })
         }
       })
     
     // Cleanup subscription when component unmounts or date changes
     return () => {
-      console.log('Cleaning up real-time subscription...')
+      logger.debug('Cleaning up real-time subscription', {
+        component: 'BookingPage',
+        action: 'cleanupSubscription'
+      })
       supabase.removeChannel(subscription)
     }
   }, [selectedDate]) // Re-subscribe when selected date changes
@@ -290,14 +318,20 @@ export default function BookingPage() {
   useEffect(() => {
     if (!selectedDate || availableWindows.length === 0) return
     
-    console.log('Setting up periodic refresh for availability updates...')
+    logger.debug('Setting up periodic refresh for availability updates', {
+      component: 'BookingPage',
+      action: 'setupPeriodicRefresh'
+    })
     
     const refreshInterval = setInterval(() => {
       const timeSinceLastRefresh = Date.now() - lastRefreshTime.getTime()
       
       // Only refresh if it's been more than 30 seconds since last refresh
       if (timeSinceLastRefresh > 30000) {
-        console.log('Performing periodic refresh of available windows...')
+        logger.debug('Performing periodic refresh of available windows', {
+          component: 'BookingPage',
+          action: 'periodicRefresh'
+        })
         loadAvailableWindows()
         setLastRefreshTime(new Date())
       }
@@ -323,19 +357,30 @@ export default function BookingPage() {
         zip_code: formData.address.zip_code || null
       }
       
-      console.log('Loading available windows with params:', requestBody)
+      logger.debug('Loading available windows', {
+        component: 'BookingPage',
+        action: 'loadAvailableWindows',
+        params: requestBody
+      })
       
       const { data, error } = await supabase.functions.invoke('get-available-windows', {
         body: requestBody
       })
       
       if (error) {
-        console.error('Edge function error:', error)
+        logger.error('Edge function error', error, {
+          component: 'BookingPage',
+          action: 'loadAvailableWindows'
+        })
         throw new Error(error.message || 'Failed to load available windows')
       }
       
       if (data?.error) {
-        console.error('API error response:', data.error)
+        logger.error('API error response', new Error(data.error.message || 'Unknown API error'), {
+          component: 'BookingPage',
+          action: 'loadAvailableWindows',
+          errorCode: data.error.code
+        })
         throw new Error(data.error.message || data.error.code || 'Failed to load available time slots')
       }
       
@@ -387,11 +432,15 @@ export default function BookingPage() {
         throw new Error('Invalid response format')
       }
       
-    } catch (err: any) {
-      console.error('Error loading available windows:', err)
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error loading available windows', error, {
+        component: 'BookingPage',
+        action: 'loadAvailableWindows'
+      })
       
       let errorMessage = 'Failed to load available time slots'
-      const errMsg = err.message?.toLowerCase() || ''
+      const errMsg = error.message?.toLowerCase() || ''
       
       if (errMsg.includes('network') || errMsg.includes('fetch') || errMsg.includes('connection')) {
         errorMessage = 'Connection error. Please check your internet connection and try again.'
@@ -502,7 +551,10 @@ export default function BookingPage() {
         setTimeout(() => reject(new Error('Request timeout - please try again')), 30000) // 30 second timeout
       })
       
-      const { data, error } = await Promise.race([bookingPromise, timeoutPromise]) as any
+      const { data, error } = await Promise.race([bookingPromise, timeoutPromise]) as {
+        data?: unknown;
+        error?: Error;
+      }
       
       // Dismiss loading toast
       toast.dismiss(loadingToast)
@@ -533,8 +585,12 @@ export default function BookingPage() {
       // Clear any existing errors
       setError('')
       
-    } catch (err: any) {
-      console.error('Booking creation error:', err)
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Booking creation error', error, {
+        component: 'BookingPage',
+        action: 'handleSubmit'
+      })
       
       // Use comprehensive error handling
       const userFriendlyError = handleBookingError(err, formData)
@@ -542,7 +598,10 @@ export default function BookingPage() {
       
       // Refresh available windows if it might be a timing/capacity issue
       if (err.message?.toLowerCase().includes('conflict') || err.message?.toLowerCase().includes('capacity')) {
-        console.log('Refreshing available windows due to booking conflict...')
+        logger.debug('Refreshing available windows due to booking conflict', {
+          component: 'BookingPage',
+          action: 'refreshAfterConflict'
+        })
         setTimeout(() => {
           loadAvailableWindows()
         }, 1500)

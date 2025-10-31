@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Checkbox } from '@/components/ui/checkbox'
 import { 
   Package, 
   Search, 
@@ -19,9 +20,14 @@ import {
   Truck,
   Eye,
   Edit,
-  RefreshCw
+  RefreshCw,
+  CheckSquare,
+  Square
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ConfirmActionDialog } from '@/components/ConfirmActionDialog'
+import { logger } from '@/lib/logger'
+import { handleAdminError } from '@/lib/errorHandlers'
 
 interface Shipment {
   id: string
@@ -74,12 +80,25 @@ export default function AdminShipmentManagement() {
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedShipments, setSelectedShipments] = useState<Set<string>>(new Set())
   const [pagination, setPagination] = useState({
     total: 0,
     limit: 20,
     offset: 0,
     has_more: false
   })
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean
+    shipmentId: string
+    currentStatus: string
+    newStatus: string
+  }>({
+    open: false,
+    shipmentId: '',
+    currentStatus: '',
+    newStatus: ''
+  })
+  const [updateLoading, setUpdateLoading] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -145,8 +164,20 @@ export default function AdminShipmentManagement() {
     }
   }
 
+  const handleStatusChangeRequest = (shipmentId: string, currentStatus: string, newStatus: string) => {
+    if (currentStatus === newStatus) return
+    
+    setConfirmDialog({
+      open: true,
+      shipmentId,
+      currentStatus,
+      newStatus
+    })
+  }
+
   const handleUpdateStatus = async (shipmentId: string, newStatus: string, notes?: string) => {
     try {
+      setUpdateLoading(true)
       const { data, error } = await supabase.functions.invoke(
         'admin-shipments-management',
         {
@@ -161,12 +192,65 @@ export default function AdminShipmentManagement() {
 
       if (error) throw error
 
-      toast.success('Shipment status updated successfully')
-      loadData() // Reload data
-    } catch (err: any) {
-      console.error('Error updating status:', err)
-      toast.error('Failed to update shipment status')
+      const currentStatusLabel = statusConfig[confirmDialog.currentStatus as keyof typeof statusConfig]?.label || confirmDialog.currentStatus
+      const newStatusLabel = statusConfig[newStatus as keyof typeof statusConfig]?.label || newStatus
+
+      toast.success('Status Updated', {
+        description: `Shipment status changed from "${currentStatusLabel}" to "${newStatusLabel}"`
+      })
+      
+      setConfirmDialog({ open: false, shipmentId: '', currentStatus: '', newStatus: '' })
+      await loadData()
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Error updating shipment status', error, {
+        component: 'AdminShipmentManagement',
+        action: 'handleUpdateStatus'
+      })
+      const errorMessage = handleAdminError(err, 'update status')
+      toast.error('Failed to update status', {
+        description: errorMessage
+      })
+    } finally {
+      setUpdateLoading(false)
     }
+  }
+
+  const handleSelectShipment = (shipmentId: string, checked: boolean) => {
+    setSelectedShipments(prev => {
+      const newSet = new Set(prev)
+      if (checked) {
+        newSet.add(shipmentId)
+      } else {
+        newSet.delete(shipmentId)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedShipments.size === shipments.length) {
+      setSelectedShipments(new Set())
+    } else {
+      setSelectedShipments(new Set(shipments.map(s => s.id)))
+    }
+  }
+
+  const handleBulkStatusUpdate = async (newStatus: string) => {
+    if (selectedShipments.size === 0) {
+      toast.error('Please select at least one shipment')
+      return
+    }
+
+    const shipmentCount = selectedShipments.size
+    const statusLabel = statusConfig[newStatus as keyof typeof statusConfig]?.label || newStatus
+
+    setConfirmDialog({
+      open: true,
+      shipmentId: 'bulk',
+      currentStatus: 'bulk',
+      newStatus
+    })
   }
 
   const getStatusBadge = (status: string) => {
@@ -345,12 +429,35 @@ export default function AdminShipmentManagement() {
       {/* Shipments List */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            Shipments ({pagination.total})
-          </CardTitle>
-          <CardDescription>
-            Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>
+                Shipments ({pagination.total})
+              </CardTitle>
+              <CardDescription>
+                Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total}
+              </CardDescription>
+            </div>
+            {selectedShipments.size > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">{selectedShipments.size} selected</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkStatusUpdate('in_transit')}
+                >
+                  Bulk Update Status
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedShipments(new Set())}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {shipments.length === 0 ? (
@@ -361,14 +468,37 @@ export default function AdminShipmentManagement() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Select All Checkbox */}
+              <div className="flex items-center space-x-2 pb-2 border-b">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="flex items-center space-x-2"
+                >
+                  {selectedShipments.size === shipments.length ? (
+                    <CheckSquare className="h-4 w-4" />
+                  ) : (
+                    <Square className="h-4 w-4" />
+                  )}
+                  <span className="text-sm">
+                    {selectedShipments.size === shipments.length ? 'Deselect All' : 'Select All'}
+                  </span>
+                </Button>
+              </div>
+
               {shipments.map((shipment) => (
                 <div key={shipment.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 flex-1">
+                      <Checkbox
+                        checked={selectedShipments.has(shipment.id)}
+                        onCheckedChange={(checked) => handleSelectShipment(shipment.id, checked as boolean)}
+                      />
                       <div className="bg-blue-100 p-2 rounded-full">
                         <Package className="h-4 w-4 text-blue-600" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium text-gray-900">
                           {shipment.tracking_number}
                         </p>
@@ -403,7 +533,7 @@ export default function AdminShipmentManagement() {
                         </Button>
                         <Select
                           value={shipment.status}
-                          onValueChange={(status) => handleUpdateStatus(shipment.id, status)}
+                          onValueChange={(status) => handleStatusChangeRequest(shipment.id, shipment.status, status)}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue />
@@ -452,6 +582,40 @@ export default function AdminShipmentManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <ConfirmActionDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
+        title={
+          confirmDialog.shipmentId === 'bulk'
+            ? `Update ${selectedShipments.size} Shipments?`
+            : 'Update Shipment Status?'
+        }
+        description={
+          confirmDialog.shipmentId === 'bulk'
+            ? `Are you sure you want to change the status of ${selectedShipments.size} shipment(s) to "${statusConfig[confirmDialog.newStatus as keyof typeof statusConfig]?.label || confirmDialog.newStatus}"?`
+            : `Change status from "${statusConfig[confirmDialog.currentStatus as keyof typeof statusConfig]?.label || confirmDialog.currentStatus}" to "${statusConfig[confirmDialog.newStatus as keyof typeof statusConfig]?.label || confirmDialog.newStatus}"?`
+        }
+        confirmLabel="Update Status"
+        cancelLabel="Cancel"
+        variant="default"
+        loading={updateLoading}
+        onConfirm={() => {
+          if (confirmDialog.shipmentId === 'bulk') {
+            // Handle bulk update
+            const updates = Array.from(selectedShipments).map(id => 
+              handleUpdateStatus(id, confirmDialog.newStatus)
+            )
+            Promise.all(updates).then(() => {
+              setSelectedShipments(new Set())
+              loadData()
+            })
+          } else {
+            handleUpdateStatus(confirmDialog.shipmentId, confirmDialog.newStatus)
+          }
+        }}
+      />
     </div>
   )
 }

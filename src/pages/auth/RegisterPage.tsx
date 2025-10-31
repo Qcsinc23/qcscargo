@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { logAuthError, logDatabaseError, logValidationError } from '../../lib/errorLogger'
 import { useVirtualAddress } from '@/hooks/useVirtualAddress'
 import VirtualAddressCard from '@/components/VirtualAddressCard'
+import { logger } from '@/lib/logger'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -85,7 +86,10 @@ export default function RegisterPage() {
       const { data, error: signUpError } = await signUp(formData.email, formData.password)
       
       if (signUpError) {
-        console.error('Sign up error:', signUpError)
+        logger.error('Sign up error', signUpError, {
+          component: 'RegisterPage',
+          action: 'handleSubmit'
+        })
         await logAuthError(signUpError, 'register', formData.email)
         
         // Provide user-friendly error messages with rate limiting handling
@@ -120,7 +124,11 @@ export default function RegisterPage() {
           country: 'United States'
         }
 
-        console.log('Updating user profile with additional data:', profileUpdateData)
+        logger.debug('Updating user profile with additional data', {
+          component: 'RegisterPage',
+          action: 'updateProfile',
+          user_id: data.user.id
+        })
 
         // Wait a moment for the trigger to create the basic profile
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -131,13 +139,22 @@ export default function RegisterPage() {
           .eq('id', data.user.id)
 
         if (profileError) {
-          console.error('Profile update error:', profileError)
+          logger.error('Profile update error', profileError, {
+            component: 'RegisterPage',
+            action: 'updateProfile'
+          })
           await logDatabaseError(profileError, 'user_profiles', 'update', profileUpdateData)
           
           // Don't block registration for profile update failures
-          console.log('Profile update failed, but registration was successful')
+          logger.warn('Profile update failed, but registration was successful', {
+            component: 'RegisterPage',
+            action: 'updateProfile'
+          })
         } else {
-          console.log('User profile updated successfully')
+          logger.debug('User profile updated successfully', {
+            component: 'RegisterPage',
+            action: 'updateProfile'
+          })
         }
       }
 
@@ -145,16 +162,24 @@ export default function RegisterPage() {
         try {
           await fetchAddress()
         } catch (addressFetchError) {
-          console.warn('Mailbox not ready immediately after signup:', addressFetchError)
+          logger.warn('Mailbox not ready immediately after signup', {
+            component: 'RegisterPage',
+            action: 'fetchAddress',
+            error: addressFetchError instanceof Error ? addressFetchError.message : String(addressFetchError)
+          })
         }
       }
 
       setSuccess(true)
 
-    } catch (err: any) {
-      console.error('Registration error:', err)
-      await logAuthError(err, 'register', formData.email)
-      setError(err.message || 'An unexpected error occurred during registration')
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      logger.error('Registration error', error, {
+        component: 'RegisterPage',
+        action: 'handleSubmit'
+      })
+      await logAuthError(error.message, 'register', formData.email)
+      setError(error.message || 'An unexpected error occurred during registration')
     } finally {
       setLoading(false)
     }
