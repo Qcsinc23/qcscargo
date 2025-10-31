@@ -121,11 +121,12 @@ export default function AdminShipmentManagement() {
           table: 'shipments'
         },
         (payload) => {
+          const shipmentData = (payload.new || payload.old) as { id?: string | number } | null
           logger.debug('Real-time shipment update received', {
             component: 'AdminShipmentManagement',
             action: 'realtimeShipmentUpdate',
             eventType: payload.eventType,
-            shipmentId: (payload.new || payload.old)?.id
+            shipmentId: shipmentData?.id
           })
 
           // Refresh data when shipments change
