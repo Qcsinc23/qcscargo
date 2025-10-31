@@ -63,8 +63,8 @@ export const COMPANY_CONTACT = {
   tagline: "Precision Caribbean Air Cargo",
   address: "35 Obrien Street, Kearny, NJ 07032",
   phone: "201-249-0929",
-  email: "quotes@qcscargo.com",
-  website: "https://www.qcscargo.com"
+  email: "quotes@qcs-cargo.com",
+  website: "https://www.qcs-cargo.com"
 }
 
 export const formatCurrency = (value: number) => {
