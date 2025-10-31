@@ -185,33 +185,37 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
         // Extract destination data (destinations join)
         const destination = shipment.destinations ? (Array.isArray(shipment.destinations) ? shipment.destinations[0] : shipment.destinations) : null;
         
+        // Remove raw destinations and user_profiles to avoid confusion, but keep customer_id for reference
+        const { destinations: _, user_profiles: __, ...shipmentData } = shipment;
+        
+        // Build customer object
+        let customerObj = null;
+        if (customerProfile) {
+            const firstName = customerProfile.first_name || (customerProfile.contact_person ? customerProfile.contact_person.split(' ')[0] : '') || '';
+            const lastName = customerProfile.last_name || (customerProfile.contact_person ? customerProfile.contact_person.split(' ').slice(1).join(' ') : '') || '';
+            customerObj = {
+                first_name: firstName,
+                last_name: lastName,
+                company_name: customerProfile.company_name || '',
+                email: customerProfile.email || '',
+                phone: customerProfile.phone || ''
+            };
+        }
+        
+        // Build destination object
+        const destinationObj = destination ? {
+            city_name: destination.city_name || '',
+            country_name: destination.country_name || ''
+        } : null;
+        
         return {
-            ...shipment,
+            ...shipmentData,
             items_count: items.length,
             total_weight: shipment.total_weight || 0,
             total_declared_value: shipment.total_declared_value || 0,
             latest_tracking: trackingEntries[0] || null,
-            // Map user_profiles to customer for frontend compatibility
-            customer: customerProfile ? {
-                first_name: customerProfile.first_name || customerProfile.contact_person?.split(' ')[0] || '',
-                last_name: customerProfile.last_name || customerProfile.contact_person?.split(' ').slice(1).join(' ') || '',
-                company_name: customerProfile.company_name,
-                email: customerProfile.email || ''
-            } : null,
-            // Map destinations to destination for frontend compatibility
-            destination: destination ? {
-                city_name: destination.city_name || '',
-                country_name: destination.country_name || ''
-            } : null,
-            // Keep user_profiles for backward compatibility
-            user_profiles: customerProfile ? {
-                contact_person: customerProfile.contact_person,
-                company_name: customerProfile.company_name,
-                phone: customerProfile.phone,
-                first_name: customerProfile.first_name,
-                last_name: customerProfile.last_name,
-                email: customerProfile.email
-            } : null
+            customer: customerObj,
+            destination: destinationObj
         };
     }));
 

@@ -183,7 +183,21 @@ export default function AdminShipmentManagement() {
       }
 
       if (shipmentsResponse?.data) {
-        setShipments(shipmentsResponse.data.shipments || [])
+        const shipmentsList = shipmentsResponse.data.shipments || []
+        // Debug logging
+        logger.debug('Loaded shipments', {
+          component: 'AdminShipmentManagement',
+          action: 'loadData',
+          count: shipmentsList.length,
+          sample: shipmentsList[0] ? {
+            id: shipmentsList[0].id,
+            hasCustomer: !!shipmentsList[0].customer,
+            hasDestination: !!shipmentsList[0].destination,
+            customer: shipmentsList[0].customer,
+            destination: shipmentsList[0].destination
+          } : null
+        })
+        setShipments(shipmentsList)
         setPagination(prev => ({
           ...prev,
           total: shipmentsResponse.data.pagination?.total || 0,
@@ -561,11 +575,14 @@ export default function AdminShipmentManagement() {
                         </p>
                         <div className="text-sm text-gray-600 space-y-1">
                           <p>
-                            Customer: {shipment.customer?.first_name} {shipment.customer?.last_name}
-                            {shipment.customer?.company_name && ` (${shipment.customer.company_name})`}
+                            Customer: {shipment.customer?.first_name || shipment.customer?.last_name || shipment.customer?.company_name 
+                              ? `${shipment.customer.first_name || ''} ${shipment.customer.last_name || ''}${shipment.customer.company_name ? ` (${shipment.customer.company_name})` : ''}`.trim()
+                              : 'N/A'}
                           </p>
                           <p>
-                            Destination: {shipment.destination?.city_name}, {shipment.destination?.country_name}
+                            Destination: {shipment.destination?.city_name || shipment.destination?.country_name
+                              ? `${shipment.destination.city_name || ''}, ${shipment.destination.country_name || ''}`.replace(/^,\s*|,\s*$/g, '').trim()
+                              : 'N/A'}
                           </p>
                           <p>
                             {shipment.total_weight}lbs • {shipment.items_count} items • {formatCurrency(shipment.total_declared_value)}
@@ -586,6 +603,12 @@ export default function AdminShipmentManagement() {
                           onClick={async () => {
                             try {
                               setLoading(true)
+                              logger.debug('Loading shipment details', {
+                                component: 'AdminShipmentManagement',
+                                action: 'viewShipment',
+                                shipmentId: shipment.id
+                              })
+                              
                               const { data, error } = await supabase.functions.invoke(
                                 'admin-shipments-management',
                                 {
@@ -597,24 +620,38 @@ export default function AdminShipmentManagement() {
                               )
                               
                               if (error) {
+                                logger.error('Edge function error', error as Error, {
+                                  component: 'AdminShipmentManagement',
+                                  action: 'viewShipment',
+                                  shipmentId: shipment.id,
+                                  errorDetails: error
+                                })
                                 throw error
                               }
                               
+                              logger.debug('Shipment details loaded', {
+                                component: 'AdminShipmentManagement',
+                                action: 'viewShipment',
+                                shipmentId: shipment.id,
+                                hasData: !!data?.data?.shipment
+                              })
+                              
                               if (data?.data?.shipment) {
-                                // Open a modal or navigate to details
-                                // For now, navigate to customer shipment details page with admin context
+                                // Navigate to customer shipment details page
+                                // The customer page should work for admins too
                                 navigate(`/dashboard/shipments/${shipment.id}`)
                               } else {
-                                throw new Error('Shipment not found')
+                                throw new Error('Shipment not found in response')
                               }
                             } catch (err: unknown) {
                               const error = err instanceof Error ? err : new Error(String(err))
                               logger.error('Error loading shipment details', error, {
                                 component: 'AdminShipmentManagement',
                                 action: 'viewShipment',
-                                shipmentId: shipment.id
+                                shipmentId: shipment.id,
+                                errorMessage: error.message
                               })
-                              toast.error('Failed to load shipment details')
+                              toast.error(`Failed to load shipment details: ${error.message}`)
                             } finally {
                               setLoading(false)
                             }
