@@ -94,9 +94,9 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
     
     const filterQuery = filters.length > 0 ? `&${filters.join('&')}` : '';
 
-    // Fetch shipments with customer and destination details
+    // Fetch shipments with destination details (avoid problematic user_profiles join)
     const shipmentsResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipments?select=*,user_profiles!customer_id(first_name,last_name,company_name,email),destinations!destination_id(country_name,city_name)${filterQuery}&limit=${limit}&offset=${offset}&order=${sortBy}.${sortOrder}`,
+        `${supabaseUrl}/rest/v1/shipments?select=*,destinations!destination_id(country_name,city_name)${filterQuery}&limit=${limit}&offset=${offset}&order=${sortBy}.${sortOrder}`,
         {
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
@@ -108,12 +108,52 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
 
     if (!shipmentsResponse.ok) {
         const errorText = await shipmentsResponse.text();
+        console.error('Failed to fetch shipments:', errorText);
         throw new Error(`Failed to fetch shipments: ${errorText}`);
     }
 
     const shipments = await shipmentsResponse.json();
 
-    // Enrich each shipment with items count and latest tracking
+    // Fetch user profiles for all unique customer IDs
+    const customerIds = [...new Set(shipments.map((s: any) => s.customer_id).filter(Boolean))];
+    let customerProfiles: Record<string, any> = {};
+    
+    if (customerIds.length > 0) {
+        try {
+            // Fetch profiles using PostgREST - fetch all and filter, or use individual queries for small sets
+            // For better performance with multiple IDs, fetch all user_profiles and filter in memory
+            // This works better than trying to use complex PostgREST syntax
+            const profilesResponse = await fetch(
+                `${supabaseUrl}/rest/v1/user_profiles?select=user_id,contact_person,company_name,phone,first_name,last_name,email&limit=1000`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            if (profilesResponse.ok) {
+                const allProfiles = await profilesResponse.json();
+                // Filter to only the customer IDs we need
+                const relevantProfiles = allProfiles.filter((profile: any) => 
+                    customerIds.includes(profile.user_id)
+                );
+                relevantProfiles.forEach((profile: any) => {
+                    customerProfiles[profile.user_id] = profile;
+                });
+            } else {
+                const errorText = await profilesResponse.text();
+                console.warn('Failed to fetch customer profiles:', errorText);
+            }
+        } catch (error) {
+            console.warn('Failed to fetch customer profiles:', error);
+            // Continue without customer profiles - non-fatal
+        }
+    }
+
+    // Enrich each shipment with items count, latest tracking, and customer info
     const enrichedShipments = await Promise.all(shipments.map(async (shipment: any) => {
         // Get items count
         const itemsResponse = await fetch(
@@ -139,12 +179,23 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
         );
         const trackingEntries = trackingResponse.ok ? await trackingResponse.json() : [];
         
+        // Get customer profile info
+        const customerProfile = shipment.customer_id ? customerProfiles[shipment.customer_id] : null;
+        
         return {
             ...shipment,
             items_count: items.length,
             total_weight: shipment.total_weight || 0,
             total_declared_value: shipment.total_declared_value || 0,
-            latest_tracking: trackingEntries[0] || null
+            latest_tracking: trackingEntries[0] || null,
+            user_profiles: customerProfile ? {
+                contact_person: customerProfile.contact_person,
+                company_name: customerProfile.company_name,
+                phone: customerProfile.phone,
+                first_name: customerProfile.first_name,
+                last_name: customerProfile.last_name,
+                email: customerProfile.email
+            } : null
         };
     }));
 
@@ -155,9 +206,11 @@ async function handleListShipments(supabaseUrl: string, serviceRoleKey: string, 
         filteredShipments = enrichedShipments.filter((shipment: any) => {
             const trackingMatch = shipment.tracking_number?.toLowerCase().includes(searchLower);
             const customerMatch = 
+                shipment.user_profiles?.contact_person?.toLowerCase().includes(searchLower) ||
                 shipment.user_profiles?.first_name?.toLowerCase().includes(searchLower) ||
                 shipment.user_profiles?.last_name?.toLowerCase().includes(searchLower) ||
                 shipment.user_profiles?.company_name?.toLowerCase().includes(searchLower) ||
+                shipment.user_profiles?.phone?.toLowerCase().includes(searchLower) ||
                 shipment.user_profiles?.email?.toLowerCase().includes(searchLower);
             return trackingMatch || customerMatch;
         });
@@ -196,7 +249,7 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
     }
 
     const shipmentResponse = await fetch(
-        `${supabaseUrl}/rest/v1/shipments?id=eq.${shipmentId}&select=*,destinations!destination_id(*),user_profiles!customer_id(*)`,
+        `${supabaseUrl}/rest/v1/shipments?id=eq.${shipmentId}&select=*,destinations!destination_id(*)`,
         {
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
@@ -215,6 +268,28 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
     }
 
     const shipment = shipments[0];
+
+    // Fetch customer profile separately
+    let customerProfile = null;
+    if (shipment.customer_id) {
+        try {
+            const profileResponse = await fetch(
+                `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${shipment.customer_id}&select=*`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                }
+            );
+            if (profileResponse.ok) {
+                const profiles = await profileResponse.json();
+                customerProfile = profiles[0] || null;
+            }
+        } catch (error) {
+            console.warn('Failed to fetch customer profile:', error);
+        }
+    }
 
     // Fetch related data
     const [items, tracking, documents] = await Promise.all([
@@ -235,7 +310,8 @@ async function handleGetShipment(supabaseUrl: string, serviceRoleKey: string, sh
                 ...shipment,
                 items,
                 tracking,
-                documents
+                documents,
+                user_profiles: customerProfile
             }
         }
     }), {
