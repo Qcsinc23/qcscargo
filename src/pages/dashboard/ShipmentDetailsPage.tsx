@@ -165,8 +165,47 @@ export default function ShipmentDetailsPage() {
       }
 
       if (data?.data?.shipment) {
-        setShipment(data.data.shipment)
+        const shipmentData = data.data.shipment
+        logger.debug('Shipment data received', {
+          component: 'ShipmentDetailsPage',
+          action: 'loadShipmentDetails',
+          shipmentId: id,
+          hasTracking: !!shipmentData.tracking_number,
+          hasItems: !!shipmentData.items,
+          hasTrackingHistory: !!shipmentData.tracking,
+          shipmentKeys: Object.keys(shipmentData)
+        })
+        
+        // Ensure required fields exist with defaults
+        // Handle both admin endpoint (destination) and customer endpoint (destinations) formats
+        const normalizedShipment = {
+          ...shipmentData,
+          tracking_number: shipmentData.tracking_number || `SHIP-${id}`,
+          status: shipmentData.status || 'pending_pickup',
+          total_weight: shipmentData.total_weight || 0,
+          total_declared_value: shipmentData.total_declared_value || 0,
+          items: shipmentData.items || [],
+          tracking: shipmentData.tracking || [],
+          // Normalize destination/destinations - admin uses 'destination', customer uses 'destinations'
+          destinations: shipmentData.destinations || shipmentData.destination || null
+        }
+        
+        logger.debug('Normalized shipment data', {
+          component: 'ShipmentDetailsPage',
+          action: 'loadShipmentDetails',
+          shipmentId: id,
+          hasDestinations: !!normalizedShipment.destinations,
+          normalizedKeys: Object.keys(normalizedShipment)
+        })
+        
+        setShipment(normalizedShipment)
       } else {
+        logger.error('Shipment not found in response', new Error('Shipment not found'), {
+          component: 'ShipmentDetailsPage',
+          action: 'loadShipmentDetails',
+          shipmentId: id,
+          responseData: data
+        })
         throw new Error('Shipment not found')
       }
     } catch (err: unknown) {
@@ -315,12 +354,12 @@ export default function ShipmentDetailsPage() {
               </Button>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900">Shipment Details</h1>
-                <p className="text-sm text-slate-600 mt-1 font-mono">{shipment.tracking_number}</p>
+                <p className="text-sm text-slate-600 mt-1 font-mono">{shipment?.tracking_number || 'N/A'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {getStatusBadge(shipment.status)}
-              {shipment.carrier_tracking_number && (
+              {shipment?.status && getStatusBadge(shipment.status)}
+              {shipment?.carrier_tracking_number && (
                 <Badge variant="outline" className="font-mono">
                   Carrier: {shipment.carrier_tracking_number}
                 </Badge>
@@ -350,24 +389,24 @@ export default function ShipmentDetailsPage() {
                     <div>
                       <div className="text-sm text-slate-600 mb-1">Service Type</div>
                       <div className="font-semibold text-slate-900 capitalize">
-                        {shipment.service_type}
+                        {shipment?.service_type || 'N/A'}
                       </div>
                     </div>
                     <div>
                       <div className="text-sm text-slate-600 mb-1">Total Weight</div>
                       <div className="font-semibold text-slate-900">
-                        {shipment.total_weight} lbs
+                        {shipment?.total_weight || 0} lbs
                       </div>
                     </div>
                     <div>
                       <div className="text-sm text-slate-600 mb-1">Declared Value</div>
                       <div className="font-semibold text-slate-900">
-                        {formatCurrency(shipment.total_declared_value)}
+                        {formatCurrency(shipment?.total_declared_value)}
                       </div>
                     </div>
                   </div>
 
-                  {shipment.special_instructions && (
+                  {shipment?.special_instructions && (
                     <>
                       <Separator />
                       <div>
@@ -380,7 +419,7 @@ export default function ShipmentDetailsPage() {
               </Card>
 
               {/* Items */}
-              {shipment.items && shipment.items.length > 0 && (
+              {shipment?.items && shipment.items.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Items ({shipment.items.length})</CardTitle>
@@ -427,7 +466,7 @@ export default function ShipmentDetailsPage() {
               )}
 
               {/* Tracking Timeline */}
-              {shipment.tracking && shipment.tracking.length > 0 && (
+              {shipment?.tracking && shipment.tracking.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Tracking Timeline</CardTitle>
@@ -484,7 +523,7 @@ export default function ShipmentDetailsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {shipment.documents && shipment.documents.length > 0 ? (
+                  {shipment?.documents && shipment.documents.length > 0 ? (
                     <div className="space-y-3">
                       {shipment.documents.map((doc) => (
                         <div key={doc.id} className="flex items-center justify-between border rounded-lg p-3">
