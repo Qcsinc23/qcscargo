@@ -173,12 +173,20 @@ const AdminQuoteManagement: React.FC = () => {
   const handleUpdateStatus = async (quote: ShippingQuote, status: string) => {
     try {
       setProcessingIds((ids) => [...ids, quote.id])
-      const { error } = await supabase
-        .from('shipping_quotes')
-        .update({ status })
-        .eq('id', quote.id)
+      
+      // Use Edge Function to bypass RLS restrictions
+      const { data, error } = await supabase.functions.invoke('admin-quotes-update', {
+        body: {
+          quote_id: quote.id,
+          status
+        }
+      })
 
-      if (error) throw error
+      if (error) throw new Error(error.message)
+      if (!data || !data.success) {
+        throw new Error(data?.error?.message || 'Failed to update quote status')
+      }
+
       toast.success(`Quote ${quote.quote_reference || quote.id} updated to ${status}.`)
       await loadQuotes()
     } catch (err) {
