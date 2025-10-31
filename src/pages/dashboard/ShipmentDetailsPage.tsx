@@ -111,12 +111,50 @@ export default function ShipmentDetailsPage() {
       setLoading(true)
       setError(null)
 
-      const { data, error: functionError } = await supabase.functions.invoke('shipment-management', {
-        body: {
-          action: 'get',
-          shipment_id: id
+      // Try admin endpoint first (for admin users), fallback to customer endpoint
+      let functionError = null
+      let data = null
+      
+      try {
+        const adminResult = await supabase.functions.invoke('admin-shipments-management', {
+          body: {
+            action: 'get',
+            shipment_id: id
+          }
+        })
+        
+        if (!adminResult.error && adminResult.data?.data?.shipment) {
+          data = adminResult.data
+          logger.debug('Loaded shipment via admin endpoint', {
+            component: 'ShipmentDetailsPage',
+            action: 'loadShipmentDetails',
+            shipmentId: id
+          })
+        } else {
+          throw adminResult.error || new Error('Admin endpoint failed')
         }
-      })
+      } catch (adminErr) {
+        // Fallback to customer endpoint
+        logger.debug('Falling back to customer endpoint', {
+          component: 'ShipmentDetailsPage',
+          action: 'loadShipmentDetails',
+          shipmentId: id,
+          adminError: adminErr instanceof Error ? adminErr.message : String(adminErr)
+        })
+        
+        const customerResult = await supabase.functions.invoke('shipment-management', {
+          body: {
+            action: 'get',
+            shipment_id: id
+          }
+        })
+        
+        if (customerResult.error) {
+          functionError = customerResult.error
+        } else {
+          data = customerResult.data
+        }
+      }
 
       if (functionError) {
         throw new Error(functionError.message)
