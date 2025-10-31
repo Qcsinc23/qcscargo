@@ -5,6 +5,7 @@ import {
   createSuccessResponse,
   logAdminAction
 } from '../_shared/auth-utils.ts'
+import { sendEmail, generateNotificationEmail } from '../_shared/email-utils.ts'
 
 type PackageInput = {
   trackingNumber?: unknown
@@ -189,7 +190,69 @@ Deno.serve(async (req) => {
       console.error('Failed to create notification for received packages:', notificationResponse.status)
     }
 
-    const customerName = mailbox.full_name || 'customer'
+    // Send email notification to customer
+    const customerName = mailbox.full_name || 'Customer'
+    const customerEmail = mailbox.email
+    
+    if (customerEmail) {
+      try {
+        const resendApiKey = Deno.env.get('RESEND_API_KEY')
+        if (resendApiKey) {
+          const trackingNumbersList = insertedPackages.map((pkg: { tracking_number: string }) => pkg.tracking_number)
+          const packageDetails = insertedPackages.map((pkg: { 
+            tracking_number: string
+            carrier?: string | null
+            weight?: number | null
+          }) => {
+            const detail = `Tracking: ${pkg.tracking_number}`
+            if (pkg.carrier) return `${detail} (${pkg.carrier}${pkg.weight ? `, ${pkg.weight} lbs` : ''})`
+            return detail
+          }).join('\n')
+
+          const emailHtml = generateNotificationEmail({
+            title: insertedCount === 1 ? 'Package Received!' : `${insertedCount} Packages Received!`,
+            message: `Dear ${customerName}, we've successfully received ${insertedCount} package${insertedCount === 1 ? '' : 's'} for your mailbox ${mailbox.mailbox_number}. Your package${insertedCount === 1 ? ' is' : 's are'} now in our warehouse and ready for processing.`,
+            actionText: 'View My Packages',
+            actionUrl: 'https://www.qcs-cargo.com/dashboard',
+            details: [
+              { label: 'Mailbox Number', value: mailbox.mailbox_number },
+              { label: 'Package Count', value: insertedCount.toString() },
+              { label: 'Received Date', value: new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              }) },
+              ...(insertedPackages.length <= 3 ? 
+                insertedPackages.map((pkg: { tracking_number: string; carrier?: string | null; weight?: number | null }) => ({
+                  label: 'Tracking Number',
+                  value: `${pkg.tracking_number}${pkg.carrier ? ` (${pkg.carrier})` : ''}${pkg.weight ? ` - ${pkg.weight} lbs` : ''}`
+                })) :
+                [{ 
+                  label: 'Tracking Numbers', 
+                  value: trackingNumbersList.join(', ') 
+                }]
+              )
+            ],
+            footerNote: 'You will receive another notification when your package is ready to ship. Log in to your dashboard to track all your packages.'
+          })
+
+          await sendEmail(resendApiKey, {
+            to: customerEmail,
+            subject: `${insertedCount === 1 ? 'Package' : insertedCount + ' Packages'} Received - Mailbox ${mailbox.mailbox_number}`,
+            html: emailHtml,
+            tags: [
+              { name: 'notification_type', value: 'package_received' },
+              { name: 'mailbox_id', value: String(mailbox.id) },
+              { name: 'package_count', value: String(insertedCount) }
+            ]
+          })
+        }
+      } catch (emailError) {
+        console.warn('Failed to send package received email:', emailError)
+        // Don't fail package receiving if email fails
+      }
+    }
 
     return createSuccessResponse({
       message: `Successfully recorded ${insertedCount} package${insertedCount === 1 ? '' : 's'} for ${customerName}.`,
