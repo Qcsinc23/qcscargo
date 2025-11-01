@@ -100,8 +100,11 @@ supabase functions logs quote-request --tail
 
 4. **Test API Key Directly**:
    ```bash
+   # Get API key from Supabase secrets first:
+   # supabase secrets list | grep RESEND
+   # NEVER commit the actual API key to Git!
    curl -X POST 'https://api.resend.com/emails' \
-     -H 'Authorization: Bearer re_your_api_key' \
+     -H 'Authorization: Bearer YOUR_RESEND_API_KEY_HERE' \
      -H 'Content-Type: application/json' \
      -d '{
        "from": "QCS Cargo <quotes@qcs-cargo.com>",

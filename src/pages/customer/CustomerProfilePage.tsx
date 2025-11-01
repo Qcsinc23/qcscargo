@@ -22,6 +22,8 @@ import RegionalAddressForm from '@/components/RegionalAddressForm'
 import PhoneNumberInput from '@/components/PhoneNumberInput'
 import ProfileCompletionIndicator from '@/components/ProfileCompletionIndicator'
 import { BreadcrumbNavigation } from '@/components/BreadcrumbNavigation'
+import { validatePhone } from '@/lib/validation/phone-validators'
+import { validateAddress } from '@/lib/validation/address-validators'
 
 interface CustomerProfile {
   id?: number
@@ -153,12 +155,43 @@ const CustomerProfilePage: React.FC = () => {
       }
     }
 
-    if (profile?.phone && !/^[\d\s\-\(\)\+]+$/.test(profile.phone)) {
-      errors.phone = 'Invalid phone number format'
+    // Enhanced phone validation using country-specific validators
+    if (profile?.phone) {
+      try {
+        const phoneValidation = validatePhone(profile.phone, profile.country || 'United States')
+        if (!phoneValidation.isValid && phoneValidation.error) {
+          errors.phone = phoneValidation.error
+        }
+      } catch (e) {
+        // Fallback to basic validation
+        if (!/^[\d\s\-\(\)\+]+$/.test(profile.phone)) {
+          errors.phone = 'Invalid phone number format'
+        }
+      }
     }
 
-    if (profile?.country === 'United States' && profile?.zip_code && !/^\d{5}(-\d{4})?$/.test(profile.zip_code)) {
-      errors.zip_code = 'Invalid US ZIP code format (12345 or 12345-6789)'
+    // Enhanced address validation using country-specific validators
+    try {
+      const addressValidation = validateAddress({
+        address_line1: profile?.address_line1,
+        address_line2: profile?.address_line2,
+        city: profile?.city,
+        state: profile?.state,
+        zip_code: profile?.zip_code,
+        postal_code: profile?.postal_code,
+        region: profile?.region,
+        district: profile?.district,
+        country: profile?.country
+      })
+      
+      if (!addressValidation.isValid) {
+        Object.assign(errors, addressValidation.errors)
+      }
+    } catch (e) {
+      // Fallback to basic US validation
+      if (profile?.country === 'United States' && profile?.zip_code && !/^\d{5}(-\d{4})?$/.test(profile.zip_code)) {
+        errors.zip_code = 'Invalid US ZIP code format (12345 or 12345-6789)'
+      }
     }
 
     setValidationErrors(errors)
