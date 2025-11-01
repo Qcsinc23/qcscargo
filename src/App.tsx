@@ -68,6 +68,7 @@ const AdminQuoteManagement = lazy(() => import('@/pages/admin/AdminQuoteManageme
 const AdminMonitoring = lazy(() => import('@/pages/admin/AdminMonitoring'))
 const AdminPackageReceiving = lazy(() => import('@/pages/admin/AdminPackageReceiving'))
 const AdminBlogEditor = lazy(() => import('@/pages/admin/AdminBlogEditor'))
+const ContentGenerationQueue = lazy(() => import('@/pages/admin/ContentGenerationQueue'))
 
 function App() {
   return (
@@ -192,6 +193,7 @@ function App() {
                   <Route path="blog/new" element={<AdminBlogEditor />} />
                   <Route path="blog/:id/edit" element={<AdminBlogEditor />} />
                   <Route path="blog/:id" element={<AdminBlogEditor />} />
+                  <Route path="blog/queue" element={<ContentGenerationQueue />} />
                   <Route path="blog" element={<div className="p-6">Blog Management - Coming Soon</div>} />
                   <Route path="monitoring" element={<AdminMonitoring />} />
                   <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
