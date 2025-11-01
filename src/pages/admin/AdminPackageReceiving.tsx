@@ -7,12 +7,21 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { CheckCircle, ScanBarcode, Search, UserCheck, UserX, X, Camera } from 'lucide-react'
+import { CheckCircle, ScanBarcode, Search, UserCheck, UserX, X, Camera, AlertTriangle } from 'lucide-react'
 import { BarcodeScanner } from '@/components/BarcodeScanner'
+import {
+  extractTrackingNumbers,
+  type ParsedTrackingNumber,
+  summarizeCarrierMix
+} from '@/lib/receiving'
 
 type PackageDraft = {
   trackingNumber: string
   notes: string
+  carrier: ParsedTrackingNumber['carrier']
+  confidence: ParsedTrackingNumber['confidence']
+  source: 'keyboard' | 'camera' | 'label'
+  rawInput?: string
 }
 
 type CustomerInfo = {
@@ -29,6 +38,8 @@ const AdminPackageReceiving: React.FC = () => {
   const [verificationError, setVerificationError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isScannerOpen, setIsScannerOpen] = useState(false)
+  const [labelInput, setLabelInput] = useState('')
+  const [lastParsedLabel, setLastParsedLabel] = useState<ParsedTrackingNumber[]>([])
 
   const scannerInputRef = useRef<HTMLInputElement | null>(null)
   const debounceTimer = useRef<number | undefined>(undefined)
@@ -88,19 +99,70 @@ const AdminPackageReceiving: React.FC = () => {
     attemptAddTracking()
   }
 
+  const addPackagesFromParsed = (
+    parsed: ParsedTrackingNumber[],
+    source: PackageDraft['source']
+  ) => {
+    if (parsed.length === 0) {
+      toast.error('No valid tracking numbers detected.')
+      return
+    }
+
+    let addedCount = 0
+    let duplicates = 0
+    const carrierCounts: Record<string, number> = {}
+
+    setPackages((prev) => {
+      const existing = new Set(prev.map((pkg) => pkg.trackingNumber))
+      const additions = parsed.filter((item) => !existing.has(item.trackingNumber))
+      duplicates = parsed.length - additions.length
+
+      if (additions.length === 0) {
+        return prev
+      }
+
+      additions.forEach((item) => {
+        carrierCounts[item.carrier] = (carrierCounts[item.carrier] || 0) + 1
+      })
+
+      addedCount = additions.length
+
+      return [
+        ...prev,
+        ...additions.map((item) => ({
+          trackingNumber: item.trackingNumber,
+          notes: '',
+          carrier: item.carrier,
+          confidence: item.confidence,
+          source,
+          rawInput: item.raw
+        }))
+      ]
+    })
+
+    if (addedCount === 0) {
+      if (duplicates > 0) {
+        toast.info('All detected tracking numbers were already added to this batch.')
+      }
+      return
+    }
+
+    const summary = Object.entries(carrierCounts)
+      .map(([carrier, count]) => `${carrier} × ${count}`)
+      .join(', ')
+
+    if (duplicates > 0) {
+      toast.info(`Skipped ${duplicates} duplicate tracking number${duplicates > 1 ? 's' : ''}.`)
+    }
+
+    toast.success(
+      `Added ${addedCount} tracking number${addedCount > 1 ? 's' : ''}${summary ? ` (${summary})` : ''}.`
+    )
+  }
+
   const handleCameraScan = (barcode: string) => {
-    const normalized = barcode.trim().toUpperCase()
-    if (!normalized) {
-      return
-    }
-
-    if (packages.some((pkg) => pkg.trackingNumber === normalized)) {
-      toast.error('This tracking number is already in this batch.')
-      return
-    }
-
-    setPackages((prev) => [...prev, { trackingNumber: normalized, notes: '' }])
-    toast.success(`Added: ${normalized}`)
+    const parsed = extractTrackingNumbers(barcode)
+    addPackagesFromParsed(parsed, 'camera')
     setIsScannerOpen(false)
   }
 
@@ -110,19 +172,22 @@ const AdminPackageReceiving: React.FC = () => {
       return
     }
 
-    const normalized = trackingValue.toUpperCase()
-    if (packages.some((pkg) => pkg.trackingNumber === normalized)) {
-      toast.error('This tracking number is already in this batch.')
-      setScannedTracking('')
-      return
-    }
-
-    setPackages((prev) => [...prev, { trackingNumber: normalized, notes: '' }])
+    const parsed = extractTrackingNumbers(trackingValue)
+    addPackagesFromParsed(parsed, 'keyboard')
     setScannedTracking('')
     window.requestAnimationFrame(() => {
       scannerInputRef.current?.focus()
     })
   }
+
+  const handleParseLabel = () => {
+    const parsed = extractTrackingNumbers(labelInput)
+    setLastParsedLabel(parsed)
+    addPackagesFromParsed(parsed, 'label')
+    setLabelInput('')
+  }
+
+  const carrierMixLabel = useMemo(() => summarizeCarrierMix(packages), [packages])
 
   const handleNoteChange = (index: number, value: string) => {
     setPackages((prev) => {
@@ -256,11 +321,14 @@ const AdminPackageReceiving: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div className="flex justify-end">
+              <div className="flex flex-col items-end gap-2">
                 {packages.length > 0 && (
                   <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                     {packageCountLabel}
                   </Badge>
+                )}
+                {carrierMixLabel && (
+                  <p className="text-xs text-slate-500 text-right">Carrier mix: {carrierMixLabel}</p>
                 )}
               </div>
             </div>
@@ -299,6 +367,46 @@ const AdminPackageReceiving: React.FC = () => {
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="labelInput">Paste Label or Manifest Text</Label>
+                  <Textarea
+                    id="labelInput"
+                    value={labelInput}
+                    onChange={(event) => setLabelInput(event.target.value)}
+                    placeholder="Paste an entire shipping label or manifest block to auto-detect tracking numbers"
+                    rows={4}
+                    disabled={isSubmitting}
+                  />
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center gap-1">
+                      <ScanBarcode className="h-3 w-3" />
+                      <span>UPS, FedEx, USPS, DHL, Amazon Logistics, GS1 SSCC supported</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleParseLabel}
+                      disabled={!labelInput.trim() || isSubmitting}
+                    >
+                      Extract Tracking Numbers
+                    </Button>
+                  </div>
+                  {lastParsedLabel.length > 0 && (
+                    <div className="rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                      <p className="font-medium text-slate-700">Last label parse summary</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {lastParsedLabel.map((item) => (
+                          <Badge key={`${item.trackingNumber}-${item.carrier}`} variant="outline" className="bg-slate-50">
+                            <span className="font-mono">{item.trackingNumber}</span>
+                            <span className="ml-2 uppercase text-[10px] text-slate-400">{item.carrier}</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-slate-700">Scanned Packages</h3>
@@ -328,6 +436,24 @@ const AdminPackageReceiving: React.FC = () => {
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                <Badge variant="outline" className="border-blue-200 bg-white text-blue-700">
+                                  {pkg.carrier}
+                                </Badge>
+                                <Badge variant="outline" className="border-slate-200 bg-white text-slate-600">
+                                  {pkg.source === 'camera'
+                                    ? 'Camera scan'
+                                    : pkg.source === 'label'
+                                    ? 'Label parse'
+                                    : 'Scanner/keyboard'}
+                                </Badge>
+                                {pkg.confidence === 'medium' && (
+                                  <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Review format
+                                  </Badge>
+                                )}
                               </div>
                               <Textarea
                                 value={pkg.notes}
