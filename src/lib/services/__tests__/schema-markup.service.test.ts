@@ -37,15 +37,9 @@ describe('SchemaMarkupGenerator', () => {
 
   describe('generateLocalBusinessSchema', () => {
     it('should generate valid LocalBusiness schema', () => {
-      const address = {
-        streetAddress: '123 Main St',
-        addressLocality: 'Newark',
-        addressRegion: 'NJ',
-        postalCode: '07102',
-        addressCountry: 'US'
-      }
-      const phone = '+1234567890'
-      const schema = SchemaMarkupGenerator.generateLocalBusinessSchema(address, phone)
+      const services = ['air-cargo', 'package-forwarding']
+      const serviceAreas = ['New Jersey', 'Caribbean']
+      const schema = SchemaMarkupGenerator.generateLocalBusinessSchema(services, serviceAreas)
       expect(schema).toHaveProperty('@context', 'https://schema.org')
       expect(schema).toHaveProperty('@type', 'LocalBusiness')
     })
@@ -54,14 +48,9 @@ describe('SchemaMarkupGenerator', () => {
   describe('combineSchemas', () => {
     it('should combine multiple schemas', () => {
       const schema1 = SchemaMarkupGenerator.generateArticleSchema(mockPost)
-      const address = {
-        streetAddress: '123 Main St',
-        addressLocality: 'Newark',
-        addressRegion: 'NJ',
-        postalCode: '07102',
-        addressCountry: 'US'
-      }
-      const schema2 = SchemaMarkupGenerator.generateLocalBusinessSchema(address, '+1234567890')
+      const services = ['air-cargo']
+      const serviceAreas = ['New Jersey']
+      const schema2 = SchemaMarkupGenerator.generateLocalBusinessSchema(services, serviceAreas)
       const combined = SchemaMarkupGenerator.combineSchemas([schema1, schema2])
       expect(combined).toBeInstanceOf(Array)
       expect(combined.length).toBe(2)
