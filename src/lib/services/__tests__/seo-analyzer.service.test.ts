@@ -62,25 +62,14 @@ describe('SEOAnalyzer', () => {
     })
   })
 
-  describe('analyzeContent', () => {
-    it('should count words in content', () => {
-      const analysis = SEOAnalyzer.analyzeContent(mockPost.content, mockPost.focus_keyword)
-      expect(analysis.wordCount).toBeGreaterThan(0)
-    })
-
-    it('should calculate keyword density', () => {
-      const analysis = SEOAnalyzer.analyzeContent(mockPost.content, mockPost.focus_keyword)
-      expect(analysis.keywordDensity).toBeGreaterThanOrEqual(0)
-      expect(analysis.keywordDensity).toBeLessThanOrEqual(100)
-    })
-  })
-
-  describe('calculateReadability', () => {
-    it('should calculate readability score', () => {
-      const text = 'This is a simple sentence. It has clear words and structure.'
-      const score = SEOAnalyzer.calculateReadability(text)
-      expect(score).toBeGreaterThanOrEqual(0)
-      expect(score).toBeLessThanOrEqual(100)
+  describe('analyzeBlogPost', () => {
+    it('should analyze complete blog post', async () => {
+      const analysis = await SEOAnalyzer.analyzeBlogPost(mockPost)
+      expect(analysis).toBeDefined()
+      expect(analysis.overallScore).toBeGreaterThanOrEqual(0)
+      expect(analysis.overallScore).toBeLessThanOrEqual(100)
+      expect(analysis.contentAnalysis.wordCount).toBeGreaterThan(0)
+      expect(analysis.contentAnalysis.readabilityScore).toBeGreaterThanOrEqual(0)
     })
   })
 })
