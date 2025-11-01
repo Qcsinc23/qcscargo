@@ -13,7 +13,8 @@ import {
     createRateLimitResponse,
     logValidationError
 } from "../_shared/validation-utils.ts";
-import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
+import { sendEmail, generateNotificationEmail, generateNotificationText } from "../_shared/email-utils.ts";
+import { formatWhatsAppNumber, sendWhatsAppMessage } from "../_shared/whatsapp-utils.ts";
 
 Deno.serve(async (req) => {
     const corsHeaders = {
@@ -165,7 +166,7 @@ Deno.serve(async (req) => {
                 
                 // Get customer email
                 const profileResponse = await fetch(
-                    `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=email,first_name,last_name,company_name`,
+                    `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=email,first_name,last_name,company_name,phone,phone_country_code`,
                     {
                         headers: {
                             'Authorization': `Bearer ${serviceRoleKey}`,
@@ -192,7 +193,7 @@ Deno.serve(async (req) => {
                             minute: '2-digit'
                         });
 
-                        const emailHtml = generateNotificationEmail({
+                        const notificationContent = {
                             title: 'Booking Confirmed',
                             message: `Dear ${customerName}, your pickup booking has been confirmed. Our team will arrive during your selected time window.`,
                             actionText: 'View Booking Details',
@@ -205,7 +206,9 @@ Deno.serve(async (req) => {
                                 { label: 'Estimated Weight', value: `${validatedData.estimated_weight} lbs` }
                             ],
                             footerNote: 'Please ensure someone is available during the scheduled window. You will receive a notification when our driver is on the way.'
-                        });
+                        };
+
+                        const emailHtml = generateNotificationEmail(notificationContent);
 
                         await sendEmail(resendApiKey, {
                             to: profiles[0].email,
@@ -216,6 +219,38 @@ Deno.serve(async (req) => {
                                 { name: 'booking_id', value: String(atomicResult.booking.id) }
                             ]
                         });
+
+                        const whatsappConfig = {
+                            accountSid: Deno.env.get('TWILIO_ACCOUNT_SID'),
+                            authToken: Deno.env.get('TWILIO_AUTH_TOKEN'),
+                            fromNumber: Deno.env.get('TWILIO_WHATSAPP_FROM')
+                        };
+
+                        const recipientNumber = formatWhatsAppNumber(
+                            profiles[0].phone,
+                            profiles[0].phone_country_code
+                        );
+
+                        const hasWhatsAppConfig =
+                            whatsappConfig.accountSid &&
+                            whatsappConfig.authToken &&
+                            whatsappConfig.fromNumber;
+
+                        if (recipientNumber && hasWhatsAppConfig) {
+                            const messageBody = generateNotificationText(notificationContent);
+                            if (messageBody) {
+                                const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+                                    to: recipientNumber,
+                                    body: messageBody
+                                });
+
+                                if (!whatsappResult.success) {
+                                    console.warn('Failed to send booking confirmation WhatsApp message:', whatsappResult.error);
+                                }
+                            }
+                        } else if (recipientNumber && !hasWhatsAppConfig) {
+                            console.warn('WhatsApp configuration missing - skipping booking confirmation message');
+                        }
                     }
                 }
             } catch (emailError) {

@@ -1,4 +1,5 @@
-import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
+import { sendEmail, generateNotificationEmail, generateNotificationText } from "../_shared/email-utils.ts";
+import { formatWhatsAppNumber, sendWhatsAppMessage } from "../_shared/whatsapp-utils.ts";
 
 Deno.serve(async (req) => {
     const corsHeaders = {
@@ -138,7 +139,7 @@ Deno.serve(async (req) => {
             if (userId && resendApiKey) {
                 // Get customer email
                 const profileResponse = await fetch(
-                    `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=email,first_name,last_name`,
+                    `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=email,first_name,last_name,phone,phone_country_code`,
                     {
                         headers: {
                             'Authorization': `Bearer ${serviceRoleKey}`,
@@ -156,11 +157,11 @@ Deno.serve(async (req) => {
                         
                         const documentTypeLabel = documentType.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
                         
-                        const emailHtml = generateNotificationEmail({
+                        const notificationContent = {
                             title: 'Document Upload Confirmed',
                             message: `Dear ${customerName}, your ${documentTypeLabel} has been successfully uploaded and is being processed.${['customs_form', 'invoice', 'identity_document'].includes(documentType) ? ' Our team will review it shortly.' : ''}`,
                             actionText: shipmentId ? 'View Shipment' : 'View Documents',
-                            actionUrl: shipmentId 
+                            actionUrl: shipmentId
                                 ? `https://www.qcs-cargo.com/dashboard/shipments/${shipmentId}`
                                 : 'https://www.qcs-cargo.com/dashboard',
                             details: [
@@ -169,10 +170,12 @@ Deno.serve(async (req) => {
                                 { label: 'Uploaded', value: new Date().toLocaleString('en-US') },
                                 ...(shipmentId ? [{ label: 'Shipment ID', value: String(shipmentId) }] : [])
                             ],
-                            footerNote: ['customs_form', 'invoice', 'identity_document'].includes(documentType) 
+                            footerNote: ['customs_form', 'invoice', 'identity_document'].includes(documentType)
                                 ? 'You will receive another email once the document has been reviewed and approved.'
                                 : undefined
-                        });
+                        };
+
+                        const emailHtml = generateNotificationEmail(notificationContent);
 
                         await sendEmail(resendApiKey, {
                             to: profiles[0].email,
@@ -184,6 +187,38 @@ Deno.serve(async (req) => {
                                 ...(shipmentId ? [{ name: 'shipment_id', value: String(shipmentId) }] : [])
                             ]
                         });
+
+                        const whatsappConfig = {
+                            accountSid: Deno.env.get('TWILIO_ACCOUNT_SID'),
+                            authToken: Deno.env.get('TWILIO_AUTH_TOKEN'),
+                            fromNumber: Deno.env.get('TWILIO_WHATSAPP_FROM')
+                        };
+
+                        const recipientNumber = formatWhatsAppNumber(
+                            profiles[0].phone,
+                            profiles[0].phone_country_code
+                        );
+
+                        const hasWhatsAppConfig =
+                            whatsappConfig.accountSid &&
+                            whatsappConfig.authToken &&
+                            whatsappConfig.fromNumber;
+
+                        if (recipientNumber && hasWhatsAppConfig) {
+                            const messageBody = generateNotificationText(notificationContent);
+                            if (messageBody) {
+                                const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+                                    to: recipientNumber,
+                                    body: messageBody
+                                });
+
+                                if (!whatsappResult.success) {
+                                    console.warn('Failed to send document upload WhatsApp message:', whatsappResult.error);
+                                }
+                            }
+                        } else if (recipientNumber && !hasWhatsAppConfig) {
+                            console.warn('WhatsApp configuration missing - skipping document upload message');
+                        }
                     }
                 }
             }

@@ -3,8 +3,11 @@ import {
   DEFAULT_TERMS,
   QuoteDocumentPayload,
   generateQuoteHtml,
-  generateQuotePdf
+  generateQuotePdf,
+  formatCurrency
 } from "../_shared/quote-utils.ts"
+import { generateNotificationText } from "../_shared/email-utils.ts"
+import { formatWhatsAppNumber, sendWhatsAppMessage } from "../_shared/whatsapp-utils.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -143,6 +146,31 @@ const buildFollowUpEmail = async (quote: any, resendApiKey: string | undefined) 
     .replace(/<\/body>/i, "")
     .replace(/<\/html>/i, "")
 
+  const expirationLabel = new Date(quote.quote_expires_at).toLocaleDateString("en-US", {
+    dateStyle: "medium"
+  })
+
+  const followUpNotification = {
+    title: `Reminder: Quote ${quote.quote_reference} Expires Soon`,
+    message: `Hi ${quote.full_name.split(" ")[0]}, we're holding your QCS Cargo quote ${quote.quote_reference} until ${expirationLabel}.`,
+    actionText: "Confirm Shipment",
+    actionUrl: payload.callToActionUrl,
+    details: [
+      { label: "Total Cost", value: formatCurrency(totalCost) },
+      {
+        label: "Service Level",
+        value: quote.service_type === "express" ? "Express Priority" : "Standard Air Freight"
+      },
+      {
+        label: "Transit",
+        value: payload.transitEstimate?.label || `${payload.transitEstimate?.min ?? ""} business days`
+      }
+    ],
+    footerNote: "Reply to this message if you need adjustments or are ready to proceed."
+  }
+
+  const notificationText = generateNotificationText(followUpNotification)
+
   return {
     html:
       `<!DOCTYPE html><html><body>` +
@@ -167,7 +195,9 @@ const buildFollowUpEmail = async (quote: any, resendApiKey: string | undefined) 
       `</div>` +
       `<div style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:24px;">${sanitizedQuoteHtml}</div>` +
       `</div></body></html>`,
-    pdfBase64
+    pdfBase64,
+    notificationText,
+    notificationContent: followUpNotification
   }
 }
 
@@ -183,6 +213,11 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
     const resendApiKey = Deno.env.get("RESEND_API_KEY")
+    const whatsappConfig = {
+      accountSid: Deno.env.get("TWILIO_ACCOUNT_SID"),
+      authToken: Deno.env.get("TWILIO_AUTH_TOKEN"),
+      fromNumber: Deno.env.get("TWILIO_WHATSAPP_FROM")
+    }
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Supabase configuration missing")
@@ -251,6 +286,29 @@ Deno.serve(async (req) => {
         if (!emailResponse.ok) {
           const errorText = await emailResponse.text()
           throw new Error(`Resend API error: ${errorText}`)
+        }
+
+        const whatsappRecipient = formatWhatsAppNumber(
+          quote.phone || quote.quote_metadata?.customer?.phone || null,
+          quote.phone_country_code || quote.quote_metadata?.customer?.phone_country_code || null
+        )
+
+        const hasWhatsAppConfig =
+          whatsappConfig.accountSid &&
+          whatsappConfig.authToken &&
+          whatsappConfig.fromNumber
+
+        if (whatsappRecipient && emailContent.notificationText && hasWhatsAppConfig) {
+          const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+            to: whatsappRecipient,
+            body: emailContent.notificationText
+          })
+
+          if (!whatsappResult.success) {
+            console.warn('Failed to send WhatsApp follow-up notification:', whatsappResult.error)
+          }
+        } else if (whatsappRecipient && !hasWhatsAppConfig) {
+          console.warn('WhatsApp configuration missing - skipping quote follow-up message')
         }
 
         const updatePayload = {

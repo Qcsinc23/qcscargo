@@ -1,4 +1,5 @@
-import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
+import { sendEmail, generateNotificationEmail, generateNotificationText } from "../_shared/email-utils.ts";
+import { formatWhatsAppNumber, sendWhatsAppMessage } from "../_shared/whatsapp-utils.ts";
 
 Deno.serve(async (req) => {
     const corsHeaders = {
@@ -285,7 +286,7 @@ Deno.serve(async (req) => {
             const resendApiKey = Deno.env.get('RESEND_API_KEY');
             if (customer.email && resendApiKey) {
                 const invoiceTypeLabel = invoice_type === 'quote' ? 'Quote' : 'Invoice';
-                const emailHtml = generateNotificationEmail({
+                const notificationContent = {
                     title: `New ${invoiceTypeLabel} Available`,
                     message: `Dear ${customer.first_name || 'Customer'}, a new ${invoiceTypeLabel.toLowerCase()} has been generated for your shipment. Please review the details below.`,
                     actionText: 'View Invoice',
@@ -297,7 +298,9 @@ Deno.serve(async (req) => {
                         { label: 'Due Date', value: invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US') : 'N/A' }
                     ],
                     footerNote: invoice_type === 'invoice' ? 'Please make payment by the due date to avoid delays.' : undefined
-                });
+                };
+
+                const emailHtml = generateNotificationEmail(notificationContent);
 
                 await sendEmail(resendApiKey, {
                     to: customer.email,
@@ -309,6 +312,34 @@ Deno.serve(async (req) => {
                         { name: 'invoice_type', value: invoice_type }
                     ]
                 });
+
+                const whatsappConfig = {
+                    accountSid: Deno.env.get('TWILIO_ACCOUNT_SID'),
+                    authToken: Deno.env.get('TWILIO_AUTH_TOKEN'),
+                    fromNumber: Deno.env.get('TWILIO_WHATSAPP_FROM')
+                };
+
+                const recipientNumber = formatWhatsAppNumber(customer.phone, customer.phone_country_code);
+                const hasWhatsAppConfig =
+                    whatsappConfig.accountSid &&
+                    whatsappConfig.authToken &&
+                    whatsappConfig.fromNumber;
+
+                if (recipientNumber && hasWhatsAppConfig) {
+                    const messageBody = generateNotificationText(notificationContent);
+                    if (messageBody) {
+                        const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+                            to: recipientNumber,
+                            body: messageBody
+                        });
+
+                        if (!whatsappResult.success) {
+                            console.warn('Failed to send invoice WhatsApp notification:', whatsappResult.error);
+                        }
+                    }
+                } else if (recipientNumber && !hasWhatsAppConfig) {
+                    console.warn('WhatsApp configuration missing - skipping invoice notification');
+                }
             }
         } catch (emailError) {
             console.warn('Failed to send invoice email:', emailError);
