@@ -29,8 +29,9 @@ import {
 } from '@/data/homepage'
 
 const pageSeo = {
-  title: 'Precision Air Cargo to the Caribbean | QCS Cargo',
-  description: 'Ship from New Jersey to the Caribbean with QCS Cargo. Fast consolidation, secure handling, and door-to-door support.',
+  title: 'QCS Cargo | Caribbean Air Cargo & Shipping from Kearny, NJ',
+  description:
+    'Your local NJ specialist for reliable air cargo to the Caribbean. Based in Kearny, we specialize in shipping to Guyana, Jamaica, Trinidad, and more. Get a quote today!',
   canonicalPath: '/',
   structuredData: {
     '@context': 'https://schema.org',
@@ -66,11 +67,12 @@ export default function HomePage() {
                 <Sparkles className="mr-2 h-4 w-4 text-pink-200" /> Trusted air freight to the Caribbean
               </div>
               <h1 className="text-4xl font-bold leading-tight tracking-tight text-balance sm:text-5xl lg:text-6xl">
-                Precision Air Cargo from New Jersey to the Caribbean
+                Air Cargo from New Jersey to the Caribbean
               </h1>
               <p className="max-w-xl text-base text-slate-100/90 sm:text-lg">
-                Consolidate, secure, and ship your cargo with our dedicated Caribbean logistics team. We manage everything from
-                warehouse intake to delivery coordination so your cargo arrives on time and intact.
+                Shipping to the Caribbean? QCS Cargo is your trusted, local partner in Kearny, New Jersey. We specialize in
+                fast, reliable air cargo for the Caribbean community, making it easy to send packages, barrels, and goods to
+                Guyana, Jamaica, Trinidad, and beyond. Forget the hassle—ship with the local experts who understand your needs.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
