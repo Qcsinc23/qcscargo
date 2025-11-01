@@ -166,9 +166,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose,
           {hasPermission === true && (
             <div className="flex items-center justify-between bg-slate-50 p-4">
               <div className="text-sm text-slate-600">
-                <p className="font-medium">Supported formats:</p>
+                <p className="font-medium">Optimized for:</p>
                 <p className="text-xs">
-                  UPC, EAN, Code 39, Code 128, QR Code
+                  UPS (Code 128), FedEx 12/15/20, USPS 20/22, DHL 10-digit, Amazon Logistics, GS1 (00)
                 </p>
               </div>
 
