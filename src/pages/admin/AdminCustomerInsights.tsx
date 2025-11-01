@@ -59,6 +59,8 @@ interface CustomerAnalytics {
   confirmed_bookings: number
   cancelled_bookings: number
   recent_bookings_30d: number
+  recent_activity_30d?: number // Combined bookings + shipments in last 30 days
+  total_shipments?: number // Total shipments count
   total_weight_shipped: number
   average_weight_per_booking: number
   preferred_service_type: string
