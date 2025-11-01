@@ -37,8 +37,9 @@ const AdminLayout: React.FC = () => {
       icon: ScanBarcode,
       current: location.pathname.startsWith('/admin/package-receiving')
     },
-    { name: 'Blog', href: '/admin/blog', icon: FileText, current: location.pathname.startsWith('/admin/blog') },
+    { name: 'Blog', href: '/admin/blog', icon: FileText, current: location.pathname.startsWith('/admin/blog') && !location.pathname.includes('/queue') && !location.pathname.includes('/calendar') },
     { name: 'Content Queue', href: '/admin/blog/queue', icon: FileText, current: location.pathname === '/admin/blog/queue' },
+    { name: 'Content Calendar', href: '/admin/blog/calendar', icon: Calendar, current: location.pathname === '/admin/blog/calendar' },
     { name: 'Monitoring', href: '/admin/monitoring', icon: Activity, current: location.pathname.startsWith('/admin/monitoring') },
     { name: 'Reports', href: '/admin/reports', icon: BarChart3, current: location.pathname.startsWith('/admin/reports') },
     { name: 'Settings', href: '/admin/settings', icon: Settings, current: location.pathname.startsWith('/admin/settings') },
