@@ -15,19 +15,16 @@
 ✅ `TWILIO_AUTH_TOKEN` - Configured  
 ✅ `TWILIO_WHATSAPP_FROM` - Set to `whatsapp:+19737916707`
 
-## WhatsApp Configuration
+## WhatsApp Configuration ✅
 
-The WhatsApp sender number has been set to:
+The WhatsApp sender number has been configured:
 ```
 whatsapp:+19737916707
 ```
 
-**Note:** Make sure this phone number has WhatsApp enabled in your Twilio Console. If you haven't enabled WhatsApp for this number yet:
+**Status:** ✅ WhatsApp is now enabled on this number!
 
-1. Go to: https://console.twilio.com/us1/develop/phone-numbers/manage/incoming
-2. Click on your number (9737916707)
-3. Enable WhatsApp in the capabilities section
-4. Or use Twilio's WhatsApp Sandbox for testing
+The number is ready to send WhatsApp messages through all Edge Functions.
 
 ## Edge Functions Ready
 
@@ -43,25 +40,41 @@ The following Edge Functions are now ready to send WhatsApp notifications:
 
 ## Testing WhatsApp
 
+### Test via Twilio CLI
+
 You can test WhatsApp sending using the Twilio CLI:
 
 ```bash
+export TWILIO_ACCOUNT_SID=AC23e5b5ec859803ffa72e4a5d802009e2
+export TWILIO_AUTH_TOKEN=8135cc514a6ec33fa39506f170739b9e
+
 twilio api:messages:create \
   --from "whatsapp:+19737916707" \
-  --to "whatsapp:+1234567890" \
+  --to "whatsapp:+RECIPIENT_NUMBER" \
   --body "Test message from QCS Cargo"
 ```
 
-**Important:** For testing, you'll need to:
-1. Use Twilio's WhatsApp Sandbox, OR
-2. Verify recipient numbers in Twilio Console (for production use)
+### Test via Application
+
+WhatsApp notifications will automatically be sent when:
+- ✅ Package is received and scanned
+- ✅ Shipment status is updated (delivered, in transit, etc.)
+- ✅ Booking is confirmed
+- ✅ Invoice/quote is created
+- ✅ Document is uploaded
+- ✅ Quote follow-up is sent
+
+**Important:** For testing/production:
+- **Sandbox Mode:** Use Twilio's WhatsApp Sandbox for initial testing (recipients need to join)
+- **Production Mode:** Verify recipient numbers in Twilio Console or use WhatsApp Business API
 
 ## Next Steps
 
 1. ✅ Credentials configured in Supabase
-2. ⚠️ Verify WhatsApp is enabled for number 9737916707
-3. ⚠️ Set up WhatsApp Sandbox or verify recipient numbers for testing
-4. ✅ Edge Functions deployed and ready
+2. ✅ WhatsApp enabled for number 9737916707
+3. ✅ Edge Functions deployed and ready
+4. ⚠️ Test WhatsApp notifications (see Testing section below)
+5. ⚠️ For production: Set up WhatsApp Business API or verify recipient numbers
 
 ## Troubleshooting
 
