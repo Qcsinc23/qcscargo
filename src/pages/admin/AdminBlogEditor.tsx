@@ -23,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BlogService } from '@/lib/services/blog.service'
 import { SEOAnalyzer } from '@/lib/services/seo-analyzer.service'
+import { SEOSidebar } from '@/components/blog/SEOSidebar'
+import { MetaPreview } from '@/components/blog/MetaPreview'
 import type { BlogPost, ContentBlock, BlogCategory, BlogTag } from '@/lib/types'
 import { toast } from 'sonner'
 import { draftStorage } from '@/lib/draftStorage'
@@ -546,6 +548,14 @@ export default function AdminBlogEditor() {
               <CardTitle>SEO Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Meta Preview */}
+              <MetaPreview
+                title={watch('meta_title') || watch('title') || ''}
+                description={watch('meta_description') || ''}
+                url={`https://qcscargo.com/blog/${watch('slug') || 'example-slug'}`}
+                focusKeyword={watch('focus_keyword')}
+              />
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Meta Title *
@@ -608,28 +618,7 @@ export default function AdminBlogEditor() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* SEO Analysis */}
-          {seoAnalysis && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  SEO Score
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <div className={`text-4xl font-bold ${
-                    seoAnalysis.overallScore >= 80 ? 'text-green-600' :
-                    seoAnalysis.overallScore >= 60 ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
-                    {seoAnalysis.overallScore}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2">Overall SEO Score</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <SEOSidebar analysis={seoAnalysis} loading={loading && !seoAnalysis} />
 
           {/* Settings */}
           <Card>

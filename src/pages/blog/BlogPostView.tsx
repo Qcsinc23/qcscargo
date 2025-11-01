@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
 import { BlogService } from '@/lib/services/blog.service'
 import { SchemaMarkupGenerator } from '@/lib/services/schema-markup.service'
+import { BlogAnalyticsService } from '@/lib/services/blog-analytics.service'
 import type { BlogPost, ContentBlock } from '@/lib/types'
 import { format } from 'date-fns'
 import { Calendar, Clock, ArrowLeft, Share2 } from 'lucide-react'
@@ -16,16 +17,32 @@ export default function BlogPostView() {
   const [post, setPost] = useState<BlogPost | null>(null)
   const [loading, setLoading] = useState(true)
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([])
+  const cleanupRef = useRef<(() => void) | null>(null)
+  const startTimeRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (slug) {
       loadPost(slug)
+    }
+
+    return () => {
+      // Cleanup analytics tracking
+      if (cleanupRef.current) {
+        cleanupRef.current()
+      }
     }
   }, [slug])
 
   const loadPost = async (postSlug: string) => {
     try {
       setLoading(true)
+      
+      // Clean up previous tracking if exists
+      if (cleanupRef.current) {
+        cleanupRef.current()
+        cleanupRef.current = null
+      }
+
       const loadedPost = await BlogService.getPostBySlug(postSlug)
       
       if (!loadedPost) {
@@ -36,8 +53,54 @@ export default function BlogPostView() {
 
       setPost(loadedPost)
 
-      // Track view
+      // Track view and analytics
       await BlogService.incrementViewCount(loadedPost.id)
+      
+      // Track analytics
+      BlogAnalyticsService.trackPageView(loadedPost.id, {
+        referrer: document.referrer,
+        trafficSource: undefined // Will be auto-detected
+      })
+
+      // Track time on page when user leaves
+      startTimeRef.current = Date.now()
+      
+      const handleBeforeUnload = () => {
+        if (startTimeRef.current) {
+          const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000)
+          if (timeSpent > 3) {
+            BlogAnalyticsService.trackTimeOnPage(loadedPost.id, timeSpent)
+          }
+        }
+      }
+
+      window.addEventListener('beforeunload', handleBeforeUnload)
+      
+      // Also track on visibility change (tab switch/close)
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden' && startTimeRef.current) {
+          const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000)
+          if (timeSpent > 3) {
+            BlogAnalyticsService.trackTimeOnPage(loadedPost.id, timeSpent)
+          }
+        }
+      }
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      // Store cleanup function
+      cleanupRef.current = () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        
+        // Final time tracking
+        if (startTimeRef.current) {
+          const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000)
+          if (timeSpent > 3) {
+            BlogAnalyticsService.trackTimeOnPage(loadedPost.id, timeSpent)
+          }
+        }
+      }
 
       // Load related posts
       loadRelatedPosts(loadedPost)
@@ -50,7 +113,9 @@ export default function BlogPostView() {
     }
   }
 
-  const loadRelatedPosts = async (currentPost: BlogPost) => {
+  const loadRelatedPosts = async (currentPost: BlogPost | null) => {
+    if (!currentPost) return
+    
     try {
       const allPosts = await BlogService.getPosts({ status: 'published', limit: 10 })
       const related = allPosts
