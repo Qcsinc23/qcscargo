@@ -29,7 +29,6 @@ import type { BlogPost, ContentBlock, BlogCategory, BlogTag } from '@/lib/types'
 import { toast } from 'sonner'
 import { draftStorage } from '@/lib/draftStorage'
 import { ContentScheduler } from '@/lib/services/content-scheduler.service'
-import { Input } from '@/components/ui/input'
 
 const blogPostSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters'),
@@ -288,7 +287,7 @@ export default function AdminBlogEditor() {
       if (data.status === 'scheduled' && data.scheduled_for) {
         postData.scheduled_for = new Date(data.scheduled_for).toISOString()
       } else if (data.status !== 'scheduled') {
-        postData.scheduled_for = null
+        postData.scheduled_for = undefined
       }
 
       let result: BlogPost
