@@ -28,6 +28,8 @@ import { MetaPreview } from '@/components/blog/MetaPreview'
 import type { BlogPost, ContentBlock, BlogCategory, BlogTag } from '@/lib/types'
 import { toast } from 'sonner'
 import { draftStorage } from '@/lib/draftStorage'
+import { ContentScheduler } from '@/lib/services/content-scheduler.service'
+import { Input } from '@/components/ui/input'
 
 const blogPostSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters'),
@@ -282,11 +284,28 @@ export default function AdminBlogEditor() {
         tags: selectedTags.map(tid => tags.find(t => t.id === tid)!).filter(Boolean)
       }
 
+      // Handle scheduling
+      if (data.status === 'scheduled' && data.scheduled_for) {
+        postData.scheduled_for = new Date(data.scheduled_for).toISOString()
+      } else if (data.status !== 'scheduled') {
+        postData.scheduled_for = null
+      }
+
       let result: BlogPost
       if (isEditing && id) {
         result = await BlogService.updatePost(id, postData)
+        
+        // Schedule if needed
+        if (data.status === 'scheduled' && data.scheduled_for) {
+          await ContentScheduler.schedulePost(result.id, new Date(data.scheduled_for))
+        }
       } else {
         result = await BlogService.createPost(postData as any)
+        
+        // Schedule if needed
+        if (data.status === 'scheduled' && data.scheduled_for) {
+          await ContentScheduler.schedulePost(result.id, new Date(data.scheduled_for))
+        }
       }
 
       // Clear draft
@@ -640,6 +659,49 @@ export default function AdminBlogEditor() {
                   <option value="archived">Archived</option>
                 </select>
               </div>
+
+              {watch('status') === 'scheduled' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Schedule For
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    {...register('scheduled_for')}
+                    className="w-full"
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Posts will be automatically published at the scheduled time
+                  </p>
+                  {watch('scheduled_for') && (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          const scheduledFor = watch('scheduled_for')
+                          if (!scheduledFor || !id) return
+                          
+                          try {
+                            await ContentScheduler.schedulePost(
+                              id,
+                              new Date(scheduledFor)
+                            )
+                            toast.success('Post scheduled successfully')
+                          } catch (error: any) {
+                            toast.error(error.message || 'Failed to schedule post')
+                          }
+                        }}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Update Schedule
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
