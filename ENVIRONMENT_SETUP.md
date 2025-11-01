@@ -118,6 +118,17 @@ When you need to add new API keys:
 ### Production issues:
 - Verify environment variables are set in your hosting platform
 - Check that variable names match between local and production
+
+## 📣 WhatsApp Notifications via Twilio
+
+The backend now supports WhatsApp notifications through Twilio alongside email updates. Configure the following server-side environment variables in `.env.local` (and your hosting provider):
+
+- `TWILIO_ACCOUNT_SID` – Your Twilio Account SID
+- `TWILIO_AUTH_TOKEN` – The corresponding Auth Token
+- `TWILIO_WHATSAPP_FROM` – The enabled Twilio WhatsApp number in the format `whatsapp:+1234567890`
+- `RESEND_API_KEY` – Required for email delivery via Resend (existing configuration)
+
+Without these values the system falls back to email-only notifications and logs a warning when WhatsApp delivery is skipped.
 - Ensure no trailing spaces in variable values
 
 ## 📚 Additional Resources

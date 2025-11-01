@@ -6,6 +6,8 @@ import {
   generateQuotePdf,
   generateQuoteReference
 } from "../_shared/quote-utils.ts"
+import { generateNotificationText } from "../_shared/email-utils.ts"
+import { formatWhatsAppNumber, sendWhatsAppMessage } from "../_shared/whatsapp-utils.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -397,6 +399,20 @@ Deno.serve(async (req) => {
     const savedQuote = await quoteResponse.json()
     const quoteRecord = savedQuote[0]
 
+    const expirationLabel = expiresAt.toLocaleDateString('en-US', { dateStyle: 'medium' })
+    const notificationContent = {
+      title: `Quote ${quoteReference} Ready`,
+      message: `Hi ${customerInfo.fullName}, your QCS Cargo quote ${quoteReference} is ready to review.`,
+      actionText: 'View Quote Details',
+      actionUrl: `${COMPANY_CONTACT.website}/dashboard/quotes`,
+      details: [
+        { label: 'Total Cost', value: `$${computedRateBreakdown.totalCost.toFixed(2)}` },
+        { label: 'Transit Estimate', value: transitLabel },
+        { label: 'Expires', value: expirationLabel }
+      ],
+      footerNote: 'Reply to this message or email us to continue with booking.'
+    }
+
     let emailDispatched = false
     let emailError: string | null = null
 
@@ -446,6 +462,34 @@ Deno.serve(async (req) => {
     } else {
       emailError = "Resend API key not configured"
       console.warn("Resend API key missing - quote email not sent")
+    }
+
+    const whatsappConfig = {
+      accountSid: Deno.env.get('TWILIO_ACCOUNT_SID'),
+      authToken: Deno.env.get('TWILIO_AUTH_TOKEN'),
+      fromNumber: Deno.env.get('TWILIO_WHATSAPP_FROM')
+    }
+
+    const recipientNumber = formatWhatsAppNumber(customerInfo.phone || null, null)
+    const hasWhatsAppConfig =
+      whatsappConfig.accountSid &&
+      whatsappConfig.authToken &&
+      whatsappConfig.fromNumber
+
+    if (recipientNumber && hasWhatsAppConfig) {
+      const messageBody = generateNotificationText(notificationContent)
+      if (messageBody) {
+        const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+          to: recipientNumber,
+          body: messageBody
+        })
+
+        if (!whatsappResult.success) {
+          console.warn('Failed to send WhatsApp quote notification:', whatsappResult.error)
+        }
+      }
+    } else if (recipientNumber && !hasWhatsAppConfig) {
+      console.warn('WhatsApp configuration missing - skipping quote notification')
     }
 
     const result = {

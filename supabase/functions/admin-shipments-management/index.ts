@@ -1,6 +1,7 @@
 import { corsHeaders } from "../_shared/cors-utils.ts";
 import { verifyAdminAccess } from "../_shared/auth-utils.ts";
-import { sendEmail, generateNotificationEmail } from "../_shared/email-utils.ts";
+import { sendEmail, generateNotificationEmail, generateNotificationText } from "../_shared/email-utils.ts";
+import { formatWhatsAppNumber, sendWhatsAppMessage } from "../_shared/whatsapp-utils.ts";
 
 Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -446,7 +447,7 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
                 if (shipments.length > 0 && shipments[0].customer_id) {
                     // Get customer email from user_profiles
                     const profileResponse = await fetch(
-                        `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${shipments[0].customer_id}&select=email`,
+                        `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${shipments[0].customer_id}&select=email,phone,phone_country_code`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${serviceRoleKey}`,
@@ -460,8 +461,8 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
                         if (profiles.length > 0 && profiles[0].email) {
                             const resendApiKey = Deno.env.get('RESEND_API_KEY');
                             const statusLabel = statusLabels[status] || status;
-                            
-                            const emailHtml = generateNotificationEmail({
+
+                            const notificationContent = {
                                 title: `Shipment Status Update: ${statusLabel}`,
                                 message: `Your shipment ${shipments[0].tracking_number || shipment_id} status has been updated to ${statusLabel}.${notes ? ` ${notes}` : ''}`,
                                 actionText: 'View Shipment Details',
@@ -472,7 +473,9 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
                                     { label: 'Updated', value: new Date().toLocaleString('en-US') }
                                 ],
                                 footerNote: status === 'delivered' ? 'Thank you for choosing QCS Cargo!' : undefined
-                            });
+                            };
+
+                            const emailHtml = generateNotificationEmail(notificationContent);
 
                             await sendEmail(resendApiKey, {
                                 to: profiles[0].email,
@@ -484,6 +487,38 @@ async function handleUpdateStatus(supabaseUrl: string, serviceRoleKey: string, r
                                     { name: 'status', value: status }
                                 ]
                             });
+
+                            const whatsappConfig = {
+                                accountSid: Deno.env.get('TWILIO_ACCOUNT_SID'),
+                                authToken: Deno.env.get('TWILIO_AUTH_TOKEN'),
+                                fromNumber: Deno.env.get('TWILIO_WHATSAPP_FROM')
+                            };
+
+                            const recipientNumber = formatWhatsAppNumber(
+                                profiles[0].phone,
+                                profiles[0].phone_country_code
+                            );
+
+                            const hasWhatsAppConfig =
+                                whatsappConfig.accountSid &&
+                                whatsappConfig.authToken &&
+                                whatsappConfig.fromNumber;
+
+                            if (recipientNumber && hasWhatsAppConfig) {
+                                const messageBody = generateNotificationText(notificationContent);
+                                if (messageBody) {
+                                    const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+                                        to: recipientNumber,
+                                        body: messageBody
+                                    });
+
+                                    if (!whatsappResult.success) {
+                                        console.warn('Failed to send shipment status WhatsApp message:', whatsappResult.error);
+                                    }
+                                }
+                            } else if (recipientNumber && !hasWhatsAppConfig) {
+                                console.warn('WhatsApp configuration missing - skipping shipment status message');
+                            }
                         }
                     }
                 }
@@ -536,7 +571,7 @@ async function sendShipmentStatusEmail(
         
         // Get customer email
         const profileResponse = await fetch(
-            `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${shipments[0].customer_id}&select=email`,
+            `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${shipments[0].customer_id}&select=email,phone,phone_country_code`,
             {
                 headers: {
                     'Authorization': `Bearer ${serviceRoleKey}`,
@@ -550,7 +585,7 @@ async function sendShipmentStatusEmail(
         const profiles = await profileResponse.json();
         if (!profiles.length || !profiles[0].email) return;
         
-        const emailHtml = generateNotificationEmail({
+        const notificationContent = {
             title: `Shipment Status Update: ${statusLabel}`,
             message: `Your shipment ${trackingNumber || shipmentId} status has been updated to ${statusLabel}.${notes ? ` ${notes}` : ''}`,
             actionText: 'View Shipment Details',
@@ -561,7 +596,9 @@ async function sendShipmentStatusEmail(
                 { label: 'Updated', value: new Date().toLocaleString('en-US') }
             ],
             footerNote: status === 'delivered' ? 'Thank you for choosing QCS Cargo!' : undefined
-        });
+        };
+
+        const emailHtml = generateNotificationEmail(notificationContent);
 
         await sendEmail(resendApiKey, {
             to: profiles[0].email,
@@ -573,6 +610,38 @@ async function sendShipmentStatusEmail(
                 { name: 'status', value: status }
             ]
         });
+
+        const whatsappConfig = {
+            accountSid: Deno.env.get('TWILIO_ACCOUNT_SID'),
+            authToken: Deno.env.get('TWILIO_AUTH_TOKEN'),
+            fromNumber: Deno.env.get('TWILIO_WHATSAPP_FROM')
+        };
+
+        const recipientNumber = formatWhatsAppNumber(
+            profiles[0].phone,
+            profiles[0].phone_country_code
+        );
+
+        const hasWhatsAppConfig =
+            whatsappConfig.accountSid &&
+            whatsappConfig.authToken &&
+            whatsappConfig.fromNumber;
+
+        if (recipientNumber && hasWhatsAppConfig) {
+            const messageBody = generateNotificationText(notificationContent);
+            if (messageBody) {
+                const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+                    to: recipientNumber,
+                    body: messageBody
+                });
+
+                if (!whatsappResult.success) {
+                    console.warn(`Failed to send WhatsApp update for shipment ${shipmentId}:`, whatsappResult.error);
+                }
+            }
+        } else if (recipientNumber && !hasWhatsAppConfig) {
+            console.warn(`WhatsApp configuration missing - skipping shipment ${shipmentId} message`);
+        }
     } catch (error) {
         console.warn(`Failed to send email for shipment ${shipmentId}:`, error);
     }

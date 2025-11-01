@@ -5,7 +5,8 @@ import {
   createSuccessResponse,
   logAdminAction
 } from '../_shared/auth-utils.ts'
-import { sendEmail, generateNotificationEmail } from '../_shared/email-utils.ts'
+import { sendEmail, generateNotificationEmail, generateNotificationText } from '../_shared/email-utils.ts'
+import { formatWhatsAppNumber, sendWhatsAppMessage } from '../_shared/whatsapp-utils.ts'
 
 type PackageInput = {
   trackingNumber?: unknown
@@ -116,6 +117,31 @@ Deno.serve(async (req) => {
       email?: string | null
     }
 
+    let customerPhone: string | null = null
+    let customerPhoneCountryCode: string | null = null
+
+    try {
+      const profileResponse = await fetch(
+        `${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${mailbox.user_id}&select=phone,phone_country_code`,
+        {
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`,
+            apikey: serviceRoleKey
+          }
+        }
+      )
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json()
+        if (Array.isArray(profileData) && profileData.length > 0) {
+          customerPhone = profileData[0]?.phone ?? null
+          customerPhoneCountryCode = profileData[0]?.phone_country_code ?? null
+        }
+      }
+    } catch (contactError) {
+      console.warn('Failed to load customer phone for WhatsApp notification:', contactError)
+    }
+
     const packagesToInsert = Array.from(uniquePackages.entries()).map(([trackingNumber, details]) => ({
       user_id: mailbox.user_id,
       mailbox_id: mailbox.id,
@@ -199,7 +225,7 @@ Deno.serve(async (req) => {
         const resendApiKey = Deno.env.get('RESEND_API_KEY')
         if (resendApiKey) {
           const trackingNumbersList = insertedPackages.map((pkg: { tracking_number: string }) => pkg.tracking_number)
-          const packageDetails = insertedPackages.map((pkg: { 
+          const packageDetails = insertedPackages.map((pkg: {
             tracking_number: string
             carrier?: string | null
             weight?: number | null
@@ -209,7 +235,7 @@ Deno.serve(async (req) => {
             return detail
           }).join('\n')
 
-          const emailHtml = generateNotificationEmail({
+          const notificationContent = {
             title: insertedCount === 1 ? 'Package Received!' : `${insertedCount} Packages Received!`,
             message: `Dear ${customerName}, we've successfully received ${insertedCount} package${insertedCount === 1 ? '' : 's'} for your mailbox ${mailbox.mailbox_number}. Your package${insertedCount === 1 ? ' is' : 's are'} now in our warehouse and ready for processing.`,
             actionText: 'View My Packages',
@@ -235,7 +261,9 @@ Deno.serve(async (req) => {
               )
             ],
             footerNote: 'You will receive another notification when your package is ready to ship. Log in to your dashboard to track all your packages.'
-          })
+          }
+
+          const emailHtml = generateNotificationEmail(notificationContent)
 
           await sendEmail(resendApiKey, {
             to: customerEmail,
@@ -247,6 +275,34 @@ Deno.serve(async (req) => {
               { name: 'package_count', value: String(insertedCount) }
             ]
           })
+
+          const whatsappConfig = {
+            accountSid: Deno.env.get('TWILIO_ACCOUNT_SID'),
+            authToken: Deno.env.get('TWILIO_AUTH_TOKEN'),
+            fromNumber: Deno.env.get('TWILIO_WHATSAPP_FROM')
+          }
+
+          const recipientNumber = formatWhatsAppNumber(customerPhone, customerPhoneCountryCode)
+          const hasWhatsAppConfig =
+            whatsappConfig.accountSid &&
+            whatsappConfig.authToken &&
+            whatsappConfig.fromNumber
+
+          if (recipientNumber && hasWhatsAppConfig) {
+            const messageBody = generateNotificationText(notificationContent)
+            if (messageBody) {
+              const whatsappResult = await sendWhatsAppMessage(whatsappConfig, {
+                to: recipientNumber,
+                body: messageBody
+              })
+
+              if (!whatsappResult.success) {
+                console.warn('Failed to send package received WhatsApp message:', whatsappResult.error)
+              }
+            }
+          } else if (recipientNumber && !hasWhatsAppConfig) {
+            console.warn('WhatsApp configuration missing - skipping package received message')
+          }
         }
       } catch (emailError) {
         console.warn('Failed to send package received email:', emailError)

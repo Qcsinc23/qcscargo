@@ -250,3 +250,45 @@ export function generateNotificationEmail(options: {
   `.trim()
 }
 
+/**
+ * Generate a plain-text representation of a notification for messaging channels
+ */
+export function generateNotificationText(options: {
+  title: string
+  message: string
+  actionText?: string
+  actionUrl?: string
+  details?: Array<{ label: string; value: string }>
+  footerNote?: string
+}): string {
+  const lines: string[] = []
+
+  if (options.title) {
+    lines.push(options.title)
+  }
+
+  if (options.message) {
+    if (lines.length > 0) lines.push('')
+    lines.push(options.message)
+  }
+
+  if (options.details && options.details.length > 0) {
+    lines.push('', 'Details:')
+    for (const detail of options.details) {
+      lines.push(`${detail.label}: ${detail.value}`)
+    }
+  }
+
+  if (options.actionText && options.actionUrl) {
+    lines.push('', `${options.actionText}: ${options.actionUrl}`)
+  } else if (options.actionUrl) {
+    lines.push('', options.actionUrl)
+  }
+
+  if (options.footerNote) {
+    lines.push('', options.footerNote)
+  }
+
+  return lines.join('\n').trim()
+}
+
