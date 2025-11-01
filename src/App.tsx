@@ -34,6 +34,10 @@ const RatesPage = lazy(() => import('@/pages/RatesPage'))
 const SupportPage = lazy(() => import('@/pages/SupportPage'))
 const PrivacyPolicyPage = lazy(() => import('@/pages/PrivacyPolicyPage'))
 const TermsOfServicePage = lazy(() => import('@/pages/TermsOfServicePage'))
+const BlogIndexPage = lazy(() => import('@/pages/blog/BlogIndexPage'))
+const ShippingToGuyanaGuide = lazy(() => import('@/pages/blog/ShippingToGuyanaGuide'))
+const ShippingBarrelToJamaica = lazy(() => import('@/pages/blog/ShippingBarrelToJamaica'))
+const NjVsGlobalShippers = lazy(() => import('@/pages/blog/NjVsGlobalShippers'))
 
 // Lazy load Customer Portal Pages
 const CustomerDashboard = lazy(() => import('@/pages/dashboard/CustomerDashboard'))
@@ -92,6 +96,10 @@ function App() {
                 <Route path="/air-cargo-shipping" element={<AirCargoShipping />} />
                 <Route path="/support" element={<SupportPage />} />
                 <Route path="/shipping" element={<RatesPage />} />
+                <Route path="/blog" element={<BlogIndexPage />} />
+                <Route path="/blog/shipping-to-guyana-guide" element={<ShippingToGuyanaGuide />} />
+                <Route path="/blog/shipping-barrel-to-jamaica" element={<ShippingBarrelToJamaica />} />
+                <Route path="/blog/nj-vs-global-shippers" element={<NjVsGlobalShippers />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
 
