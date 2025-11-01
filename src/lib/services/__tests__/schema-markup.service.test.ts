@@ -44,7 +44,8 @@ describe('SchemaMarkupGenerator', () => {
         postalCode: '07102',
         addressCountry: 'US'
       }
-      const schema = SchemaMarkupGenerator.generateLocalBusinessSchema(address)
+      const phone = '+1234567890'
+      const schema = SchemaMarkupGenerator.generateLocalBusinessSchema(address, phone)
       expect(schema).toHaveProperty('@context', 'https://schema.org')
       expect(schema).toHaveProperty('@type', 'LocalBusiness')
     })
@@ -53,7 +54,14 @@ describe('SchemaMarkupGenerator', () => {
   describe('combineSchemas', () => {
     it('should combine multiple schemas', () => {
       const schema1 = SchemaMarkupGenerator.generateArticleSchema(mockPost)
-      const schema2 = SchemaMarkupGenerator.generateLocalBusinessSchema()
+      const address = {
+        streetAddress: '123 Main St',
+        addressLocality: 'Newark',
+        addressRegion: 'NJ',
+        postalCode: '07102',
+        addressCountry: 'US'
+      }
+      const schema2 = SchemaMarkupGenerator.generateLocalBusinessSchema(address, '+1234567890')
       const combined = SchemaMarkupGenerator.combineSchemas([schema1, schema2])
       expect(combined).toBeInstanceOf(Array)
       expect(combined.length).toBe(2)
