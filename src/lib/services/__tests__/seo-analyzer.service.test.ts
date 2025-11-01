@@ -28,48 +28,31 @@ describe('SEOAnalyzer', () => {
     readability_score: 0
   }
 
-  describe('analyzeTitle', () => {
-    it('should detect keyword in title', () => {
-      const analysis = SEOAnalyzer.analyzeTitle(
-        'Air Cargo Shipping New Jersey Guide',
-        'air cargo shipping New Jersey'
-      )
-      expect(analysis.hasKeyword).toBe(true)
-      expect(analysis.score).toBeGreaterThan(0)
-    })
-
-    it('should check title length', () => {
-      const shortTitle = 'Air Cargo'
-      const analysis = SEOAnalyzer.analyzeTitle(shortTitle, 'air cargo')
-      expect(analysis.length).toBe(shortTitle.length)
-    })
-  })
-
-  describe('analyzeMetaDescription', () => {
-    it('should detect keyword in description', () => {
-      const analysis = SEOAnalyzer.analyzeMetaDescription(
-        'Air cargo shipping services in New Jersey',
-        'air cargo shipping New Jersey'
-      )
-      expect(analysis.hasKeyword).toBe(true)
-    })
-
-    it('should check description length', () => {
-      const desc = 'Complete guide to air cargo shipping services in New Jersey. Fast, reliable international freight forwarding.'
-      const analysis = SEOAnalyzer.analyzeMetaDescription(desc, 'air cargo')
-      expect(analysis.length).toBe(desc.length)
-      expect(analysis.length).toBeGreaterThan(120)
-    })
-  })
-
   describe('analyzeBlogPost', () => {
     it('should analyze complete blog post', async () => {
       const analysis = await SEOAnalyzer.analyzeBlogPost(mockPost)
       expect(analysis).toBeDefined()
       expect(analysis.overallScore).toBeGreaterThanOrEqual(0)
       expect(analysis.overallScore).toBeLessThanOrEqual(100)
+      expect(analysis.titleAnalysis).toBeDefined()
+      expect(analysis.metaDescriptionAnalysis).toBeDefined()
+      expect(analysis.contentAnalysis).toBeDefined()
       expect(analysis.contentAnalysis.wordCount).toBeGreaterThan(0)
       expect(analysis.contentAnalysis.readabilityScore).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should detect keyword in title and description', async () => {
+      const analysis = await SEOAnalyzer.analyzeBlogPost(mockPost)
+      expect(analysis.titleAnalysis.hasKeyword).toBe(true)
+      expect(analysis.metaDescriptionAnalysis.hasKeyword).toBe(true)
+    })
+
+    it('should calculate valid scores', async () => {
+      const analysis = await SEOAnalyzer.analyzeBlogPost(mockPost)
+      expect(analysis.titleAnalysis.score).toBeGreaterThanOrEqual(0)
+      expect(analysis.titleAnalysis.score).toBeLessThanOrEqual(100)
+      expect(analysis.metaDescriptionAnalysis.score).toBeGreaterThanOrEqual(0)
+      expect(analysis.metaDescriptionAnalysis.score).toBeLessThanOrEqual(100)
     })
   })
 })

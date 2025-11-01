@@ -37,7 +37,14 @@ describe('SchemaMarkupGenerator', () => {
 
   describe('generateLocalBusinessSchema', () => {
     it('should generate valid LocalBusiness schema', () => {
-      const schema = SchemaMarkupGenerator.generateLocalBusinessSchema()
+      const address = {
+        streetAddress: '123 Main St',
+        addressLocality: 'Newark',
+        addressRegion: 'NJ',
+        postalCode: '07102',
+        addressCountry: 'US'
+      }
+      const schema = SchemaMarkupGenerator.generateLocalBusinessSchema(address)
       expect(schema).toHaveProperty('@context', 'https://schema.org')
       expect(schema).toHaveProperty('@type', 'LocalBusiness')
     })
