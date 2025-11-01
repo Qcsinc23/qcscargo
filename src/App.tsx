@@ -71,6 +71,7 @@ const AdminBlogEditor = lazy(() => import('@/pages/admin/AdminBlogEditor'))
 const ContentGenerationQueue = lazy(() => import('@/pages/admin/ContentGenerationQueue'))
 const ContentCalendar = lazy(() => import('@/pages/admin/ContentCalendar'))
 const BlogAnalyticsDashboard = lazy(() => import('@/pages/admin/BlogAnalyticsDashboard'))
+const KeywordTracker = lazy(() => import('@/pages/admin/KeywordTracker'))
 
 function App() {
   return (
@@ -198,6 +199,7 @@ function App() {
                   <Route path="blog/queue" element={<ContentGenerationQueue />} />
                   <Route path="blog/calendar" element={<ContentCalendar />} />
                   <Route path="blog/analytics" element={<BlogAnalyticsDashboard />} />
+                  <Route path="blog/keywords" element={<KeywordTracker />} />
                   <Route path="blog" element={<div className="p-6">Blog Management - Coming Soon</div>} />
                   <Route path="monitoring" element={<AdminMonitoring />} />
                   <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />

@@ -15,7 +15,8 @@ import {
   Building2,
   ScanBarcode,
   FileText,
-  Activity
+  Activity,
+  Search
 } from 'lucide-react'
 
 const AdminLayout: React.FC = () => {
@@ -41,6 +42,7 @@ const AdminLayout: React.FC = () => {
     { name: 'Content Queue', href: '/admin/blog/queue', icon: FileText, current: location.pathname === '/admin/blog/queue' },
     { name: 'Content Calendar', href: '/admin/blog/calendar', icon: Calendar, current: location.pathname === '/admin/blog/calendar' },
     { name: 'Blog Analytics', href: '/admin/blog/analytics', icon: BarChart3, current: location.pathname === '/admin/blog/analytics' },
+    { name: 'Keyword Tracker', href: '/admin/blog/keywords', icon: Search, current: location.pathname === '/admin/blog/keywords' },
     { name: 'Monitoring', href: '/admin/monitoring', icon: Activity, current: location.pathname.startsWith('/admin/monitoring') },
     { name: 'Reports', href: '/admin/reports', icon: BarChart3, current: location.pathname.startsWith('/admin/reports') },
     { name: 'Settings', href: '/admin/settings', icon: Settings, current: location.pathname.startsWith('/admin/settings') },
