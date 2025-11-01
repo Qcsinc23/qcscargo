@@ -35,6 +35,7 @@ const SupportPage = lazy(() => import('@/pages/SupportPage'))
 const PrivacyPolicyPage = lazy(() => import('@/pages/PrivacyPolicyPage'))
 const TermsOfServicePage = lazy(() => import('@/pages/TermsOfServicePage'))
 const BlogIndexPage = lazy(() => import('@/pages/blog/BlogIndexPage'))
+const BlogPostView = lazy(() => import('@/pages/blog/BlogPostView'))
 const ShippingToGuyanaGuide = lazy(() => import('@/pages/blog/ShippingToGuyanaGuide'))
 const ShippingBarrelToJamaica = lazy(() => import('@/pages/blog/ShippingBarrelToJamaica'))
 const NjVsGlobalShippers = lazy(() => import('@/pages/blog/NjVsGlobalShippers'))
@@ -66,6 +67,7 @@ const AdminMailboxes = lazy(() => import('@/pages/admin/AdminMailboxes'))
 const AdminQuoteManagement = lazy(() => import('@/pages/admin/AdminQuoteManagement'))
 const AdminMonitoring = lazy(() => import('@/pages/admin/AdminMonitoring'))
 const AdminPackageReceiving = lazy(() => import('@/pages/admin/AdminPackageReceiving'))
+const AdminBlogEditor = lazy(() => import('@/pages/admin/AdminBlogEditor'))
 
 function App() {
   return (
@@ -97,6 +99,8 @@ function App() {
                 <Route path="/support" element={<SupportPage />} />
                 <Route path="/shipping" element={<RatesPage />} />
                 <Route path="/blog" element={<BlogIndexPage />} />
+                <Route path="/blog/:slug" element={<BlogPostView />} />
+                {/* Legacy routes - kept for backward compatibility */}
                 <Route path="/blog/shipping-to-guyana-guide" element={<ShippingToGuyanaGuide />} />
                 <Route path="/blog/shipping-barrel-to-jamaica" element={<ShippingBarrelToJamaica />} />
                 <Route path="/blog/nj-vs-global-shippers" element={<NjVsGlobalShippers />} />
@@ -185,6 +189,10 @@ function App() {
                   <Route path="customers" element={<AdminCustomerInsights />} />
                   <Route path="mailboxes" element={<AdminMailboxes />} />
                   <Route path="package-receiving" element={<AdminPackageReceiving />} />
+                  <Route path="blog/new" element={<AdminBlogEditor />} />
+                  <Route path="blog/:id/edit" element={<AdminBlogEditor />} />
+                  <Route path="blog/:id" element={<AdminBlogEditor />} />
+                  <Route path="blog" element={<div className="p-6">Blog Management - Coming Soon</div>} />
                   <Route path="monitoring" element={<AdminMonitoring />} />
                   <Route path="reports" element={<div className="p-6">Reports - Coming Soon</div>} />
                   <Route path="settings" element={<AdminSettings />} />

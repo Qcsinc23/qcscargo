@@ -37,6 +37,7 @@ const AdminLayout: React.FC = () => {
       icon: ScanBarcode,
       current: location.pathname.startsWith('/admin/package-receiving')
     },
+    { name: 'Blog', href: '/admin/blog', icon: FileText, current: location.pathname.startsWith('/admin/blog') },
     { name: 'Monitoring', href: '/admin/monitoring', icon: Activity, current: location.pathname.startsWith('/admin/monitoring') },
     { name: 'Reports', href: '/admin/reports', icon: BarChart3, current: location.pathname.startsWith('/admin/reports') },
     { name: 'Settings', href: '/admin/settings', icon: Settings, current: location.pathname.startsWith('/admin/settings') },
