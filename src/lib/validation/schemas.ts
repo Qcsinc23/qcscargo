@@ -7,22 +7,44 @@ import { z } from 'zod';
 
 // Base validation patterns
 const emailSchema = z.string().email('Invalid email format');
-const phoneSchema = z.string().regex(/^[\d\s\-\(\)\+]+$/, 'Invalid phone number format');
+// Enhanced phone schema - more flexible, country-specific validation handled in validators
+const phoneSchema = z.string().regex(/^[\d\s\-\(\)\+]+$/, 'Invalid phone number format').refine(
+  (val) => val.replace(/\D/g, '').length >= 7 && val.replace(/\D/g, '').length <= 15,
+  { message: 'Phone number must be between 7 and 15 digits' }
+);
 const zipCodeSchema = z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format');
 const uuidSchema = z.string().uuid('Invalid UUID format');
 const positiveNumber = z.number().positive('Must be a positive number');
 const nonNegativeNumber = z.number().min(0, 'Must be non-negative');
 
-// Address validation
+// Address validation - Enhanced with country-specific support
 export const addressSchema = z.object({
   street: z.string().min(1, 'Street address is required').max(255, 'Street address too long'),
   city: z.string().min(1, 'City is required').max(100, 'City name too long'),
-  state: z.string().min(2, 'State is required').max(2, 'State must be 2 characters'),
-  zip_code: zipCodeSchema,
+  state: z.string().max(100, 'State/Province too long').optional(),
+  zip_code: z.string().optional(),
+  postal_code: z.string().max(20, 'Postal code too long').optional(),
   country: z.string().default('United States'),
+  region: z.string().max(100, 'Region too long').optional(),
+  district: z.string().max(100, 'District too long').optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional()
-});
+}).refine(
+  (data) => {
+    // Country-specific validation
+    if (data.country === 'United States') {
+      return data.state && data.state.length === 2 && data.zip_code && /^\d{5}(-\d{4})?$/.test(data.zip_code);
+    }
+    if (data.country === 'Guyana') {
+      return data.region && data.region.length > 0;
+    }
+    if (data.country === 'Canada') {
+      return data.state && data.postal_code && /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(data.postal_code);
+    }
+    return true; // Other countries - basic validation passed
+  },
+  { message: 'Address does not meet country-specific requirements' }
+);
 
 // User profile validation
 export const userProfileSchema = z.object({
@@ -36,8 +58,8 @@ export const userProfileSchema = z.object({
   address_line1: z.string().max(255, 'Address line 1 too long').optional(),
   address_line2: z.string().max(255, 'Address line 2 too long').optional(),
   city: z.string().max(100, 'City name too long').optional(),
-  state: z.string().max(2, 'State must be 2 characters').optional(),
-  zip_code: zipCodeSchema.optional(),
+  state: z.string().max(100, 'State/Province too long').optional(), // Increased for full state names
+  zip_code: z.string().optional(), // Made more flexible - validation in address-validators
   postal_code: z.string().max(20, 'Postal code too long').optional(),
   country: z.string().max(100, 'Country name too long').default('United States'),
   region: z.string().max(100, 'Region name too long').optional(),

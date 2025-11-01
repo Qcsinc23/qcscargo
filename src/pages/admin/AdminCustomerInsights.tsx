@@ -59,6 +59,8 @@ interface CustomerAnalytics {
   confirmed_bookings: number
   cancelled_bookings: number
   recent_bookings_30d: number
+  recent_activity_30d?: number // Combined bookings + shipments in last 30 days
+  total_shipments?: number // Total shipments count
   total_weight_shipped: number
   average_weight_per_booking: number
   preferred_service_type: string
@@ -136,7 +138,21 @@ const AdminCustomerInsights: React.FC = () => {
       const result = data?.data || data
       console.log('Customer list response:', result)
       
-      setCustomers(result.customers || [])
+      // Ensure customers have proper name formatting
+      const formattedCustomers = (result.customers || []).map((customer: any) => ({
+        ...customer,
+        // Ensure full_name is always set properly
+        full_name: customer.full_name && customer.full_name !== 'N/A'
+          ? customer.full_name
+          : customer.first_name || customer.last_name
+            ? `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || customer.email || 'Unknown'
+            : customer.contact_person || customer.company_name || customer.email || 'Unknown',
+        // Set first_name and last_name if missing
+        first_name: customer.first_name || customer.contact_person?.split(' ')[0] || '',
+        last_name: customer.last_name || customer.contact_person?.split(' ').slice(1).join(' ') || ''
+      }))
+      
+      setCustomers(formattedCustomers)
       setTotalPages(result.pagination?.totalPages || 1)
       setTotalCustomers(result.pagination?.total || 0)
     } catch (err) {
@@ -409,46 +425,60 @@ const AdminCustomerInsights: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-200">
-                  {customers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      onClick={() => loadCustomerDetails(customer.id)}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                        selectedCustomer?.id === customer.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <User className="h-4 w-4 text-blue-600" />
+                  {customers.map((customer) => {
+                    // Ensure we have a proper display name
+                    const displayName = customer.full_name && customer.full_name !== 'N/A'
+                      ? customer.full_name
+                      : customer.email || 'Unknown Customer';
+                    
+                    const displayEmail = customer.email || 'No email';
+                    
+                    return (
+                      <div
+                        key={customer.id}
+                        onClick={() => loadCustomerDetails(customer.id)}
+                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                          selectedCustomer?.id === customer.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center">
+                              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <User className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div className="ml-3 flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {displayName}
+                                </p>
+                                <p className="text-sm text-gray-500 truncate">{displayEmail}</p>
+                                {customer.company_name && (
+                                  <p className="text-xs text-gray-400 truncate">{customer.company_name}</p>
+                                )}
+                              </div>
                             </div>
-                            <div className="ml-3 flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {customer.full_name || customer.email}
-                              </p>
-                              <p className="text-sm text-gray-500 truncate">{customer.email}</p>
-                              {customer.company_name && (
-                                <p className="text-xs text-gray-400 truncate">{customer.company_name}</p>
-                              )}
+                            
+                            <div className="mt-2 flex items-center justify-between">
+                              <div className="flex items-center space-x-2 flex-wrap gap-1">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTierColor(customer.customer_tier)}`}>
+                                  {customer.customer_tier}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {customer.total_bookings || 0} bookings
+                                </span>
+                                {(customer as any).total_shipments > 0 && (
+                                  <span className="text-xs text-gray-500">
+                                    {(customer as any).total_shipments} shipments
+                                  </span>
+                                )}
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-gray-400" />
                             </div>
-                          </div>
-                          
-                          <div className="mt-2 flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTierColor(customer.customer_tier)}`}>
-                                {customer.customer_tier}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {customer.total_bookings} bookings
-                              </span>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   
                   {customers.length === 0 && !loading && (
                     <div className="p-8 text-center text-gray-500">
@@ -560,7 +590,9 @@ const AdminCustomerInsights: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Total Weight</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{selectedCustomer.analytics.total_weight_shipped.toLocaleString()}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                          {Math.round(selectedCustomer.analytics.total_weight_shipped || 0).toLocaleString()}
+                        </p>
                         <p className="text-sm text-gray-500">lbs shipped</p>
                       </div>
                       <div className="p-3 rounded-lg bg-purple-50">
@@ -572,9 +604,11 @@ const AdminCustomerInsights: React.FC = () => {
                   <div className="bg-white rounded-lg shadow-sm border p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Preferred Service</p>
-                        <p className="text-lg font-bold text-gray-900 mt-1 capitalize">{selectedCustomer.analytics.preferred_service_type}</p>
-                        <p className="text-sm text-gray-500">Most used</p>
+                        <p className="text-sm font-medium text-gray-600">Recent Activity</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                          {selectedCustomer.analytics.recent_activity_30d || selectedCustomer.analytics.recent_bookings_30d || 0}
+                        </p>
+                        <p className="text-sm text-gray-500">Last 30 days</p>
                       </div>
                       <div className="p-3 rounded-lg bg-green-50">
                         <TrendingUp className="h-6 w-6 text-green-600" />
@@ -586,7 +620,7 @@ const AdminCustomerInsights: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Engagement</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{selectedCustomer.analytics.engagement_score}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{selectedCustomer.analytics.engagement_score || 0}</p>
                         <p className="text-sm text-gray-500">Score</p>
                       </div>
                       <div className="p-3 rounded-lg bg-orange-50">
@@ -628,35 +662,45 @@ const AdminCustomerInsights: React.FC = () => {
                   {activeTab === 'overview' && (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
-                          <div className="space-y-3">
-                            <div className="flex items-center">
-                              <Mail className="h-4 w-4 text-gray-400 mr-3" />
-                              <span className="text-sm text-gray-900">{selectedCustomer.profile.email}</span>
-                            </div>
-                            {selectedCustomer.profile.phone && (
-                              <div className="flex items-center">
-                                <Phone className="h-4 w-4 text-gray-400 mr-3" />
-                                <span className="text-sm text-gray-900">{selectedCustomer.profile.phone}</span>
-                              </div>
-                            )}
-                            {selectedCustomer.profile.company_name && (
-                              <div className="flex items-center">
-                                <Building className="h-4 w-4 text-gray-400 mr-3" />
-                                <span className="text-sm text-gray-900">{selectedCustomer.profile.company_name}</span>
-                              </div>
-                            )}
-                            {(selectedCustomer.profile.city || selectedCustomer.profile.state) && (
-                              <div className="flex items-center">
-                                <MapPin className="h-4 w-4 text-gray-400 mr-3" />
-                                <span className="text-sm text-gray-900">
-                                  {[selectedCustomer.profile.city, selectedCustomer.profile.state].filter(Boolean).join(', ')}
-                                </span>
-                              </div>
-                            )}
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 text-gray-400 mr-3" />
+                            <span className="text-sm text-gray-900">
+                              {selectedCustomer.profile.full_name || 
+                               `${selectedCustomer.profile.first_name || ''} ${selectedCustomer.profile.last_name || ''}`.trim() ||
+                               selectedCustomer.profile.contact_person ||
+                               selectedCustomer.profile.company_name ||
+                               'N/A'}
+                            </span>
                           </div>
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 text-gray-400 mr-3" />
+                            <span className="text-sm text-gray-900">{selectedCustomer.profile.email || 'No email'}</span>
+                          </div>
+                          {selectedCustomer.profile.phone && (
+                            <div className="flex items-center">
+                              <Phone className="h-4 w-4 text-gray-400 mr-3" />
+                              <span className="text-sm text-gray-900">{selectedCustomer.profile.phone}</span>
+                            </div>
+                          )}
+                          {selectedCustomer.profile.company_name && (
+                            <div className="flex items-center">
+                              <Building className="h-4 w-4 text-gray-400 mr-3" />
+                              <span className="text-sm text-gray-900">{selectedCustomer.profile.company_name}</span>
+                            </div>
+                          )}
+                          {(selectedCustomer.profile.city || selectedCustomer.profile.state) && (
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 text-gray-400 mr-3" />
+                              <span className="text-sm text-gray-900">
+                                {[selectedCustomer.profile.city, selectedCustomer.profile.state].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                          )}
                         </div>
+                      </div>
                         
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Completion</h3>
@@ -740,19 +784,27 @@ const AdminCustomerInsights: React.FC = () => {
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-900 mb-2">Booking Metrics</h4>
+                          <h4 className="text-sm font-medium text-gray-900 mb-2">Activity Metrics</h4>
                           <div className="space-y-2">
                             <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Total Bookings</span>
+                              <span className="text-sm font-medium">{selectedCustomer.analytics.total_bookings || 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Total Shipments</span>
+                              <span className="text-sm font-medium">{selectedCustomer.analytics.total_shipments || 0}</span>
+                            </div>
+                            <div className="flex justify-between">
                               <span className="text-sm text-gray-600">Confirmed</span>
-                              <span className="text-sm font-medium">{selectedCustomer.analytics.confirmed_bookings}</span>
+                              <span className="text-sm font-medium">{selectedCustomer.analytics.confirmed_bookings || 0}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm text-gray-600">Cancelled</span>
-                              <span className="text-sm font-medium">{selectedCustomer.analytics.cancelled_bookings}</span>
+                              <span className="text-sm font-medium">{selectedCustomer.analytics.cancelled_bookings || 0}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm text-gray-600">Recent (30d)</span>
-                              <span className="text-sm font-medium">{selectedCustomer.analytics.recent_bookings_30d}</span>
+                              <span className="text-sm font-medium">{selectedCustomer.analytics.recent_activity_30d || selectedCustomer.analytics.recent_bookings_30d || 0}</span>
                             </div>
                           </div>
                         </div>

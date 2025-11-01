@@ -787,6 +787,24 @@
 **/.aws/
 **/.azure/
 
+# API Keys and Secrets - Never commit these!
+# Resend API Keys (format: re_*)
+**/*re_[A-Za-z0-9_-]*
+# Twilio Account SIDs (format: AC*)
+**/*AC[a-zA-Z0-9]{32}*
+# Twilio Auth Tokens (32 char alphanumeric)
+**/*auth_token*
+**/*AUTH_TOKEN*
+# General API keys
+**/*api_key*
+**/*API_KEY*
+**/*secret*
+**/*SECRET*
+**/*password*
+**/*PASSWORD*
+**/*token*
+**/*TOKEN*
+
 # ==============================================================================
 # BACKUP & ARCHIVE FILES
 # ==============================================================================
