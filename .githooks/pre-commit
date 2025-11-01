@@ -1,0 +1,47 @@
+#!/bin/bash
+# Pre-commit hook to prevent committing secrets
+# Install: cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+# Colors for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check for potential secrets
+FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+SECRET_FOUND=0
+
+for FILE in $FILES; do
+    # Skip binary files
+    if [ -f "$FILE" ]; then
+        # Check for Resend API keys (format: re_*)
+        if grep -qE "re_[A-Za-z0-9_-]{20,}" "$FILE" 2>/dev/null; then
+            echo -e "${RED}⚠️  SECURITY WARNING: Potential Resend API key detected in $FILE${NC}"
+            SECRET_FOUND=1
+        fi
+        
+        # Check for Twilio Account SID (format: AC followed by 32 chars)
+        if grep -qE "AC[a-zA-Z0-9]{32}" "$FILE" 2>/dev/null; then
+            echo -e "${RED}⚠️  SECURITY WARNING: Potential Twilio Account SID detected in $FILE${NC}"
+            SECRET_FOUND=1
+        fi
+        
+        # Check for common secret patterns
+        if grep -qiE "(password|secret|api[_-]?key|auth[_-]?token)\s*[=:]\s*['\"][^'\"]{10,}" "$FILE" 2>/dev/null; then
+            echo -e "${YELLOW}⚠️  WARNING: Potential secret detected in $FILE${NC}"
+            echo "   Please verify this is not a real secret before committing."
+        fi
+    fi
+done
+
+if [ $SECRET_FOUND -eq 1 ]; then
+    echo ""
+    echo -e "${RED}❌ COMMIT BLOCKED: Secrets detected!${NC}"
+    echo "   Please remove secrets from files or use placeholders."
+    echo "   See SECRETS_MANAGEMENT.md for guidance."
+    exit 1
+fi
+
+exit 0
+

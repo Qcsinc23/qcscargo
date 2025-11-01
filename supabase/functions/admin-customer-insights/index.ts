@@ -85,6 +85,42 @@ Deno.serve(async (req) => {
     }
 });
 
+// Helper function to extract name from profile
+function extractCustomerName(profile: any) {
+    // Try first_name + last_name first
+    if (profile.first_name || profile.last_name) {
+        const full = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+        if (full) {
+            return {
+                first_name: profile.first_name || '',
+                last_name: profile.last_name || '',
+                full_name: full
+            };
+        }
+    }
+    
+    // Fallback to contact_person if available
+    if (profile.contact_person) {
+        const contactPerson = profile.contact_person.trim();
+        // Try to split contact_person into first and last name
+        const parts = contactPerson.split(/\s+/);
+        if (parts.length >= 2) {
+            const first = parts[0];
+            const last = parts.slice(1).join(' ');
+            return { first_name: first, last_name: last, full_name: contactPerson };
+        } else {
+            return { first_name: contactPerson, last_name: '', full_name: contactPerson };
+        }
+    }
+    
+    // Last resort: use company name or email
+    if (profile.company_name) {
+        return { first_name: profile.company_name, last_name: '', full_name: profile.company_name };
+    }
+    
+    return { first_name: '', last_name: '', full_name: profile.email || 'N/A' };
+}
+
 // Get detailed customer information with full analytics
 async function getCustomerDetails(supabaseUrl: string, serviceRoleKey: string, customerId: string) {
     // Get customer profile
@@ -105,8 +141,14 @@ async function getCustomerDetails(supabaseUrl: string, serviceRoleKey: string, c
     }
 
     const profile = profiles[0];
+    
+    // Extract and set name information in profile
+    const nameInfo = extractCustomerName(profile);
+    profile.first_name = nameInfo.first_name;
+    profile.last_name = nameInfo.last_name;
+    profile.full_name = nameInfo.full_name;
 
-    // Get customer bookings with full details
+    // Get customer bookings with full details (REAL-TIME)
     const bookingsResponse = await fetch(`${supabaseUrl}/rest/v1/bookings?customer_id=eq.${customerId}&select=*&order=created_at.desc`, {
         headers: {
             'Authorization': `Bearer ${serviceRoleKey}`,
@@ -119,8 +161,21 @@ async function getCustomerDetails(supabaseUrl: string, serviceRoleKey: string, c
         bookings = await bookingsResponse.json();
     }
 
-    // Calculate comprehensive analytics
-    const analytics = calculateCustomerAnalytics(bookings, profile);
+    // Get customer shipments with full details (REAL-TIME)
+    const shipmentsResponse = await fetch(`${supabaseUrl}/rest/v1/shipments?customer_id=eq.${customerId}&select=*&order=created_at.desc`, {
+        headers: {
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'apikey': serviceRoleKey
+        }
+    });
+
+    let shipments = [];
+    if (shipmentsResponse.ok) {
+        shipments = await shipmentsResponse.json();
+    }
+
+    // Calculate comprehensive analytics (includes shipments)
+    const analytics = calculateCustomerAnalytics(bookings, shipments, profile);
 
     // Get customer behavioral patterns
     const behaviorPatterns = calculateBehaviorPatterns(bookings);
@@ -207,11 +262,39 @@ async function listCustomers(supabaseUrl: string, serviceRoleKey: string, option
         }
     }
 
+    // Helper function to extract name from profile
+    const extractCustomerName = (profile: any) => {
+        if (profile.first_name || profile.last_name) {
+            const full = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+            if (full) return { first_name: profile.first_name || '', last_name: profile.last_name || '', full_name: full };
+        }
+        if (profile.contact_person) {
+            const contactPerson = profile.contact_person.trim();
+            const parts = contactPerson.split(/\s+/);
+            if (parts.length >= 2) {
+                return { first_name: parts[0], last_name: parts.slice(1).join(' '), full_name: contactPerson };
+            } else {
+                return { first_name: contactPerson, last_name: '', full_name: contactPerson };
+            }
+        }
+        if (profile.company_name) {
+            return { first_name: profile.company_name, last_name: '', full_name: profile.company_name };
+        }
+        return { first_name: '', last_name: '', full_name: profile.email || 'N/A' };
+    };
+
     // Enrich customer data with analytics if requested
     const enrichedCustomers = await Promise.all(profiles.map(async (profile) => {
+        const nameInfo = extractCustomerName(profile);
+        
         let customerData = {
             id: profile.user_id,
-            profile,
+            profile: {
+                ...profile,
+                first_name: nameInfo.first_name,
+                last_name: nameInfo.last_name,
+                full_name: nameInfo.full_name
+            },
             summary: {
                 profile_completion: profile.profile_completion_percentage || 0,
                 customer_since: profile.created_at
@@ -219,28 +302,45 @@ async function listCustomers(supabaseUrl: string, serviceRoleKey: string, option
         };
 
         if (include_analytics || include_bookings) {
-            // Get basic booking statistics for each customer
-            const bookingsResponse = await fetch(`${supabaseUrl}/rest/v1/bookings?customer_id=eq.${profile.user_id}&select=*&order=created_at.desc`, {
-                headers: {
-                    'Authorization': `Bearer ${serviceRoleKey}`,
-                    'apikey': serviceRoleKey
-                }
-            });
+            // Get REAL-TIME booking and shipment statistics for each customer
+            const [bookingsResponse, shipmentsResponse] = await Promise.all([
+                fetch(`${supabaseUrl}/rest/v1/bookings?customer_id=eq.${profile.user_id}&select=*&order=created_at.desc`, {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                }),
+                fetch(`${supabaseUrl}/rest/v1/shipments?customer_id=eq.${profile.user_id}&select=*&order=created_at.desc`, {
+                    headers: {
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'apikey': serviceRoleKey
+                    }
+                })
+            ]);
 
             let bookings = [];
             if (bookingsResponse.ok) {
                 bookings = await bookingsResponse.json();
             }
 
+            let shipments = [];
+            if (shipmentsResponse.ok) {
+                shipments = await shipmentsResponse.json();
+            }
+
             customerData.summary.total_bookings = bookings.length;
+            customerData.summary.total_shipments = shipments.length;
+            customerData.summary.total_activity = bookings.length + shipments.length;
             customerData.summary.last_booking = bookings.length > 0 ? bookings[0].created_at : null;
+            customerData.summary.last_shipment = shipments.length > 0 ? shipments[0].created_at : null;
 
             if (include_analytics) {
-                customerData.analytics = calculateCustomerAnalytics(bookings, profile);
+                customerData.analytics = calculateCustomerAnalytics(bookings, shipments, profile);
             }
 
             if (include_bookings) {
                 customerData.recent_bookings = bookings.slice(0, 5); // Last 5 bookings
+                customerData.recent_shipments = shipments.slice(0, 5); // Last 5 shipments
             }
         }
 
@@ -253,35 +353,58 @@ async function listCustomers(supabaseUrl: string, serviceRoleKey: string, option
     };
 }
 
-// Calculate comprehensive customer analytics
-function calculateCustomerAnalytics(bookings: any[], profile: any) {
+// Calculate comprehensive customer analytics (REAL-TIME from bookings + shipments)
+function calculateCustomerAnalytics(bookings: any[], shipments: any[] = [], profile: any) {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-    // Basic metrics
+    // Basic metrics from bookings (REAL-TIME)
     const totalBookings = bookings.length;
     const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed');
     const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
     const recentBookings = bookings.filter(b => new Date(b.created_at) >= thirtyDaysAgo);
 
-    // Weight and service analysis
-    const totalWeight = bookings.reduce((sum, b) => sum + (parseFloat(b.estimated_weight) || 0), 0);
-    const avgWeight = totalBookings > 0 ? totalWeight / totalBookings : 0;
+    // Shipment metrics (REAL-TIME)
+    const totalShipments = shipments.length;
+    const deliveredShipments = shipments.filter(s => s.status === 'delivered');
+    const inTransitShipments = shipments.filter(s => s.status === 'in_transit');
+    const pendingShipments = shipments.filter(s => s.status === 'pending_pickup' || s.status === 'processing');
+    const recentShipments = shipments.filter(s => new Date(s.created_at) >= thirtyDaysAgo);
 
-    // Service type preferences
-    const serviceTypes = bookings.reduce((acc, b) => {
+    // Combined activity metrics
+    const totalActivity = totalBookings + totalShipments;
+    const recentActivity = recentBookings.length + recentShipments.length;
+
+    // Weight and service analysis (from both bookings and shipments)
+    const bookingWeight = bookings.reduce((sum, b) => sum + (parseFloat(b.estimated_weight) || 0), 0);
+    const shipmentWeight = shipments.reduce((sum, s) => sum + (parseFloat(s.total_weight) || 0), 0);
+    const totalWeight = bookingWeight + shipmentWeight;
+    const avgWeight = totalActivity > 0 ? totalWeight / totalActivity : 0;
+
+    // Service type preferences (from bookings and shipments)
+    const serviceTypes = {};
+    bookings.forEach(b => {
         const service = b.service_type || 'standard';
-        acc[service] = (acc[service] || 0) + 1;
-        return acc;
-    }, {});
-    const preferredService = Object.keys(serviceTypes).reduce((a, b) => serviceTypes[a] > serviceTypes[b] ? a : b, 'standard');
+        serviceTypes[service] = (serviceTypes[service] || 0) + 1;
+    });
+    shipments.forEach(s => {
+        const service = s.service_level || s.service_type || 'standard';
+        serviceTypes[service] = (serviceTypes[service] || 0) + 1;
+    });
+    const preferredService = Object.keys(serviceTypes).length > 0
+        ? Object.keys(serviceTypes).reduce((a, b) => serviceTypes[a] > serviceTypes[b] ? a : b, 'standard')
+        : 'standard';
 
-    // Booking frequency analysis
+    // Activity frequency analysis (based on all activity)
     let bookingFrequency = 'new';
-    if (totalBookings > 1) {
-        const daysSinceFirst = Math.floor((now.getTime() - new Date(bookings[bookings.length - 1].created_at).getTime()) / (1000 * 60 * 60 * 24));
-        const avgDaysBetween = daysSinceFirst / (totalBookings - 1);
+    const allActivity = [...bookings, ...shipments].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    
+    if (allActivity.length > 1) {
+        const daysSinceFirst = Math.floor((now.getTime() - new Date(allActivity[0].created_at).getTime()) / (1000 * 60 * 60 * 24));
+        const avgDaysBetween = daysSinceFirst / (allActivity.length - 1);
         
         if (avgDaysBetween <= 7) bookingFrequency = 'weekly';
         else if (avgDaysBetween <= 30) bookingFrequency = 'monthly';
@@ -304,17 +427,34 @@ function calculateCustomerAnalytics(bookings: any[], profile: any) {
     // Engagement score (inverse of risk for satisfied customers)
     const engagementScore = Math.max(0, 100 - riskScore + (recentBookings.length * 5));
 
-    // Customer tier classification
+    // Customer tier classification (based on total activity)
     let customerTier = 'new';
-    if (totalBookings >= 20 || totalWeight >= 1000) customerTier = 'vip';
-    else if (totalBookings >= 10 || totalWeight >= 500) customerTier = 'premium';
-    else if (totalBookings >= 3) customerTier = 'regular';
+    if (totalActivity >= 20 || totalWeight >= 1000) customerTier = 'vip';
+    else if (totalActivity >= 10 || totalWeight >= 500) customerTier = 'premium';
+    else if (totalActivity >= 3) customerTier = 'regular';
+
+    // Days since last activity (booking or shipment)
+    const lastBookingDate = bookings.length > 0 ? new Date(bookings[0].created_at) : null;
+    const lastShipmentDate = shipments.length > 0 ? new Date(shipments[0].created_at) : null;
+    const lastActivityDate = lastBookingDate && lastShipmentDate
+        ? (lastBookingDate > lastShipmentDate ? lastBookingDate : lastShipmentDate)
+        : (lastBookingDate || lastShipmentDate);
+    const daysSinceLastActivity = lastActivityDate
+        ? Math.floor((now.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24))
+        : null;
 
     return {
         total_bookings: totalBookings,
+        total_shipments: totalShipments,
+        total_activity: totalActivity,
         confirmed_bookings: confirmedBookings.length,
         cancelled_bookings: cancelledBookings.length,
+        delivered_shipments: deliveredShipments.length,
+        in_transit_shipments: inTransitShipments.length,
+        pending_shipments: pendingShipments.length,
         recent_bookings_30d: recentBookings.length,
+        recent_shipments_30d: recentShipments.length,
+        recent_activity_30d: recentActivity,
         total_weight_shipped: parseFloat(totalWeight.toFixed(2)),
         average_weight_per_booking: parseFloat(avgWeight.toFixed(2)),
         preferred_service_type: preferredService,
@@ -325,7 +465,9 @@ function calculateCustomerAnalytics(bookings: any[], profile: any) {
         engagement_score: Math.min(100, engagementScore),
         customer_tier: customerTier,
         profile_completion: completeness,
-        days_since_last_booking: bookings.length > 0 ? Math.floor((now.getTime() - new Date(bookings[0].created_at).getTime()) / (1000 * 60 * 60 * 24)) : null
+        days_since_last_booking: bookings.length > 0 ? Math.floor((now.getTime() - new Date(bookings[0].created_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
+        days_since_last_shipment: shipments.length > 0 ? Math.floor((now.getTime() - new Date(shipments[0].created_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
+        days_since_last_activity: daysSinceLastActivity
     };
 }
 

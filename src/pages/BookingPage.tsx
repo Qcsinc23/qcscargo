@@ -503,11 +503,35 @@ export default function BookingPage() {
         return
       }
       
-      if (!formData.address.street || !formData.address.city || !formData.address.zip_code) {
-        const errorMsg = 'Please fill in all required address fields'
+      // Enhanced address validation
+      const addressErrors: string[] = []
+      if (!formData.address.street?.trim()) {
+        addressErrors.push('Street address is required')
+      } else if (formData.address.street.trim().length < 5) {
+        addressErrors.push('Street address is too short')
+      }
+      
+      if (!formData.address.city?.trim()) {
+        addressErrors.push('City is required')
+      }
+      
+      if (!formData.address.state?.trim()) {
+        addressErrors.push('State is required')
+      } else if (formData.address.state.trim().length !== 2) {
+        addressErrors.push('State must be a 2-letter abbreviation (e.g., NJ, NY, CA)')
+      }
+      
+      if (!formData.address.zip_code?.trim()) {
+        addressErrors.push('ZIP code is required')
+      } else if (!/^\d{5}(-\d{4})?$/.test(formData.address.zip_code.trim())) {
+        addressErrors.push('Invalid ZIP code format. Use 12345 or 12345-6789')
+      }
+      
+      if (addressErrors.length > 0) {
+        const errorMsg = addressErrors.join(', ')
         setError(errorMsg)
-        toast.error('Incomplete Address', {
-          description: 'Street address, city, and ZIP code are required.',
+        toast.error('Invalid Address', {
+          description: errorMsg,
           duration: 4000
         })
         return
